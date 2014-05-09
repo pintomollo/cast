@@ -73,23 +73,17 @@ function mystruct = get_struct(type, nstruct)
 
     % Structure used to parse the original files (reused to create the fields of mymovie)
     case 'channel'
-      mystruct = struct('axes_length', zeros(2, 0), ...
-                        'centers', zeros(2, 0), ...
-                        'color', ones(1,3), ...             % Color of the channel (RGB)
-                        'compression', 'none', ...           % Compression used for the temporary file
-                        'cortex', [], ...
+      mystruct = struct('color', ones(1,3), ...             % Color of the channel (RGB)
+                        'compression', 'none', ...          % Compression used for the temporary file
                         'detrend', false, ...               % Detrend the image (see imdetrend.m)
-                        'eggshell', [], ...
                         'file', '', ...                     % Path to the original file
                         'fname', '', ...                    % Name of the corresponding temporary file
                         'hot_pixels', true, ...             % Remove the hot pixels in the image (see imhotpixels.m)
+                        'normalize', true, ...              % Normalize the whole stack
+                        'cosmics', true, ...                % Remove the cosmic rays in the image (see imcosmics.m)
                         'max', -Inf, ...                    % Original maximum value used for rescaling
                         'min', Inf, ...                     % Original minimum value used for rescaling
-                        'neighbors', [], ...
-                        'planes',1,...                      % Number of planes in a z-stack 
-                        'orientations', zeros(1, 0), ...    
                         'type', 'dic', ...                  % Type of channel (dic, eggshell, cortex, data)
-                        'timing', get_struct('timing'), ... % Timing of the cell cycle
                         'update', zeros(2, 0));
 
     case 'channel_filter'

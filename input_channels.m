@@ -177,14 +177,33 @@ function channels = input_channels(fname)
                        'Tag', 'detrend');
   enabled = [enabled hDetrend];
 
-  hHotPixels = uicontrol('Parent', hPanel, ...
+  hCosmics = uicontrol('Parent', hPanel, ...
                          'Units', 'normalized',  ...
-                         'Callback', @hotpix_Callback, ...
+                         'Callback', @cosmics_Callback, ...
                          'Position', [0.70 0.01 0.17 0.09], ...
-                         'String', 'Hot Pixels',  ...
+                         'String', 'Cosmic rays',  ...
                          'Style', 'checkbox',  ...
-                         'Tag', 'hot_pixels');
+                         'Tag', 'cosmics');
+  enabled = [enabled hCosmics];
+
+
+  hHotPixels = uicontrol('Parent', hPanel, ...
+                       'Units', 'normalized',  ...
+                       'Callback', @hotpix_Callback, ...
+                       'Position', [0.85 0.09 0.17 0.09], ...
+                       'String', 'Hot pixels',  ...
+                       'Style', 'checkbox',  ...
+                       'Tag', 'hot_pixels');
   enabled = [enabled hHotPixels];
+
+  hNorm = uicontrol('Parent', hPanel, ...
+                         'Units', 'normalized',  ...
+                         'Callback', @norm_Callback, ...
+                         'Position', [0.85 0.01 0.17 0.09], ...
+                         'String', 'Normalize',  ...
+                         'Style', 'checkbox',  ...
+                         'Tag', 'normalize');
+  enabled = [enabled hNorm];
 
   hColor = uicontrol('Parent', hPanel, ...
                      'Units', 'normalized',  ...
@@ -254,6 +273,8 @@ function channels = input_channels(fname)
                    'detrend', hDetrend, ...
                    'list', hChannel, ...
                    'hot_pixels', hHotPixels, ...
+                   'cosmics', hCosmics, ...
+                   'normalize', hNorm, ...
                    'channel_color', hColor, ...
                    'channel_type', hType, ...
                    'compress', hCompress, ...
@@ -309,6 +330,8 @@ function channels = input_channels(fname)
   set(handles.fname,'String', handles.channels(indx).file);
   set(handles.detrend,'Value', handles.channels(indx).detrend);
   set(handles.hot_pixels,'Value', handles.channels(indx).hot_pixels);
+  set(handles.normalize,'Value', handles.channels(indx).normalize);
+  set(handles.cosmics,'Value', handles.channels(indx).cosmics);
   rgb_color = round(handles.channels(indx).color * 255);
   set(handles.channel_color, 'String', ['<HTML><BODY bgcolor = "rgb(' num2str(rgb_color(1)) ', ' num2str(rgb_color(2)) ', ' num2str(rgb_color(3)) ')">green background</BODY></HTML>'])
   set(handles.channel_color, 'ForegroundColor', handles.channels(indx).color);
@@ -316,11 +339,26 @@ function channels = input_channels(fname)
   set(handles.compress, 'Value',  handles.channels(indx).compression);
   set(handles.text, 'String', ['Frame #' num2str(nimg)]);
 
-  %drawnow;
-  %refresh(hfig);
-  img = load_data(handles.channels(indx).fname, nimg);
+  set(handles.all_buttons, 'Enable', 'off');
+  drawnow;
+  refresh(hfig);
+
+  img = double(load_data(handles.channels(indx).fname, nimg));
+
+  if (handles.channels(indx).detrend)
+    img = imdetrend(img);
+  end
+
+  if (handles.channels(indx).cosmics)
+    img = imcosmics(img);
+  end
+
   if (handles.channels(indx).hot_pixels)
     img = imhotpixels(img);
+  end
+
+  if (handles.channels(indx).normalize)
+    img = imnorm(img);
   end
 
   if (ishandle(handles.img))
@@ -339,6 +377,8 @@ function channels = input_channels(fname)
                'DataAspectRatio',  [1 1 1]);
   end
 
+  set(handles.all_buttons, 'Enable', 'on');
+
   set(hfig, 'UserData',  handles);
     return
   end
@@ -356,13 +396,16 @@ function channels = input_channels(fname)
   set(handles.all_buttons, 'Enable', 'off');
 
   new_channel = convert_movie()
-  handles.channels(end+1) = get_struct('channel');
-  handles.channels(end).fname = new_channel;
-  handles.channels(end).type = 1;
-  handles.channels(end).compression = 1;
 
-  liststring = [get(handles.list, 'String') '|Channel ' num2str(length(handles.channels))];
-  set(handles.list, 'String', liststring);
+  if (~isempty(new_channel))
+    handles.channels(end+1) = get_struct('channel');
+    handles.channels(end).fname = new_channel;
+    handles.channels(end).type = 1;
+    handles.channels(end).compression = 1;
+
+    liststring = [get(handles.list, 'String') '|Channel ' num2str(length(handles.channels))];
+    set(handles.list, 'String', liststring);
+  end
 
   set(handles.all_buttons, 'Enable', 'on');
 
@@ -381,10 +424,48 @@ function channels = input_channels(fname)
 
   hfig = gcbf;
   handles = get(hfig, 'UserData');
-  handles.channels(handles.current).detrend = get(hObject, 'Value');
+  handles.channels(handles.current).detrend = logical(get(hObject, 'Value'));
   set(hfig, 'UserData',  handles);
+
+  update_display(hfig, handles.current);
     return
   end
+
+  % --- Executes on button press in detrend.
+  function norm_Callback(hObject, eventdata, handles)
+  % hObject    handle to detrend (see GCBO)
+  % eventdata  reserved - to be defined in a future version of MATLAB
+  % handles    structure with handles and user data (see GUIDATA)
+
+  % Hint: get(hObject,'Value') returns toggle state of detrend
+
+  hfig = gcbf;
+  handles = get(hfig, 'UserData');
+  handles.channels(handles.current).normalize = logical(get(hObject, 'Value'));
+  set(hfig, 'UserData',  handles);
+
+  update_display(hfig, handles.current);
+    return
+  end
+
+
+  % --- Executes on button press in detrend.
+  function cosmics_Callback(hObject, eventdata, handles)
+  % hObject    handle to detrend (see GCBO)
+  % eventdata  reserved - to be defined in a future version of MATLAB
+  % handles    structure with handles and user data (see GUIDATA)
+
+  % Hint: get(hObject,'Value') returns toggle state of detrend
+
+  hfig = gcbf;
+  handles = get(hfig, 'UserData');
+  handles.channels(handles.current).cosmics = logical(get(hObject, 'Value'));
+  set(hfig, 'UserData',  handles);
+
+  update_display(hfig, handles.current);
+    return
+  end
+
 
   % --- Executes on button press in detrend.
   function slider_Callback(hObject, eventdata, handles)
@@ -412,7 +493,7 @@ function channels = input_channels(fname)
 
   hfig = gcbf;
   handles = get(hfig, 'UserData');
-  handles.channels(handles.current).hot_pixels = get(hObject, 'Value');
+  handles.channels(handles.current).hot_pixels = logical(get(hObject, 'Value'));
   set(hfig, 'UserData',  handles);
 
   update_display(hfig, handles.current);

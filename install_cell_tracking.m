@@ -28,10 +28,32 @@ function install_cell_tracking
       savepath;
 
       if (~exist('bfconvert.bat', 'file'))
-        error('ASSET:lociMissing', 'The LOCI command line tools are not present, this might be a problem if your recordings are not in TIFF format !\nYou can download them from http://downloads.openmicroscopy.org/latest/bio-formats5/\nThen place the entire folder in the cell-tracking folder.');
+        cd ..;
+        error('Tracking:lociMissing', 'The LOCI command line tools are not present, this might be a problem if your recordings are not in TIFF format !\nYou can download them from http://downloads.openmicroscopy.org/latest/bio-formats5/\nThen place the entire folder in the cell-tracking folder.');
       end
     else
-      error('ASSET:lociMissing', 'The LOCI command line tools are not present, this might be a problem if your recordings are not in TIFF format !\nYou can download them from http://downloads.openmicroscopy.org/latest/bio-formats5/\nThen place the entire folder in the cell-tracking folder.');
+      cd ..;
+      error('Tracking:lociMissing', 'The LOCI command line tools are not present, this might be a problem if your recordings are not in TIFF format !\nYou can download them from http://downloads.openmicroscopy.org/latest/bio-formats5/\nThen place the entire folder in the cell-tracking folder.');
+    end
+  end
+
+  % Try to compile the necessary MEX files
+  if (exist('median_mex') ~= 3)
+    try
+      mex -setup;
+      eval(['mex MEX' filesep 'median_mex.c']);
+    catch ME
+      cd ..;
+      error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
+    end
+  end
+  if (exist('gaussian_mex') ~= 3)
+    try
+      mex -setup;
+      eval(['mex MEX' filesep 'gaussian_mex.c']);
+    catch ME
+      cd ..;
+      error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
     end
   end
 

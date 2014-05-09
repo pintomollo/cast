@@ -1,11 +1,10 @@
-function new_struct = edit_options(mystruct, name)
+function mystruct = edit_options(mystruct, name)
 
   if (nargin == 1)
     name = '';
   end
 
-  new_struct = mystruct;
-  values = parse_struct(mystruct)
+  values = parse_struct(mystruct);
   hFig = create_figure(values);
 
   uiwait(hFig);
@@ -71,6 +70,8 @@ function new_struct = edit_options(mystruct, name)
     set(hPanel, 'Units', 'Pixels');
     psize = get(hPanel, 'Position');
 
+    fields = NaN(size(myvals, 1), 1);
+
     count = 0;
     for i=size(myvals,1):-1:1
 
@@ -135,6 +136,7 @@ function new_struct = edit_options(mystruct, name)
       end
 
       count = count + 1;
+      fields(i) = hControl;
     end
     curr_size = get(hPanel, 'Position');
     if (count*50 + 30 > curr_size(4))
@@ -150,6 +152,7 @@ function new_struct = edit_options(mystruct, name)
     end
 
     handles = struct('panel', hPanel, ...
+                     'controls', fields, ...
                      'fix_offset', psize(2), ...
                      'slider', hSlider);
 
@@ -223,10 +226,99 @@ function new_struct = edit_options(mystruct, name)
   end
 
   function save_CloseRequestFcn(hObject, eventdata, handles)
+
+    handles = get(hFig, 'UserData');
+
+    for i=1:size(values, 1)
+      switch values{i,4}
+        case 'edit'
+          val = get(handles.controls(i), 'String');
+        case 'checkbox'
+          val = logical(get(handles.controls(i), 'Value'));
+        case 'table'
+          val = get(handles.controls(i), 'Data');
+        otherwise
+          continue;
+      end
+
+      if (~isempty(val))
+        switch values{i,3}
+          case 'cell'
+            goods = ~cellfun('isempty', val)
+            grow = any(goods, 1);
+            gcol = any(goods, 2);
+            val = val(grow, gcol);
+          case 'num'
+            [tmp, correct] = mystr2double(val);
+            while (~correct)
+              answer = inputdlg(['''' values{i,1} ''' is not a valid number, do you want to correct it ?'], 'Correct a numerical value', 1, {val});
+              if (isempty(answer))
+                [tmp, correct] = mystr2double(values{i, 2});
+              else
+                [tmp, correct] = mystr2double(answer{1});
+              end
+            end
+
+            val = tmp;
+          case 'func'
+            [tmp, correct] = mystr2func(val);
+
+            while (~correct)
+              if (iscell(val))
+                val = char(val(~cellfun('isempty', val)));
+                val = [val repmat(' ', size(val, 1), 1)];
+                val = val.';
+                val = strtrim(val(:).');
+              end
+
+              answer = inputdlg(['''' values{i,1} ''' is not a valid function, do you want to correct it ?'], 'Correct a function handle', 1, {val});
+              if (isempty(answer))
+                [tmp, correct] = mystr2func(values{i, 2});
+              else
+                [tmp, correct] = mystr2func(answer{1});
+              end
+            end
+
+            val = tmp;
+          case 'strel'
+            val = strel('arbitrary', val);
+        end
+      end
+
+      mystruct.(values{i,1}) = val;
+    end
+
     uiresume(gcbf)
 
     return
   end
+end
+
+function [values, correct] = mystr2func(value)
+
+  if (iscell(value))
+    splits = value;
+    splits = splits(~cellfun('isempty', splits));
+  else
+    splits = regexp(value, '\s+', 'split');
+  end
+  values = cellfun(@str2func, splits, 'UniformOutput', false);
+
+  implicit = cellfun(@(x)(x(1) == '@'), splits);
+  explicit = cellfun(@(x)(~isempty(which(x))), splits);
+  correct = all(implicit | explicit);
+
+  return;
+end
+
+function [values, correct] = mystr2double(value)
+
+  splits = regexp(value, '\s+', 'split');
+  values = str2double(splits);
+  nans = cellfun(@(x)(strncmpi(x, 'nan', 3)), splits);
+  correct = ~any(isnan(values) & ~nans);
+
+  return;
 end
 
 function values = parse_struct(mystruct)

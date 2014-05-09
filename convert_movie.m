@@ -1,4 +1,4 @@
-function [mymovie] = convert_movie(name)
+function [converted_file] = convert_movie(name)
 % CONVERT_MOVIE converts a recording such that it can be tracked properly.
 %
 %   [MYMOVIE] = CONVERT_MOVIE(NAME, OPTS) loads the movie NAME into MYMOVIE
@@ -10,6 +10,7 @@ function [mymovie] = convert_movie(name)
 % 01.05.2014
 
   % Initialization
+  converted_file = '';
   curdir = '';
   dirpath = '';
   if (nargin == 0)
@@ -76,7 +77,7 @@ function [mymovie] = convert_movie(name)
 
   % We convert the provided type into a more handy one
   %new_fname = bftools_convert(fname);
-  mymovie = bftools_convert(fname);
+  converted_file = bftools_convert(fname);
 
   % Ask the user to identify the different channels
   %mymovie = identify_channels(new_fname);
