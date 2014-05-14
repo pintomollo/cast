@@ -2,9 +2,9 @@ function [new_img] = imcosmics(img, block_size, thresh)
 
   if (nargin == 1)
     block_size = 10;
-    thresh = 30;
+    thresh = 3;
   elseif (nargin == 2)
-    thresh = 30;
+    thresh = 3;
   end
 
   nplanes = size(img, 3);

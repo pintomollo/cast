@@ -126,6 +126,8 @@ function [newfile] = bftools_convert(fname)
   end
   [mypath, junk] = fileparts(cmd_path);
 
+  hInfo = warndlg('Parsing metadata, please wait.', 'Converting movie...');
+
   cd(mypath);
 
   if (ispc)
@@ -135,6 +137,11 @@ function [newfile] = bftools_convert(fname)
     cmd_name = strrep(fname,' ','\ ');
     [res, infos] = system(['./showinf -stitch -nopix -nometa ' cmd_name]);
   end
+
+  if (ishandle(hInfo))
+    delete(hInfo);
+  end
+
   if (res ~= 0)
     cd(curdir);
     error(infos);
@@ -210,6 +217,8 @@ function [newfile] = bftools_convert(fname)
     end
   end
 
+  hInfo = warndlg('Converting to OME-TIFF, please wait.', 'Converting movie...');
+
   % Call directly the command line tool to do the job
   if (ispc)
     cmd_newname = ['"' newname '"'];
@@ -218,6 +227,11 @@ function [newfile] = bftools_convert(fname)
     cmd_newname = strrep(newname,' ','\ ');
     [res, infos] = system(['./bfconvert -stitch -separate ' cmd_name ' ' cmd_newname]);
   end
+
+  if (ishandle(hInfo))
+    delete(hInfo);
+  end
+
   if (res ~= 0)
     cd(curdir);
     error(infos);

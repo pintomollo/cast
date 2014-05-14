@@ -1,41 +1,63 @@
 function mystruct = edit_options(mystruct, name)
+% EDIT_OPTIONS displays a GUI enabling the user to interactively
+% modify the content of a structure.
+%
+%   [MODIFIED] = EDIT_OPTIONS(ORIGINAL) displays the content of
+%   ORIGINAL to allow modifying it. Pressing the "Cancel" button
+%   will ignore changes made by the user.
+%
+%   [...] = EDIT_OPTIONS(ORIGINAL, NAME) displays NAME in the title
+%   bar. Used primarly during esition of sub-structures.
+%
+% Naef lab, EPFL
+% Simon Blanchoud
+% 09.05.14
 
+  % Input check
   if (nargin == 1)
     name = '';
   end
 
+  % Analyze the structure we received
   values = parse_struct(mystruct);
+
+  % Create the figure corresponding to the structure
   hFig = create_figure(values);
 
+  % Wait for the user to finish and delete the figure
   uiwait(hFig);
   delete(hFig);
 
   return;
 
+  % Function which creates the figure along with all the fields and controls
   function hFig = create_figure(myvals)
 
+    % Fancy naming
     if (isempty(name))
       ftitle = 'Edit options';
     else
       ftitle = ['Edit options (' name ')'];
     end
 
+    % THE figure
     hFig = figure('PaperUnits', 'centimeters',  ...
-                  'CloseRequestFcn', @empty, ...
+                  'CloseRequestFcn', @empty, ...            % Cannot be closed
                   'Color',  [0.7 0.7 0.7], ...
-                  'MenuBar', 'none',  ...
+                  'MenuBar', 'none',  ...                   % No menu
                   'Name', ftitle,  ...
-                  'Resize', 'off', ...
+                  'Resize', 'off', ...                      % Cannot resize
                   'NumberTitle', 'off',  ...
                   'Units', 'normalized', ...
-                  'Position', [0.3 0.25 .35 0.5], ...
-                  'DeleteFcn', @empty, ...
-                  'WindowScrollWheelFcn', @scrolling, ...
+                  'Position', [0.3 0.25 .35 0.5], ...       % Fixed size
+                  'DeleteFcn', @empty, ...                  % Cannot close
+                  'WindowScrollWheelFcn', @scrolling, ...   % Supports scrolling
                   'HandleVisibility', 'callback',  ...
                   'Tag', 'main_fig',  ...
                   'UserData', [], ...
-                  'Visible', 'off');
+                  'Visible', 'off');                        % Starts hidden
 
+    % A slider used when the structure is too big to fit in the figure
     hSlider = uicontrol('Parent', hFig, ...
                   'Units', 'normalized',  ...
                   'Callback', @slider_Callback, ...
@@ -46,6 +68,9 @@ function mystruct = edit_options(mystruct, name)
                   'Style', 'slider', ...
                   'Tag', 'slider1');
 
+    % The panel which contains the details of the structure. This is essential
+    % to be able to slide the controls around. Based on an idea picked up
+    % online
     hPanel = uipanel('Parent', hFig, ...
                      'Title', '',  ...
                      'Units', 'normalized', ...
@@ -53,6 +78,7 @@ function mystruct = edit_options(mystruct, name)
                      'Clipping', 'on',  ...
                      'Position', [0.2 0 0.8 1]);
 
+    % To accept changes
     hOK = uicontrol('Parent', hFig, ...
                   'Units', 'normalized',  ...
                   'Callback', @save_CloseRequestFcn, ...
@@ -60,6 +86,7 @@ function mystruct = edit_options(mystruct, name)
                   'String', 'OK',  ...
                   'Tag', 'okbutton');
 
+    % To discard changes
     hCancel = uicontrol('Parent', hFig, ...
                   'Units', 'normalized',  ...
                   'Callback', @cancel_CloseRequestFcn, ...
@@ -67,19 +94,30 @@ function mystruct = edit_options(mystruct, name)
                   'String', 'Cancel',  ...
                   'Tag', 'okbutton');
 
+    % Now we work in pixels, easier that way
     set(hPanel, 'Units', 'Pixels');
+
+    % Get the original size of the panel, important to know the size
+    % of the visible area.
     psize = get(hPanel, 'Position');
 
+    % Storing all the handles for the controls, necessary to retrieve
+    % their content
     fields = NaN(size(myvals, 1), 1);
 
+    % We cycle through the list of fields and create the appropriate controls.
+    % We start from the end of the structure to display it in the correct order.
     count = 0;
     for i=size(myvals,1):-1:1
 
+      % Here is the trick, if we have drawn outside of the panel, increase and
+      % and slide it !
       curr_size = get(hPanel, 'Position');
       if (count*50 + 70 > curr_size(4))
         set(hPanel, 'Position', curr_size+[0 -50 0 50]);
       end
 
+      % The text defining the content of the field
       hText = uicontrol('Parent', hPanel, ...
                         'Units', 'pixels',  ...
                         'Position', [20 count*50 + 20 120 30], ...
@@ -87,7 +125,10 @@ function mystruct = edit_options(mystruct, name)
                         'Style', 'text',  ...
                         'Tag', 'text');
 
+      % The different types of controls used, this decision was made
+      % in parse_struct.
       switch myvals{i,4}
+        % Simple one-line editable fields
         case 'edit'
           hControl = uicontrol('Parent', hPanel, ...
                         'Units', 'pixels',  ...
@@ -96,6 +137,8 @@ function mystruct = edit_options(mystruct, name)
                         'String', myvals{i,2}, ...
                         'Style', myvals{i,4}, ...
                         'Tag', 'data');
+
+        % Checkbox used for boolean values
         case 'checkbox'
           hControl = uicontrol('Parent', hPanel, ...
                         'Units', 'pixels',  ...
@@ -103,6 +146,8 @@ function mystruct = edit_options(mystruct, name)
                         'Value', myvals{i,2}, ...
                         'Style', myvals{i,4}, ...
                         'Tag', 'data');
+
+        % An incredibly flexible table, used for cell arrays
         case 'table'
           ncolumns = size(myvals{i,2}, 2);
           hControl = uitable('Parent', hPanel, ...
@@ -114,8 +159,9 @@ function mystruct = edit_options(mystruct, name)
                         'RowName', [], ...
                         'Tag', 'data');
 
+          % Because of the sliders inherent to the table, it is too wide
+          % so we increase its size and move the text a bit
           set(hText, 'Position', [20 count*50 + 50 120 30]);
-
           count = count + 1;
 
           if (strncmp(myvals{i,3}, 'strel', 5))

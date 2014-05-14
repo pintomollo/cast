@@ -10,9 +10,9 @@ function mystruct = get_struct(type, nstruct)
 %
 %   MYSTRUCT = GET_STRUCT(TYPE) returns one structure (SIZE = 1).
 %
-% Gonczy & Naef labs, EPFL
+% Naef lab, EPFL
 % Simon Blanchoud
-% 09.12.2010
+% 13.05.2014
 
   % Set the default size
   if (nargin == 1)
@@ -21,6 +21,55 @@ function mystruct = get_struct(type, nstruct)
 
   % Switch between all the different types
   switch type
+
+    % Structure used to parse the original files (reused in mytracking)
+    case 'channel'
+      mystruct = struct('color', ones(1,3), ...     % Color of the channel (RGB)
+                        'compression', 'none', ...  % Compression used for the temporary file
+                        'cosmics', true, ...        % Remove the cosmic rays in the image (see imcosmics.m)
+                        'detrend', false, ...       % Detrend the image (see imdetrend.m)
+                        'file', '', ...             % Path to the original file
+                        'fname', '', ...            % Name of the corresponding temporary file
+                        'hot_pixels', true, ...     % Remove the hot pixels in the image (see imhotpixels.m)
+                        'max', -Inf, ...            % Original maximum value used for rescaling
+                        'min', Inf, ...             % Original minimum value used for rescaling
+                        'normalize', true, ...      % Normalize the whole stack
+                        'type', 'dic');             % Type of channel
+
+    % The few parameters required to filter the image appropriately
+    case 'image_filters'
+      mystruct = struct('hot_pixels_threshold', 15, ...     % see imhotpixels.m
+                        'cosmic_rays_threshold', 3, ...     % see imcosmics.m
+                        'cosmic_rays_window_size', 10, ...  % see imcosmics.m
+                        'detrend_meshpoints', 32);          % see imdetrend.m
+
+    % Structure used to handle the metadata provided by the microscope
+    case 'metadata'
+      mystruct = struct('acquisition_time', [], ... % Time of frame acquisition
+                        'channels', {{}}, ...       % List of acquired channels
+                        'channel_index', [], ...    % Channel <-> frame
+                        'exposure_time', [], ...    % Frame exposure time
+                        'frame_index', [], ...      % Time point <-> frame
+                        'plane_index', [], ...      % Plane <-> frame
+                        'raw_data', '', ...         % Raw metadata string
+                        'z_position', []);          % Z-position of the frame
+
+    % Global structure of a recording and analysis
+    case 'mytracking'
+      mychannel = get_struct('channel', 0);
+      mystruct = struct('channels', mychannel, ...  % Channels of the recording
+                        'segmentation', [], ...     % Segmentation data
+                        'tracking', [], ...         % Tracking data
+                        'experiment', '', ...       % Name of the experiment
+                        'metadata', []);            % Recordings metadata
+
+    % Global structure of options/parameters for an analysis
+    case 'options'
+      mystruct = struct('config_files', {{}}, ...   % The various configuration files loaded
+                        'filtering', get_struct('image_filters'), ... % Parameters for filtering the recordings
+                        'verbosity', 2);            % Verbosity level of the analysis
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     % The general structure that contains all the information required for
     % ASSET to analyze the data. Usually this structure is called 'opts' throughout the code.
@@ -70,21 +119,6 @@ function mystruct = get_struct(type, nstruct)
       % Compute the pixel size based on the default values. This needs to be re-done
       % in case one value is changed.
       mystruct = set_pixel_size(mystruct);
-
-    % Structure used to parse the original files (reused to create the fields of mymovie)
-    case 'channel'
-      mystruct = struct('color', ones(1,3), ...             % Color of the channel (RGB)
-                        'compression', 'none', ...          % Compression used for the temporary file
-                        'detrend', false, ...               % Detrend the image (see imdetrend.m)
-                        'file', '', ...                     % Path to the original file
-                        'fname', '', ...                    % Name of the corresponding temporary file
-                        'hot_pixels', true, ...             % Remove the hot pixels in the image (see imhotpixels.m)
-                        'normalize', true, ...              % Normalize the whole stack
-                        'cosmics', true, ...                % Remove the cosmic rays in the image (see imcosmics.m)
-                        'max', -Inf, ...                    % Original maximum value used for rescaling
-                        'min', Inf, ...                     % Original minimum value used for rescaling
-                        'type', 'dic', ...                  % Type of channel (dic, eggshell, cortex, data)
-                        'update', zeros(2, 0));
 
     case 'channel_filter'
       mystruct = struct('channel', 'data', ...
@@ -183,17 +217,6 @@ function mystruct = get_struct(type, nstruct)
                         'quantification', [], ...
                         'speed', []);
 
-    % Structure used to handle the metadata provided by the microscope
-    case 'metadata'
-      mystruct = struct('acquisition_time', [], ...
-                        'channels', {{}}, ...
-                        'channel_index', [], ...
-                        'exposure_time', [], ...
-                        'frame_index', [], ...
-                        'plane_index', [], ...
-                        'z_position', []);
-
-
     % Parameters used to perform machine learning (see find_parameters.m)
     case 'ml_params'
       mystruct = struct('config', {{}}, ...                 % Parameters of the optimization
@@ -242,18 +265,6 @@ function mystruct = get_struct(type, nstruct)
                         'user_data', {{}}, ...
                         'axes_length', [28;18;15], ...
                         'advection_params', [0.02 0.01]);
-
-
-    % Global structure of a recording/analysis (see ASSET.m)
-    case 'mymovie'
-      mystruct = struct('correction', [], ...               % Correction between different channels
-                        'cortex', [], ...                   % Cortex channel (fluorescence)
-                        'data', [], ...                     % Data channel (generic container)
-                        'dic', [], ...                      % DIC channel of the experiment & results of the segmentation
-                        'eggshell', [], ...                 % Eggshell channel (fluorescence)
-                        'experiment', '', ...               % Name of the experiment
-                        'markers', [], ...                  % Result of the fluorescent segmentation
-                        'metadata', []);
 
     % Parameters used for the quantification of the signal
     case 'quantification'
