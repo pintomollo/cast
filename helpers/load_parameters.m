@@ -48,7 +48,7 @@ function opts = load_parameters(opts, fnames)
   end
 
   % Loop and process each file sequentially
-  for i=1:length(fnames)
+  for i = 1:length(fnames)
     fname = fnames{i};
 
     % If the file does not exists, we have a few other options

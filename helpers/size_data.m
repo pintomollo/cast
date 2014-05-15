@@ -1,101 +1,91 @@
 function [nframes, ssize] = size_data(fname)
-  
-%  if (nargout == 4 | isjava(fname))
-%    if (~isjava(fname))
-%      if(isstruct(fname) & isfield(fname, 'fname'))
-%        fname = fname.fname;
-%      end
+% SIZE_DATA extracts the number of frames as well as the size of a frame from a file.
 %
-%      fname = absolutepath(fname);
+%   [NFRAMES, IMG_SIZE] = SIZE_DATA(FNAME) returns the NFRAMES and the IMG_SIZE from
+%   FNAME. It requires a file format readable by imformats. SIZE_DATA returns -1 in
+%   case of error.
 %
-%      r = loci.formats.ImageReader();
-%      r.setId(fname);
-%    else
-%      r = fname;
-%    end
-%
-%    height = r.getSizeX();
-%    width = r.getSizeY();
-%    ssize = [width height];
-%    nframes = r.getImageCount();
-%
-%    if (nargout > 2)
-%      pixelType = r.getPixelType();
-%    end
-%    if (nargout < 4 && ~isjava(fname))
-%      r.close();
-%    end
-%  else
-    %Substitute imfinfos to handle natively missing files
-    if (isempty(fname))
-      error('MATLAB:imfinfo:fileOpen', 'No file name was provided.');
-    elseif(isstruct(fname) & isfield(fname, 'fname'))
-      if (isempty(fname.fname))
-        error('MATLAB:imfinfo:fileOpen', 'No file name was provided.');
-      else
-        fid = fopen(fname.fname, 'r');
-      end
+% Neaf lab, EPFL
+% Simon Blanchoud
+% 15.05.2014
+
+  % Initialize the outputs
+  nframes = -1;
+  ssize = NaN(1,2);
+
+  % If no filename is provided, we have a problem
+  if (isempty(fname))
+    warning('Tracking:SizeData', 'No file name was provided.');
+    return;
+
+  % Or, potentially is it's a structure
+  elseif(isstruct(fname))
+
+    % We're looking only for one field with the name 'fname', everyhting else if wrong
+    if (~isfield(fname, 'fname') || isempty(fname.fname))
+      warning('Tracking:SizeData', 'No file name was found in the provided structure.');
+      return;
+
+    % Try to open it
     else
-      [fid, m] = fopen(fname, 'r');
+      fid = fopen(fname.fname, 'r');
     end
 
-    if (fid == -1)
-      if (isstruct(fname))
-        if (isfield(fname, 'eggshell'))
-          nframes = length(fname.eggshell);
-        elseif (isfield(fname, 'cortex'))
-          nframes = length(fname.cortex);
-        elseif (isfield(fname, 'centers'))
-          nframes = size(fname.centers, 2);
-        else
-          error('MATLAB:imfinfo:fileOpen', ...
-              'Unable to find suitable fields to get the size of the recording.');
-        end
-      else
-        error('MATLAB:imfinfo:fileOpen', ...
-            'Unable to open file "%s" for reading.', fname);
-      end
+  % If we have a string, try to open the file
+  elseif (ischar(fname))
+    fid = fopen(fname, 'r');
 
-      ssize = NaN(1,2);
-%      pixelType = 'unknown';
-    else
-      filename = fopen(fid);  % Get the full pathname if not in pwd.
-      fclose(fid);
-      
-      idx = find(filename == '.');
-      format = '';
-      if (~isempty(idx))
-        extension = lower(filename(idx(end)+1:end));
-        % Look up the extension in the file format registry.
-        fmt_s = imformats(extension);
-        tf = feval(fmt_s.isa, filename);
-            
-        if (tf)
-          format = fmt_s.ext{1};
-        end
-      end
+  % Otherwise, we do not know what to do
+  else
+    warning('Tracking:SizeData', 'Unable to extract a filename from an "%s" object.', class(fname));
+    return
+  end
 
-      if (isempty(format))
-        infos = imfinfo(fname);
-      else
-        infos = feval(fmt_s.info, filename);
-      end
+  % Here, we could not open the file previously, so problem...
+  if (fid == -1)
+    warning('Tracking:SizeData', 'Unable to open file "%s" for reading.', fname);
+    return
 
-      nframes = length(infos);
-      ssize = [infos(1).Height infos(1).Width];
-      %if (nargout > 2)
-      %  type = ['uint' num2str(infos(1).BitDepth)];
-      %  switch lower(infos(1).SampleFormat(1))
-      %    case 'u'
-      %      pixelType = ['uint' num2str(infos(1).BitDepth)];
-      %    case 'i'
-      %      pixelType = ['int' num2str(infos(1).BitDepth)];
-      %    otherwise
-%            pixelType = 'double';
-      %  end
-      %end
+  % Now we can work ! Most of this part was extracted from the code of imfinfo
+  % for a maximal speedup (I got rid of quite some checking)
+  else
+    % Get the full filename just in case
+    filename = fopen(fid);
+    fclose(fid);
+
+    % Get ready to extract the image format
+    format = '';
+
+    % Look for the extension
+    idx = find(filename == '.');
+    if (~isempty(idx))
+
+      % Extract the extension
+      extension = lower(filename(idx(end)+1:end));
+
+      % Look up the extension in the file format registry.
+      fmt_s = imformats(extension);
+      tf = feval(fmt_s.isa, filename);
+
+      % If we retrieve something, extract the actual full extension
+      if (tf)
+        format = fmt_s.ext{1};
+      end
     end
-%  end
+
+    % In case we do not have anything, go for the slow version
+    if (isempty(format))
+      infos = imfinfo(fname);
+
+    % Otherwise, we can directly call the adequat parsing function
+    else
+      infos = feval(fmt_s.info, filename);
+    end
+
+    % Finally we can get the number of frames and the image size
+    nframes = length(infos);
+    ssize = [infos(1).Height infos(1).Width];
+  end
 
   return;
 end

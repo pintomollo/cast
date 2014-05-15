@@ -4,7 +4,7 @@
 
 % Add here the default values of your parameters
 #filtering
-cosmic_rays_threshold 3
+cosmic_rays_threshold 5
 
 #
-verbosity 1
+verbosity 2

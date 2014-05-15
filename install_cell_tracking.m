@@ -1,6 +1,7 @@
 function install_cell_tracking
 % INSTALL_CELL_TRACKING adds the required directories to the matlabpath
-% and handles the directories structure and the dependent libraries.
+% and handles the directories structure and the dependent libraries. It also
+% compiles the required MEX libraries, hence a C/C++ compiler is requried.
 %
 % Naef labs, EPFL
 % Simon Blanchoud
@@ -21,7 +22,7 @@ function install_cell_tracking
   addpath(fullfile(current_dir, 'helpers'));
   savepath;
 
-  % Try to use the java libraries to see if they are properly installed
+  % Check if the Bio-formats toolbox is properly installed
   if (exist('bfconvert.bat', 'file') ~= 2)
     if (exist('bftools', 'dir'))
       addpath(fullfile(current_dir, 'bftools'));
