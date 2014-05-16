@@ -4,7 +4,8 @@ function opts = load_parameters(opts, fnames)
 %   OPTS = LOAD_PARAMETERS(OPTS, FNAME) loads the parameters listed in FNAME into OPTS.
 %   For an example of the syntax of configuration files, see Config/default_params.txt.
 %
-%   OPTS = LOAD_PARAMETERS(OPTS) loads the parameters from OPTS.CONFIG_FILE.
+%   OPTS = LOAD_PARAMETERS(OPTS) loads the parameters from OPTS.CONFIG_FILE or prompts
+%   the user to select interactively a file.
 %
 %   OPTS = LOAD_PARAMETERS(FNAME) uses the standard options structure provided by
 %   get_struct('options').
@@ -32,9 +33,29 @@ function opts = load_parameters(opts, fnames)
     end
   end
 
-  % If the name is not provided correctly, we cannot do anything
+  % If the name is not provided, we try to ask for one
   if (isempty(fnames))
-    return;
+
+    % Check if we can save them in the Config folder
+    if (exist('Config', 'dir'))
+      conf_dir = which('Config.');
+    elseif (exist(['cell-tracking' filesep 'Config'], 'dir'))
+      conf_dir = ['cell-tracking' filesep 'Config'];
+    else
+      conf_dir = pwd;
+    end
+
+    % Ask the user for a filename
+    [fnames, pathname] = uigetfile({'*.txt','All text files'; '*.*','All files' }, ...
+                                   'Load parameters', [conf_dir filesep]);
+
+    % This means the user has canceled
+    if (all(fnames == 0))
+      return;
+    end
+
+    % Get the full name
+    fnames = fullfile(pathname, fnames);
   end
 
   % If opts itself is some text, than we get the corresponding structure
@@ -50,6 +71,7 @@ function opts = load_parameters(opts, fnames)
   % Loop and process each file sequentially
   for i = 1:length(fnames)
     fname = fnames{i};
+    fnames{i} = relativepath(fname);
 
     % If the file does not exists, we have a few other options
     if (~exist(fname, 'file'))

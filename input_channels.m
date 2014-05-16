@@ -367,8 +367,8 @@ function [mytracking, opts] = input_channels(fname)
     return
   end
 
-  function edit_options_Callback(hObject, eventdata)
-  % This function will open the GUI responsible for editing the content of the
+  function options_Callback(hObject, eventdata)
+  % This function is responsible for handling the content of the
   % structure which contains the parameters of the filtering algorithms.
 
     % Block the GUI
@@ -376,8 +376,24 @@ function [mytracking, opts] = input_channels(fname)
     drawnow;
     refresh(hFig);
 
-    % Call the editing function
-    opts.filtering = edit_options(opts.filtering);
+    % And get the type of button which called the callback (from its tag)
+    type = get(hObject, 'tag');
+
+    % Handle all three buttons differently
+    switch type
+
+      % Call the editing function
+      case 'edit'
+        opts.filtering = edit_options(opts.filtering);
+
+      % Call the loading function
+      case 'load'
+        opts = load_parameters(opts);
+
+      % Call the saving function
+      case 'save'
+        save_parameters(opts);
+    end
 
     % Release the GUI and recompute the filters
     set(handles.all_buttons, 'Enable', 'on');
@@ -858,16 +874,36 @@ function [mytracking, opts] = input_channels(fname)
                            'Tag', 'normalize');
     enabled = [enabled hNorm];
 
-    % The button which allows to edit the parameter structure
+    % The buttons which allows to edit, load and save parameters
     hEdit = uicontrol('Parent', hPanel, ...
                        'Units', 'normalized',  ...
-                       'Callback', @edit_options_Callback, ...
+                       'Callback', @options_Callback, ...
                        'Position', [0.89 0.3 0.08 0.04], ...
                        'Style', 'pushbutton',  ...
                        'FontSize', 10, ...
                        'String', 'Edit parameters',  ...
-                       'Tag', 'edit_options');
+                       'Tag', 'edit');
     enabled = [enabled hEdit];
+
+    hLoad = uicontrol('Parent', hPanel, ...
+                       'Units', 'normalized',  ...
+                       'Callback', @options_Callback, ...
+                       'Position', [0.89 0.2 0.08 0.04], ...
+                       'Style', 'pushbutton',  ...
+                       'FontSize', 10, ...
+                       'String', 'Load parameters',  ...
+                       'Tag', 'load');
+    enabled = [enabled hLoad];
+
+    hSave = uicontrol('Parent', hPanel, ...
+                       'Units', 'normalized',  ...
+                       'Callback', @options_Callback, ...
+                       'Position', [0.89 0.15 0.08 0.04], ...
+                       'Style', 'pushbutton',  ...
+                       'FontSize', 10, ...
+                       'String', 'Save parameters',  ...
+                       'Tag', 'save');
+    enabled = [enabled hSave];
 
     % We store all the useful handles into a structure to easily retrieve them,
     % along with some indexes

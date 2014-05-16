@@ -17,10 +17,10 @@ function [gammas] = estimate_noise(img, filter_type, block_size, mfilter, precis
 %   Implemented options are: 'adm', 'published' or a custom filtering matrix. Default
 %   is 'adm'.
 %
-%   NOISES = ESTIMATE_NOISE(..., FILTER, BLOCK_SIZE, NITER, PRECISION) allows to
+%   NOISES = ESTIMATE_NOISE(..., FILTER, BLOCK_SIZE, RADIUS, PRECISION) allows to
 %   specify the parameters of the algorithm: BLOCK_SIZE is the size of the tiles the
-%   image is partitioned into (see [1]), NITER the number of iterative pass the median
-%   filter is applied to obtain the "noiseless" image and PRECISION a vector [CI, ER]
+%   image is partitioned into (see [1]), RADIUS the size of the kernel used by the median
+%   filter (as a square) to obtain the "noiseless" image and PRECISION a vector [CI, ER]
 %   defining the aimed confidence and percentage of error in the estimation of the
 %   standard deviation as defined in [3]. Default values are 21 for BLOCK_SIZE, 3 for
 %   NITER and [0.8 0.1] for PRECISION. Provide an empty value to use the default value
