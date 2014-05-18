@@ -52,6 +52,15 @@ function [new_img] = imcosmics(img, block_size, thresh)
     return;
   end
 
+  % Get the type of img as we need to convert it to double for the division
+  class_type = class(img);
+  is_double = (class_type(1) == 'd');
+
+  % In that case, convert it
+  if (~is_double)
+    img = double(img);
+  end
+
   % In case of a single plane, [1] advises to process iteratively the filtering
   % up to 5 times, even though convergeance is usually reached in 2-3 calls.
   for i = 1:5
@@ -67,6 +76,11 @@ function [new_img] = imcosmics(img, block_size, thresh)
 
     % Otherwise, loop
     img = new_img;
+  end
+
+  % And convert back to the original type
+  if (~is_double)
+    new_img = cast(new_img, class_type);
   end
 
   return;

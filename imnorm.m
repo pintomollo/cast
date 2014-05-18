@@ -58,7 +58,7 @@ function [img, minval, maxval] = imnorm(img, minval, maxval, mode, minrange, max
 
   % And where there are non-finite elements, we replace them with NaN which do not
   % conflict with min() and max()
-  img(~isfinite(img)) = NaN
+  img(~isfinite(img)) = NaN;
 
   % Convert to lower case, just in case !
   mode = lower(mode);
@@ -113,6 +113,12 @@ function [img, minval, maxval] = imnorm(img, minval, maxval, mode, minrange, max
     end
   end
 
+  % Cast all variables to double just in case
+  minval = double(minval);
+  maxval = double(maxval);
+  minrange = double(minrange);
+  maxrange = double(maxrange);
+
   % Now for the normalization per se. Because we kept matrices of the proper size,
   % we can compute it element-wise.
   img = (img - (minval - minrange)) .* ((maxrange - minrange) ./ (maxval - minval));
@@ -123,7 +129,7 @@ function [img, minval, maxval] = imnorm(img, minval, maxval, mode, minrange, max
 
   % And convert back to the original type
   if (~is_double)
-    img = cast(img, class_type)
+    img = cast(img, class_type);
   end
 
   return;

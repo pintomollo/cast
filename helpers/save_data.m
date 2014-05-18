@@ -48,7 +48,7 @@ function done = save_data(fname, imgs)
   for i=1:nplanes
 
     % The current image
-    img = imgs(:,:,i)
+    img = imgs(:,:,i);
 
     % Now here is something incredible, this short "waiting" hack was necessary as,
     % on a high-performance PC, Matlab was try to save too fast in the file and

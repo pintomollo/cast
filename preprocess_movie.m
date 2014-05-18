@@ -1,90 +1,57 @@
-function [mymovie] = rescale_movie(mymovie, opts)
-% RESCALE_MOVIE converts an OME-TIFF recording into a UINT16 one, rescaling its values
-% to use the available range of values. In addition it performs the required filtering
-% (i.e. hot-pixels removal and detrending).
+function [mytracking] = preprocess_movie(mytracking, opts)
+% PREPROCESS_MOVIE converts the OME-TIFF recordings contained in a tracking structure
+% into properly filtered (as defined by the structure, see input_channels.m) UINT16
+% files.
 %
-%   [MYMOVIE] = RESCALE_MOVIE(MYMOVIE, OPTS) rescales all the recordings used in the
-%   experiement (i.e. each channel of the recording) using the options OPTS.
+%   [MYTRACKING] = PREPROCESS_MOVIE(MYTRACKING, OPTS) rescales all the recordings used
+%   in the tracking experiement using OPTS.
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud
-% 20.06.2011
+% 18.05.2014
 
   % Initialize some computer-specific variables required for the conversion
-  %[junk, junk, realEndian] = computer;
-  %bigEndian = ~strncmp(realEndian, 'L', 1);
   maxuint = intmax('uint16');
-
-  % Import the Java classes
-  %import loci.formats.ImageReader;
-  %import loci.formats.out.OMETiffWriter;
-  %import loci.formats.MetadataTools;
-  %import loci.formats.ChannelMerger;
 
   % A nice status-bar if possible
   if (opts.verbosity > 1)
-    hwait = waitbar(0,'','Name','CellCoord Info');
+    hwait = waitbar(0,'','Name','Cell Tracking');
   end
 
   % Get all the fields of the experiement as this might change based on the data,
   % and loop over them
-  fields = fieldnames(mymovie);
+  fields = fieldnames(mytracking);
   for f = 1:length(fields)
     field = fields{f};
 
     % If the current field does not contain a file, skip it
-    if (~isfield(mymovie.(field), 'fname'))
+    if (~isfield(mytracking.(field), 'fname'))
       continue;
     end
-  
+
     % Fields can be arrays of structures, so loop over them
-    for k = 1:length(mymovie.(field))
-      
+    for k = 1:length(mytracking.(field))
+
       % Stire the original file name as we will replace it by the rescaled one
-      mymovie.(field)(k).file = mymovie.(field)(k).fname;
+      mytracking.(field)(k).file = mytracking.(field)(k).fname;
 
       % Perfom some string formatting for the display
-      indx = strfind(mymovie.(field)(k).file, filesep);
+      indx = strfind(mytracking.(field)(k).file, filesep);
       if (isempty(indx))
         indx = 1;
       else
         indx = indx(end) + 1;
       end
       if (opts.verbosity > 1)
-        waitbar(0, hwait, ['Preprocessing Movie ' strrep(mymovie.(field)(k).file(indx:end),'_','\_')]);
+        waitbar(0, hwait, ['Preprocessing Movie ' strrep(mytracking.(field)(k).file(indx:end),'_','\_')]);
       end
 
-      fname = absolutepath(mymovie.(field)(k).file);
+      fname = absolutepath(mytracking.(field)(k).file);
 
       % Get the name of the new file
       tmp_fname = absolutepath(get_new_name('tmpmat(\d+)\.ome\.tiff?', 'TmpData'));
-  
-      % Create the metadata container
-      %omexmlMeta = MetadataTools.createOMEXMLMetadata();
-
-      % Create the reader
-      %reader = ImageReader();
-      % If required, try to merge separated files
-      %if (opts.merge_input_files)
-      %  r = ChannelMerger(reader);
-      %end
-      % Initialize it
-      %reader.setMetadataStore(omexmlMeta);
-      %reader.setId(absolutepath(mymovie.(field)(k).file));
-      
-      % Set the writer rescaled-specific parameters
-      %omexmlMeta.setPixelsType(ome.xml.model.enums.PixelType.UINT16, 0);
-      %omexmlMeta.setPixelsBinDataBigEndian(java.lang.Boolean(bigEndian), 0, 0);
-
-      % Create the writer
-      %writer = OMETiffWriter();
-      %writer.setMetadataRetrieve(omexmlMeta);
-      %writer.setId(tmp_fname);
-      %writer.setCompression(java.lang.String(mymovie.(field)(k).compression));
-      %writer.setWriteSequentially(true);
 
       % Get the number of frames
-      %nframes = reader.getImageCount();
       nframes = size_data(fname);
 
       % Temporary parameters about the type of data contained in the reader
@@ -96,11 +63,14 @@ function [mymovie] = rescale_movie(mymovie, opts)
         [img, img_params] = all2uint16(load_data(fname, i), img_params);
 
         % Perform the required filtering
-        if (mymovie.(field)(k).hot_pixels)
-          img = imhotpixels(img);
+        if (mytracking.(field)(k).detrend)
+          img = imdetrend(img, opts.filtering.detrend_meshpoints);
         end
-        if (mymovie.(field)(k).detrend)
-          img = imdetrend(img);
+        if (mytracking.(field)(k).cosmics)
+          img = imcosmics(img, opts.filtering.cosmic_rays_window_size, opts.filtering.cosmic_rays_threshold);
+        end
+        if (mytracking.(field)(k).hot_pixels)
+          img = imhotpixels(img, opts.filtering.hot_pixels_threshold);
         end
 
         % Get the current range of values
@@ -108,102 +78,54 @@ function [mymovie] = rescale_movie(mymovie, opts)
         maximg = max(img(:));
 
         % We'll store the biggest range, to rescale it afterwards
-        if(minimg < mymovie.(field)(k).min)
-          mymovie.(field)(k).min = minimg;
+        if(minimg < mytracking.(field)(k).min)
+          mytracking.(field)(k).min = minimg;
         end
-        if(maximg > mymovie.(field)(k).max)
-          mymovie.(field)(k).max = maximg;
+        if(maximg > mytracking.(field)(k).max)
+          mytracking.(field)(k).max = maximg;
         end
-        
-        % Write the filtered data, we'll rescale them in a second pass as we do not
-        % know the range yet
-        %writer = store_data(writer, img, i);
-        %done = false;
-        %waiting_time = 0;
-        %while (~done)
-        %  try
-        %    imwrite(img, tmp_fname, 'TIFF', 'WriteMode', 'append');
-        %    done = true;
-        %  catch ME
-        %    if (waiting_time < 20)
-        %      nsecs = rand(1);
-        %      waiting_time = waiting_time + nsecs;
-        %      pause(nsecs);
-        %    else
-        %      rethrow(ME)
-        %    end
-        %  end
-        %end
+
+        % Save the image in the temporary file
         save_data(tmp_fname, img);
 
         % Update the progress bar if needed
         if (opts.verbosity > 1)
-          waitbar(i/(2*nframes),hwait);
+          if (mytracking.(field)(k).normalize)
+            waitbar(i/(2*nframes),hwait);
+          else
+            waitbar(i/nframes,hwait);
+          end
         end
       end
 
-      % Close both handlers
-      %reader.close();
-      %writer.close();
+      % Rescale if required by the user
+      if (mytracking.(field)(k).normalize)
+        % Get a third file to write into
+        fname = tmp_fname;
+        tmp_fname = absolutepath(get_new_name('tmpmat(\d+)\.ome\.tiff?', 'TmpData'));
+        mytracking.(field)(k).fname = tmp_fname;
 
-      % Get a third file to write into
-      fname = tmp_fname;
-      tmp_fname = absolutepath(get_new_name('tmpmat(\d+)\.ome\.tiff?', 'TmpData'));
-      mymovie.(field)(k).fname = tmp_fname;
+        % Loop again over the frames
+        for i=1:nframes
 
-      % Reade from the new filtered file
-      %reader.setId(tmp_fname);
+          % Load and rescale using the previously measured range
+          img = load_data(fname, i);
+          img = imnorm(img, mytracking.(field)(k).min, mytracking.(field)(k).max, '', 0, maxuint);
 
-      % Create a new writer
-      %writer = OMETiffWriter();
-      %writer.setMetadataRetrieve(omexmlMeta);
-      %writer.setId(absolutepath(mymovie.(field)(k).fname));
-      %writer.setCompression(java.lang.String(mymovie.(field)(k).compression));
-      %writer.setWriteSequentially(true);
+          % And save the final image
+          save_data(tmp_fname, img);
 
-      % Loop again over the frames
-      for i=1:nframes
-
-        % Load and rescale using the previously measured range
-        try
-        img = load_data(fname, i);
-        catch
-          beep;keyboard
+          % Update the progress bar
+          if (opts.verbosity > 1)
+            waitbar(0.5 + i/(2*nframes),hwait);
+          end
         end
-        img = imnorm(img, mymovie.(field)(k).min, mymovie.(field)(k).max, '', 0, maxuint);
 
-        % And save the final image
-        %done = false;
-        %waiting_time = 0;
-        %while (~done)
-        %  try
-        %    imwrite(img, tmp_fname, 'TIFF', 'WriteMode', 'append');
-        %    done = true;
-        %  catch ME
-        %    if (waiting_time < 20)
-        %      nsecs = rand(1);
-        %      waiting_time = waiting_time + nsecs;
-        %      pause(nsecs);
-        %    else
-        %      rethrow(ME)
-        %    end
-        %  end
-        %end
-        save_data(tmp_fname, img);
-        %store_data(writer, img, i);
-
-        % Update the progress bar
-        if (opts.verbosity > 1)
-          waitbar(0.5 + i/(2*nframes),hwait);
-        end
+        % Delete the intermidary file (i.e. the filtered one)
+        delete(fname);
+      else
+        mytracking.(field)(k).fname = tmp_fname;
       end
-
-      % Close both handlers
-      %reader.close();
-      %writer.close();
-
-      % Delete the intermidary file (i.e. the filtered one)
-      delete(fname);
     end
   end
 
@@ -211,9 +133,6 @@ function [mymovie] = rescale_movie(mymovie, opts)
   if (opts.verbosity > 1)
     close(hwait);
   end
-
-  % Clean the memory
-  clear img;
 
   return;
 end
