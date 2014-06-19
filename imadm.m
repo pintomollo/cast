@@ -1,21 +1,28 @@
 function [edge, direct] = imadm(img, thresh, single)
-  % IMADM implements the Absolute Difference Mask edge detector
-  %     [EDGE, DIRECT] = IMADM(IMG) computes the strength and the
-  %     direction of the edges (EDGES and DIRECT) of the image. The
-  %     strength ranges from 0 to 1, the direction follows the convention :
-  %       1 = Negative diagonal (antidiagonal)
-  %       2 = Vertical
-  %       3 = Positive diagonal
-  %       4 = Horizontal
-  %
-  %     [...] = IMDAM(IMG, THRESH) imposes a threshold on the
-  %     value of the edges (standard is 0).
-  %
-  %     EDGE = IMDAM(...) returns only the edge intensity map.
-  %
-  % References:
-  % [1] F.M. Alzahrani, T. Chen, "A real-time edge detector: algorithm and VLSI architecture", Real-Time Imaging 3 (1997) 363-378. 
-  % [2] S.-C. Zhang and Z.-Q. Liu, "A robust, real-time ellipse detector," Pattern Recognition, vol. 38, no. 2, (2005) 273-287.
+% IMADM implements the Absolute Difference Mask edge detector
+%
+%   [EDGE, DIRECT] = IMADM(IMG) computes the strength and the
+%   direction of the edges (EDGES and DIRECT) of the image. The
+%   strength ranges from 0 to 1, the direction follows the convention :
+%     1 = Negative diagonal (antidiagonal)
+%     2 = Vertical
+%     3 = Positive diagonal
+%     4 = Horizontal
+%
+%   [...] = IMDAM(IMG, THRESH) imposes a threshold on the
+%   value of the edges (standard is 0).
+%
+%   EDGE = IMDAM(...) returns only the edge intensity map.
+%
+% References:
+% [1] F.M. Alzahrani, T. Chen, "A real-time edge detector: algorithm and VLSI 
+%     architecture", Real-Time Imaging 3 (1997) 363-378.
+% [2] S.-C. Zhang and Z.-Q. Liu, "A robust, real-time ellipse detector," Pattern
+%     Recognition, vol. 38, no. 2, (2005) 273-287.
+%
+% Gonczy & Naef labs, EPFL
+% Simon Blanchoud
+% 19.06.2014
 
   if(nargin < 2)
     thresh = 0;

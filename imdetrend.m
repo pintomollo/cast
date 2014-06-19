@@ -66,7 +66,7 @@ function [img, p] = imdetrend(orig_img, npts)
   img = imsubtract(double(orig_img), bkg);
 
   % Set the type of the image back to its original one
-  eval(['img = ' class(orig_img) '(img);']);
+  img = cast(img, class(orig_img));
 
   return;
 end

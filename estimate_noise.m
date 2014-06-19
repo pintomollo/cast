@@ -70,7 +70,7 @@ function [gammas] = estimate_noise(img, filter_type, block_size, mfilter, precis
     mfilter = 3;
   end
   if (numel(precision) < 2)
-    precision = [0.8 0.1]
+    precision = [0.8 0.1];
   end
 
   % In case we have a stack, parse each plane separately

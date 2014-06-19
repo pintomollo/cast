@@ -57,6 +57,15 @@ function install_cell_tracking
       error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
     end
   end
+  if (exist('nl_means_mex') ~= 3)
+    try
+      mex -setup;
+      eval(['mex MEX' filesep 'nl_means_mex.cpp']);
+    catch ME
+      cd ..;
+      error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
+    end
+  end
 
   cd ..;
 

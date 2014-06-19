@@ -1,50 +1,47 @@
-function [mytracking, opts] = input_channels(fname)
-% INPUT_CHANNELS displays a pop-up window for the user to manually identify the
-% type of data contained in the different channels of a movie recording.
+function [mytracking, opts] = inspect_movie(mytracking, opts)
+% INSPECT_MOVIE displays a pop-up window for the user to manually inspect the
+% segmentation that will be performed on the provided movie.
 %
-%   [MYTRACKING] = INPUT_CHANNELS(CHANNELS) displays the window using the data
-%   contained in CHANNELS, updates it accordingly to the user's choice and returns
-%   the adequate structure for later analysis MYTRACKING. CHANNELS can either
-%   be a string, a cell list of strings or a 'channel' structure (see get_struct.m).
+%   [MYTRACKING, OPTS] = INSPECT_MOVIE(MYTRACKING,OPTS) displays the window using the
+%   data contained in MYTRACKING and the parameter values from OPTS. It updates them
+%   accordingly to the user's choice. MYTRACKING should be a 'mytracking' structure as
+%   created by input_channels.m
 %
-%   [...] = INPUT_CHANNELS() prompts the user to select a recording and converts
-%   it before opening the GUI.
-%
-%   [MYTRACKING, OPTS] = INPUT_CHANNELS(...) returns in addition the parameters
-%   required to filter the various channels as chosen by the user.
+%   [...] = INSPECT_MOVIE() prompts the user to select a MYTRACKING containing Matlab
+%   file before opening the GUI.
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud
-% 14.05.2014
+% 17.06.2014
 
-  % Argument checking, need to know if we ask for a recording or not.
-  if (nargin == 0 | isempty(fname))
-    fname = convert_movie();
-  end
+  % Argument checking, need to know if we ask for a mytracking file or not.
+  if (nargin ~= 2 | isempty(mytracking) | isempty(opts))
 
-  % The structure containing the parameters for the different filters available to
-  % the user.
-  opts = get_struct('options');
+    % Fancy output
+    disp('[Select a MAT file]');
 
-  % Create the channels structure if it was not provided.
-  if (isstruct(fname))
-    channels = fname;
-  else
-    % Put everything in a cell list
-    if (ischar(fname))
-      fname = {fname};
-    end
+    % Prompting the user for the MAT file
+    [fname, dirpath] = uigetfile({'*.mat'}, ['Load a MAT file']);
+    fname = fullfile(dirpath, fname);
 
-    % Parse the list and copy its content into channels
-    nchannels = length(fname);
-    channels = get_struct('channel', [nchannels 1]);
-    for i=1:nchannels
-      channels(i).fname = fname{i};
+    % Load the matrix and check its content
+    data = load(fname);
+
+    % Not what we expected
+    if (~isfield(data, 'mytracking') || ~isfield(data, 'opts'))
+      disp(['Error: ' fname ' does not contain a valid mytracking structure']);
+
+      return;
     end
   end
 
-  % Create the GUI using channels
-  [hFig, handles] = create_figure();
+  % Prepare some global variables
+  channels = mytracking.channels;
+  nchannels = length(channels);
+  segmentations = get_struct('segmentation', nchannels);
+
+  % Create the GUI using segmentations
+  [hFig, handles] = create_figure(channels);
 
   % Allocate the various images. This allows them to be "persistent" between
   % different calls to the callback functions.
@@ -59,10 +56,8 @@ function [mytracking, opts] = input_channels(fname)
   % And wait until the user is done
   uiwait(hFig);
 
-  % Now that the data are correct, create the whole structure
-  mytracking = get_struct('mytracking');
-  % Copy the channels
-  mytracking.channels = channels;
+  % Store the segmentations
+  mytracking.segmentations = segmentations;
   % And get the experiment name
   mytracking.experiment = get(handles.experiment, 'String');
 
@@ -93,22 +88,14 @@ function [mytracking, opts] = input_channels(fname)
     % If we have changed channel, we need to update the display of the buttons
     if (indx ~= handles.prev_channel)
       % The name
-      set(handles.uipanel,'Title', ['Channel ' num2str(indx)]);
+      set(handles.uipanel,'Title', [channels(indx).type ' ' num2str(indx)]);
 
       % The filters
-      set(handles.detrend,'Value', channels(indx).detrend);
-      set(handles.hot_pixels,'Value', channels(indx).hot_pixels);
-      set(handles.normalize,'Value', channels(indx).normalize);
-      set(handles.cosmics,'Value', channels(indx).cosmics);
-
-      % Here we use a trick to have a colored button using HTML formatting
-      rgb_color = round(channels(indx).color * 255);
-      set(handles.channel_color, 'String', ['<HTML><BODY bgcolor = "rgb(' num2str(rgb_color(1)) ', ' num2str(rgb_color(2)) ', ' num2str(rgb_color(3)) ')">green background</BODY></HTML>'])
-      set(handles.channel_color, 'ForegroundColor', channels(indx).color);
+      set(handles.detrend,'Value', segmentations(indx).detrend);
+      set(handles.denoise,'Value', segmentations(indx).denoise);
 
       % The type and compression
-      set(handles.channel_type, 'Value',  channels(indx).type);
-      set(handles.compress, 'Value',  channels(indx).compression);
+      set(handles.segmentation_type, 'Value',  segmentations(indx).type);
       set(handles.text, 'String', ['Frame #' num2str(nimg)]);
 
       % And setup the indexes correctly
@@ -119,7 +106,7 @@ function [mytracking, opts] = input_channels(fname)
     % Here we recompute all the filtering of the frame
     if (recompute)
       % Because it takes long, display it and block the GUI
-      set(hFig, 'Name', 'Channel Identification (Filtering...)');
+      set(hFig, 'Name', 'Images Segmentation (Processing...)');
       set(handles.all_buttons, 'Enable', 'off');
       drawnow;
       refresh(hFig);
@@ -141,24 +128,9 @@ function [mytracking, opts] = input_channels(fname)
       % Copy to the working variable
       img = orig_img;
 
-      % Detrend the image ?
-      if (channels(indx).detrend)
-        img = imdetrend(img, opts.filtering.detrend_meshpoints);
-      end
-
-      % Remove cosmic rays ?
-      if (channels(indx).cosmics)
-        img = imcosmics(img, opts.filtering.cosmic_rays_window_size, opts.filtering.cosmic_rays_threshold);
-      end
-
-      % Remove hot pixels ?
-      if (channels(indx).hot_pixels)
-        img = imhotpixels(img, opts.filtering.hot_pixels_threshold);
-      end
-
-      % Normalize the image ?
-      if (channels(indx).normalize)
-        img = imnorm(img);
+      % Denoise the image ?
+      if (segmentations(indx).denoise)
+        %img = imdetrend(img, opts.filtering.detrend_meshpoints);
       end
     end
 
@@ -171,7 +143,7 @@ function [mytracking, opts] = input_channels(fname)
 
       % The difference between filtered and raw
       case 3
-        if (channels(indx).normalize)
+        if (segmentations(indx).normalize)
           img1 = (imnorm(orig_img) - img);
         else
           img1 = orig_img - img;
@@ -216,128 +188,8 @@ function [mytracking, opts] = input_channels(fname)
 
     % Release the image if need be
     if (recompute)
-      set(hFig, 'Name', 'Channel Identification');
+      set(hFig, 'Name', 'Images Segmentation');
       set(handles.all_buttons, 'Enable', 'on');
-    end
-
-    return
-  end
-
-  function remove_channel_Callback(hObject, eventdata)
-  % This function removes ones channel from the list
-
-    % Get the current index for later
-    indx = handles.current;
-
-    % And ask for confirmation
-    answer = questdlg(['Are you sure you want to remove channel ' num2str(indx) ' ?' ...
-                '(No data will be deleted from the disk)'], 'Removing a channel ?');
-    ok = strcmp(answer, 'Yes');
-
-    % If it's ok, let's go
-    if (ok)
-
-      % Remove the current index and select the first one
-      channels(indx) = [];
-      handles.current = 1;
-
-      % If it was the last one, we need to handle this
-      if (length(channels) == 0)
-
-        % Set up the indexes
-        handles.current = 0;
-        handles.prev_channel = -1;
-
-        % As this is long, block the GUI
-        set(handles.all_buttons, 'Enable', 'off');
-        set(handles.img, 'CData', []);
-        set(handles.list, 'String', '');
-
-        % And call the movie conversion function
-        new_channel = convert_movie();
-
-        if (~isempty(new_channel))
-          % Get the number of frames in each of them
-          nframes = size_data(new_channel);
-
-          set(handles.slider, 'Max', nframes-1, 'Value', 1);
-
-          % We provide basic default values for all fields
-          channels = get_struct('channel');
-          channels.fname = new_channel;
-          channels.type = 1;
-          channels.compression = 1;
-
-          % We update the list of available channels
-          set(handles.list, 'String', 'Channel 1', 'Value', 1);
-        end
-
-      % Otherwise, delete the last traces of the deleted channel
-      else
-        handles.prev_channel = -1;
-        tmp_list = get(handles.list, 'String');
-        last_indx = findstr(tmp_list, '|');
-        set(handles.list, 'String', tmp_list(1:last_indx(end)-1), 'Value', 1);
-      end
-
-      % Release the GUI and update
-      set(handles.all_buttons, 'Enable', 'on');
-      update_display(true);
-    end
-
-    return;
-  end
-
-  function add_channel_Callback(hObject, eventdata)
-  % This function adds a new channel to the current recording
-
-    nchannels = length(channels);
-
-    % As this is long, block the GUI
-    set(handles.all_buttons, 'Enable', 'off');
-
-    % And call the movie conversion function
-    new_channel = convert_movie();
-
-    if (~isempty(new_channel))
-      % Get the number of frames in each of them
-      nframes = size_data(new_channel);
-      curr_nframes = get(handles.slider, 'Max')+1;
-
-      % If they are similar, we can add it to the current structure
-      if (nchannels == 0 || nframes == curr_nframes)
-
-        % We provide basic default values for all fields
-        channels(end+1) = get_struct('channel');
-        channels(end).fname = new_channel;
-        channels(end).type = 1;
-        channels(end).compression = 1;
-
-        % We update the list of available channels
-        tmp_list = get(handles.list, 'String');
-        if (nchannels == 0)
-          liststring = ['Channel ' num2str(length(channels))];
-        else
-          liststring = [tmp_list '|Channel ' num2str(length(channels))];
-        end
-        set(handles.list, 'String', liststring);
-
-      % Otherwise, there is a problem !
-      else
-        errordlg(['Error: the selected channel does not have the same number of ' ...
-                ' frames (' num2str(nframes) ') than the currently loaded ones (' ...
-                num2str(curr_nframes) '), ignoring it.'],'Error: Adding a channel','modal');
-      end
-    end
-
-    % Release the GUI
-    set(handles.all_buttons, 'Enable', 'on');
-
-    % If we just add a new first channel, we need to set it up properly and update
-    if (nchannels == 0 && length(channels) > 0)
-      handles.current = 1;
-      set(handles.list, 'Value', 1);
-      update_display(true);
     end
 
     return
@@ -397,8 +249,8 @@ function [mytracking, opts] = input_channels(fname)
     switch type
 
       % Each checkbox is responsible for its respective boolean fields
-      case {'detrend', 'cosmics', 'hot_pixels', 'normalize'}
-        channels(indx).(type) = logical(get(hObject, 'Value'));
+      case {'detrend','denoise'}
+        segmentations(indx).(type) = logical(get(hObject, 'Value'));
 
       % The slider varies the frame index
       case 'slider'
@@ -417,17 +269,8 @@ function [mytracking, opts] = input_channels(fname)
         handles.current = get(hObject, 'Value');
 
       % A different selection in one of the drop-down lists
-      case {'type', 'compression'}
-        channels(indx).(type) = get(hObject, 'Value');
-        recompute = false;
-
-      % The interactive color selection palette, followed by the HTML color trick
-      case 'color'
-        channels(indx).color = uisetcolor(channels(indx).color);
-        rgb_color = round(channels(indx).color * 255);
-
-        set(handles.channel_color, 'ForegroundColor',  channels(indx).color, ...
-                                   'String', ['<HTML><BODY bgcolor = "rgb(' num2str(rgb_color(1)) ', ' num2str(rgb_color(2)) ', ' num2str(rgb_color(3)) ')">green background</BODY></HTML>']);
+      case 'type'
+        segmentations(indx).(type) = get(hObject, 'Value');
         recompute = false;
 
       % Otherwise, do nothing. This is used to cancel the deletion requests
@@ -443,116 +286,90 @@ function [mytracking, opts] = input_channels(fname)
 
   function channel_CloseRequestFcn(hObject, eventdata)
   % This function converts the various indexes back into strings to prepare
-  % the channels structure for its standard form.
+  % the segmentations structure for its standard form.
 
-    % Create a copy of channels in case we need to cancel
-    tmp_channels = channels;
+    % Create a copy of segmentations in case we need to cancel
+    tmp_segmentations = segmentations;
 
-    % We need ot loop over the channels
-    nchannels = length(channels);
+    % We need ot loop over the segmentations
+    nsegmentations = length(segmentations);
 
-    % Get the available types of channels and compressions
-    contents = get(handles.channel_type,'String');
+    % Get the available types of segmentations and compressions
+    contents = get(handles.segmentation_type,'String');
     ntypes = length(contents);
-    compressions = get(handles.compress,'String');
 
-    % We want to check if some channels have identical features
-    detrend = logical(zeros(nchannels,1));
-    types = logical(zeros(nchannels,ntypes));
-    colors = zeros(nchannels,3);
+    % We want to check if some segmentations have identical features
+    denoise = logical(zeros(nsegmentations,1));
+    detrend = logical(zeros(nsegmentations,1));
+    types = logical(zeros(nsegmentations,ntypes));
 
     % Convert the indexes into strings and build a summary of the filters
-    for i=1:nchannels
-      detrend(i) = channels(i).detrend;
-      types(i,channels(i).type) = true;
-      colors(i,:) = channels(i).color;
-      tmp_channels(i).type = contents{channels(i).type};
-      tmp_channels(i).compression = compressions{channels(i).compression};
+    for i=1:nsegmentations
+      denoise(i) = segmentations(i).denoise;
+      detrend(i) = (segmentations(i).detrend && channels(i).detrend);
+      types(i,segmentations(i).type) = true;
+      tmp_segmentations(i).type = contents{segmentations(i).type};
     end
 
     % Some checks to make sure the user is aware of some potential issues
     ok = true;
     if (ok & any(detrend, 1))
 
-      % This is a highly non-linear filtering which prevents proper
-      % signal comparison between recordings
-      answer = questdlg('Some channels will be detrended, continue ?');
+      % This is slow process which have apparently already been applied
+      answer = questdlg('Some channels will be detrended a second time, continue ?');
       ok = strcmp(answer,'Yes');
     end
-    if (ok & size(unique(colors,'rows'),1)~=nchannels)
+    if (ok & any(sum(types(:,2:end), 1)>1))
 
       % Just in case, for later display
-      answer = questdlg('Multiple channels have the same color, continue ?');
+      answer = questdlg('Multiple channels will be segmented, continue ?');
       ok = strcmp(answer,'Yes');
     end
 
     % If everything is OK, release the GUI and quit
     if (ok)
-      channels = tmp_channels;
+      segmentations = tmp_segmentations;
       uiresume(hFig);
     end
 
     return
   end
 
-  function [hFig, handles] = create_figure
+  function [hFig, handles] = create_figure(channels)
   % This function actually creates the GUI, placing all the elements
   % and linking the calbacks.
 
     % The number of channels provided
     nchannels = length(channels);
 
-    % Initialize the possible types and compressions
-    typestring = {'luminescence';'brightfield'; 'dic'; 'fluorescence'};
-    typecompress = {'none', 'lzw', 'deflate', 'jpeg'};
+    % Initialize the possible segmentations and their corresponding channels
+    typestring = {'None','Spots ("A trous")', 'Nuclei'};
+    typechannel = {'luminescence','fluorescence'};
 
     % Initialize the structure used for the interface
     liststring = '';
     for i = 1:nchannels
 
       % Build the displayed list
-      liststring = [liststring 'Channel ' num2str(i)];
+      liststring = [liststring channels(i).type num2str(i)];
       if (i < nchannels)
         liststring = [liststring '|'];
       end
 
-      % Set the currently selected type of data
-      for j = 1:length(typestring)
-        if (strcmp(channels(i).type, typestring{j}))
-          channels(i).type = j;
-
-          break;
-        end
-      end
-
-      % If the type did not exist, use the first one
-      if (ischar(channels(i).type))
-        channels(i).type = 1
-      end
-
-      % Set the compression type
-      for j = 1:length(typecompress)
-        if (strcmpi(channels(i).compression, typecompress{j}))
-          channels(i).compression = j;
-
-          break;
-        end
-      end
-
-      % If none was found, choose the first one
-      if (ischar(channels(i).compression))
-        channels(i).compress = 1;
+      % Set the segmentation type
+      type_test = ismember(typechannel, channels(i).type);
+      if any(type_test)
+        segmentations(i).type = find(type_test)+1;
+      else
+        segmentations(i).type = 1;
       end
     end
 
     % Get the number of frames
     nframes = size_data(channels(1).fname);
 
-    % Create a name for the experiment
-    exp_name = channels(1).fname;
-    [junk, exp_name, junk] = fileparts(exp_name);
-    [junk, exp_name, junk] = fileparts(exp_name);
-    exp_name = regexprep(exp_name, ' ', '');
+    % And the experiment name
+    exp_name = mytracking.experiment;
 
     % Create my own grayscale map for the image display
     mygray = [0:255]' / 255;
@@ -567,7 +384,7 @@ function [mytracking, opts] = input_channels(fname)
                   'Color',  [0.7 0.7 0.7], ...
                   'Colormap', mygray, ...
                   'MenuBar', 'none',  ...
-                  'Name', 'Channel Identification',  ...
+                  'Name', 'Images Segmentation',  ...
                   'NumberTitle', 'off',  ...
                   'Units', 'normalized', ...
                   'Position', [0 0 1 1], ...
@@ -598,23 +415,6 @@ function [mytracking, opts] = input_channels(fname)
                     'String', 'OK',  ...
                     'Tag', 'pushbutton11');
     enabled = [enabled hOK];
-
-    % The Add and Remove buttons
-    hAdd = uicontrol('Parent', hFig, ...
-                    'Units', 'normalized',  ...
-                    'Callback', @add_channel_Callback, ...
-                    'Position', [0.01 0.055 0.1 0.04], ...
-                    'String', 'Add channel',  ...
-                    'Tag', 'pushbutton12');
-    enabled = [enabled hAdd];
-
-    hRemove = uicontrol('Parent', hFig, ...
-                    'Units', 'normalized',  ...
-                    'Callback', @remove_channel_Callback, ...
-                    'Position', [0.01 0.01 0.1 0.04], ...
-                    'String', 'Remove channel',  ...
-                    'Tag', 'pushbutton13');
-    enabled = [enabled hRemove];
 
     % The experiment name and its labels
     hText = uicontrol('Parent', hFig, ...
@@ -661,7 +461,7 @@ function [mytracking, opts] = input_channels(fname)
 
     % The panel itsel
     hPanel = uipanel('Parent', hFig, ...
-                     'Title', 'Channel 1',  ...
+                     'Title', [channels(i).type '1'],  ...
                      'Tag', 'uipanel',  ...
                      'Clipping', 'on',  ...
                      'Position', [0.12 0.11 0.87 0.8]);
@@ -746,8 +546,8 @@ function [mytracking, opts] = input_channels(fname)
     % The type, color and compression of the channel, along with its labels
     hText = uicontrol('Parent', hPanel, ...
                       'Units', 'normalized',  ...
-                      'Position', [0.9 0.925 0.05 0.05], ...
-                      'String', 'Channel:',  ...
+                      'Position', [0.875 0.925 0.075 0.05], ...
+                      'String', 'Segmentation:',  ...
                       'FontSize', 12, ...
                       'FontWeight', 'bold', ...
                       'Style', 'text',  ...
@@ -770,40 +570,6 @@ function [mytracking, opts] = input_channels(fname)
                       'Tag', 'type');
     enabled = [enabled hType];
 
-    hText = uicontrol('Parent', hPanel, ...
-                      'Units', 'normalized',  ...
-                      'Position', [0.9 0.79 0.05 0.05], ...
-                      'String', 'Color',  ...
-                      'Style', 'text',  ...
-                      'Tag', 'text18');
-
-    hColor = uicontrol('Parent', hPanel, ...
-                       'Units', 'normalized',  ...
-                       'Callback', @gui_Callback, ...
-                       'Position', [0.9 0.765 0.05 0.05], ...
-                       'Style', 'pushbutton',  ...
-                       'FontSize', 80, ...
-                       'String', 'Fluorophore color',  ...
-                       'Tag', 'color');
-    enabled = [enabled hColor];
-
-    hText = uicontrol('Parent', hPanel, ...
-                      'Units', 'normalized',  ...
-                      'Position', [0.89 0.69 0.075 0.05], ...
-                      'String', 'Compression',  ...
-                      'Style', 'text',  ...
-                      'Tag', 'text19');
-
-    hCompress = uicontrol('Parent', hPanel, ...
-                          'Units', 'normalized',  ...
-                          'Callback', @gui_Callback, ...
-                          'Position', [0.89 0.655 0.075 0.05], ...
-                          'String', typecompress, ...
-                          'Style', 'popupmenu',  ...
-                          'Value', 1, ...
-                          'Tag', 'compression');
-    enabled = [enabled hCompress];
-
     % The various filters, along with their labels
     hText = uicontrol('Parent', hPanel, ...
                       'Units', 'normalized',  ...
@@ -823,32 +589,14 @@ function [mytracking, opts] = input_channels(fname)
                          'Tag', 'detrend');
     enabled = [enabled hDetrend];
 
-    hCosmics = uicontrol('Parent', hPanel, ...
-                           'Units', 'normalized',  ...
-                           'Callback', @gui_Callback, ...
-                           'Position', [0.9 0.45 0.1 0.05], ...
-                           'String', 'Cosmic rays',  ...
-                           'Style', 'checkbox',  ...
-                           'Tag', 'cosmics');
-    enabled = [enabled hCosmics];
-
-    hHotPixels = uicontrol('Parent', hPanel, ...
+    hDenoise = uicontrol('Parent', hPanel, ...
                          'Units', 'normalized',  ...
                          'Callback', @gui_Callback, ...
-                         'Position', [0.9 0.4 0.1 0.05], ...
-                         'String', 'Hot pixels',  ...
+                         'Position', [0.9 0.45 0.1 0.05], ...
+                         'String', 'Denoise',  ...
                          'Style', 'checkbox',  ...
-                         'Tag', 'hot_pixels');
-    enabled = [enabled hHotPixels];
-
-    hNorm = uicontrol('Parent', hPanel, ...
-                           'Units', 'normalized',  ...
-                           'Callback', @gui_Callback, ...
-                           'Position', [0.9 0.35 0.1 0.05], ...
-                           'String', 'Normalize',  ...
-                           'Style', 'checkbox',  ...
-                           'Tag', 'normalize');
-    enabled = [enabled hNorm];
+                         'Tag', 'denoise');
+    enabled = [enabled hDenoise];
 
     % The buttons which allows to edit, load and save parameters
     hEdit = uicontrol('Parent', hPanel, ...
@@ -887,13 +635,9 @@ function [mytracking, opts] = input_channels(fname)
                      'slider', hFrame, ...
                      'text', hIndex, ...
                      'detrend', hDetrend, ...
+                     'denoise', hDenoise, ...
                      'list', hChannel, ...
-                     'hot_pixels', hHotPixels, ...
-                     'cosmics', hCosmics, ...
-                     'normalize', hNorm, ...
-                     'channel_color', hColor, ...
-                     'channel_type', hType, ...
-                     'compress', hCompress, ...
+                     'segmentation_type', hType, ...
                      'axes', [hAxes hAxesNext], ...
                      'experiment', hName, ...
                      'all_buttons', enabled, ...

@@ -36,12 +36,28 @@ function mystruct = get_struct(type, nstruct)
                         'normalize', true, ...      % Normalize the whole stack
                         'type', 'dic');             % Type of channel
 
+    % Structure to store detections from segmentations
+    case 'detection'
+      mystruct = struct('carth', NaN(1, 2), ...     % Cartesian position of the detections (Nx2)
+                        'cluster', [], ...          % Temporal cluster containing the detection paths
+                        'properties', []);          % Other properties computed on each detection, depending on the algorithm
+
     % The few parameters required to filter the image appropriately
     case 'image_filters'
       mystruct = struct('hot_pixels_threshold', 15, ...     % see imhotpixels.m
                         'cosmic_rays_threshold', 3, ...     % see imcosmics.m
                         'cosmic_rays_window_size', 10, ...  % see imcosmics.m
                         'detrend_meshpoints', 32);          % see imdetrend.m
+
+    % Structure containing the different parameters required for tracking spots
+    case 'image_segmentation'
+      mystruct = struct('max_size', 1, ...            % Maximal radius (in um) of the spots (see imatrous.m)
+                        'min_size', 0.1, ...          % Minimal radius (in um) of the spots (see detect_spots.m)
+                        'detrend_meshpoints', 32, ...    % see imdetrend.m
+                        'denoise_func', @median_mex, ... % see imdenoise.m
+                        'denoise_remove_bkg', true, ...  % see imdenoise.m
+                        'noise_thresh', 1);           % Threshold used to remove the noise (see imatrou.m)
+
 
     % Structure used to handle the metadata provided by the microscope
     case 'metadata'
@@ -57,8 +73,9 @@ function mystruct = get_struct(type, nstruct)
     % Global structure of a recording and analysis
     case 'mytracking'
       mychannel = get_struct('channel', 0);
+      mysegment = get_struct('segmentation', 0);
       mystruct = struct('channels', mychannel, ...  % Channels of the recording
-                        'segmentation', [], ...     % Segmentation data
+                        'segmentations', mysegment, ... % Segmentation data
                         'tracking', [], ...         % Tracking data
                         'experiment', '', ...       % Name of the experiment
                         'metadata', []);            % Recordings metadata
@@ -66,9 +83,21 @@ function mystruct = get_struct(type, nstruct)
     % Global structure of options/parameters for an analysis
     case 'options'
       mystruct = struct('config_files', {{}}, ...   % The various configuration files loaded
+                        'binning', 1, ...           % Pixel binning used during acquisition
+                        'ccd_pixel_size', 6.45, ... % X-Y size of the pixels in µm (of the CCD camera, without magnification)
+                        'magnification', 63, ...    % Magnification of the objective of the microscope
                         'filtering', get_struct('image_filters'), ... % Parameters for filtering the recordings
+                        'pixel_size', 0, ...        % X-Y size of the pixels in ï¿½m (computed as ccd_pixel_size / magnification)
+                        'segmenting', get_struct('image_segmentation'), ... % Parameters for segmenting the recordings
                         'verbosity', 2);            % Verbosity level of the analysis
 
+    % Structure used to segment a channel
+    case 'segmentation'
+      mydetection = get_struct('detection',0);
+      mystruct = struct('denoise', false, ...       % Denoise the segmentation (see imdenoise) ?
+                        'detrend', false, ...       % Detrend the segmentation (see imdetrend.m)
+                        'detections', mydetection, ... % the structure to store the resulting detections
+                        'type', {{}});              % The type of segmentation
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     % The general structure that contains all the information required for
@@ -320,22 +349,6 @@ function mystruct = get_struct(type, nstruct)
                         'properties', [], ...               % Various properties computed on each invagination
                         'warped', []);                      % Normalized position
 
-    % Parameters used for a segmentation (eggshell and cortex) (see 'segmentations')
-    case 'segmentation' 
-      % Retrieve the previously defined structures for the smoothness and data terms
-      params = get_struct('smoothness_parameters');
-      weights = get_struct('data_parameters');
-
-      mystruct = struct('cortex_params', params, ...        % Smoothness for the cortex
-                        'cortex_weights', weights, ...      % Data for the cortex
-                        'eggshell_params', params, ...      % Smoothness for the eggshell
-                        'eggshell_weights', weights, ...    % Data for the eggshell
-                        'estimate', [], ...                 % Field to store parameters for the initial elliptical projection
-                        'noise', [], ...                    % Field to store parameters to handle noise (filters usually)
-                        'safety', 1.2, ...                  % Additional portion projected for safety (see carthesian_coordinate.m)
-                        'scoring_func', {{}});              % Function handle for the scoring functions (first:eggshell, second:cortex)
-
-    % Structure containing all the information for all the segmentations (including parameter values)
     % Start by looking into segment_movie.m and dynamic_programming.m
     case 'segmentations'
       % Get the basic structure
