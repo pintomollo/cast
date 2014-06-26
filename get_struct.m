@@ -51,12 +51,15 @@ function mystruct = get_struct(type, nstruct)
 
     % Structure containing the different parameters required for tracking spots
     case 'image_segmentation'
-      mystruct = struct('max_size', 1, ...            % Maximal radius (in um) of the spots (see imatrous.m)
-                        'min_size', 0.1, ...          % Minimal radius (in um) of the spots (see detect_spots.m)
+      mystruct = struct('segment_max_size', 1, ...       % Maximal radius (in um) of the spots (see imatrous.m)
+                        'segment_min_size', 0.1, ...     % Minimal radius (in um) of the spots (see filter_spots.m)
                         'detrend_meshpoints', 32, ...    % see imdetrend.m
                         'denoise_func', @median_mex, ... % see imdenoise.m
+                        'denoise_size', -1,          ... % see imdenoise.m
                         'denoise_remove_bkg', true, ...  % see imdenoise.m
-                        'noise_thresh', 1);           % Threshold used to remove the noise (see imatrou.m)
+                        'atrous_size_max', 2, ...        % see imatrous.m
+                        'segment_fusion_thresh', 1, ...  % Minimal distance between detected spots (see filter_spots.m)
+                        'segment_noise_thresh', 1);      % Threshold used to remove the noise (see imatrou.m)
 
 
     % Structure used to handle the metadata provided by the microscope
@@ -94,8 +97,9 @@ function mystruct = get_struct(type, nstruct)
     % Structure used to segment a channel
     case 'segmentation'
       mydetection = get_struct('detection',0);
-      mystruct = struct('denoise', false, ...       % Denoise the segmentation (see imdenoise) ?
+      mystruct = struct('denoise', true, ...        % Denoise the segmentation (see imdenoise) ?
                         'detrend', false, ...       % Detrend the segmentation (see imdetrend.m)
+                        'filter_spots', true, ...   % Filter the spots (see filter_spots.m)
                         'detections', mydetection, ... % the structure to store the resulting detections
                         'type', {{}});              % The type of segmentation
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

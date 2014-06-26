@@ -195,7 +195,7 @@ function [links, spots] = track_spots(spots, opts)
 
       %%%%%%%%%%%%%%%%%%%%%%%%%%% PROBLEMS HERE !!!!!
       if (~isempty(spots{i}) & any(tracking_options(2:3)))
-          
+
         join_dist = frame_weight(spots{i-1}(indx_ends,:), spots{i}(indx_interm,:));
 
         if (~isempty(prev_starts))

@@ -41,7 +41,7 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
   segmentations = get_struct('segmentation', nchannels);
 
   % Create the GUI using segmentations
-  [hFig, handles] = create_figure(channels);
+  [hFig, handles] = create_figure();
 
   % Allocate the various images. This allows them to be "persistent" between
   % different calls to the callback functions.
@@ -93,8 +93,9 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
       % The filters
       set(handles.detrend,'Value', segmentations(indx).detrend);
       set(handles.denoise,'Value', segmentations(indx).denoise);
+      set(handles.filter_spots,'Value', segmentations(indx).filter_spots);
 
-      % The type and compression
+      % The type of segmentation
       set(handles.segmentation_type, 'Value',  segmentations(indx).type);
       set(handles.text, 'String', ['Frame #' num2str(nimg)]);
 
@@ -103,14 +104,16 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
       handles.prev_frame = -1;
     end
 
-    % Here we recompute all the filtering of the frame
-    if (recompute)
-      % Because it takes long, display it and block the GUI
-      set(hFig, 'Name', 'Images Segmentation (Processing...)');
-      set(handles.all_buttons, 'Enable', 'off');
-      drawnow;
-      refresh(hFig);
+    % Because it takes long, display it and block the GUI
+    set(hFig, 'Name', 'Images Segmentation (Processing...)');
+    set(handles.all_buttons, 'Enable', 'off');
+    drawnow;
+    refresh(hFig);
 
+    % Here we recompute all the filtering of the frame
+    noise = [];
+
+    if (recompute)
       % Try to avoid reloading frames as much as possible
       if (handles.prev_frame == nimg-1)
         orig_img = img_next;
@@ -128,26 +131,52 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
       % Copy to the working variable
       img = orig_img;
 
+      % Detrend the image ?
+      if (segmentations(indx).detrend)
+        img = imdetrend(img, opts.segmenting.detrend_meshpoints);
+      end
+
       % Denoise the image ?
       if (segmentations(indx).denoise)
-        %img = imdetrend(img, opts.filtering.detrend_meshpoints);
+        [img, noise] = imdenoise(img, opts.segmenting.denoise_remove_bkg, ...
+                        opts.segmenting.denoise_func, opts.segmenting.denoise_size);
       end
+    end
+
+    % Segment the image
+    contents = get(handles.segmentation_type,'String');
+    switch contents{segmentations(indx).type}
+      case 'detect_spots'
+        spots = detect_spots(img, noise, opts.segmenting.segment_noise_thresh, ...
+                             opts.segmenting.segment_max_size/opts.pixel_size);
+      otherwise
+        spots = [];
+        disp('No segmentation')
+    end
+
+    % Filter the detected spots ?
+    if (segmentations(indx).filter_spots)
+      if (isempty(noise))
+        noise = estimate_noise(img);
+      end
+      extrema = [opts.segmenting.segment_min_size opts.segmenting.segment_max_size]/...
+                 opts.pixel_size;
+      spots = filter_spots(spots, opts.segmenting.segment_noise_thresh*noise(2), ...
+                                opts.segmenting.segment_fusion_thresh, extrema);
+    else
+      spots = spots;
     end
 
     % Determine which image to display in the left panel
     switch handles.display(1)
 
-      % The raw image
+      % The reconstructed image
       case 2
         img1 = orig_img;
 
-      % The difference between filtered and raw
+      % The difference between filtered and reconstructed
       case 3
-        if (segmentations(indx).normalize)
-          img1 = (imnorm(orig_img) - img);
-        else
-          img1 = orig_img - img;
-        end
+        img1 = orig_img - img;
 
       % The filtered image
       otherwise
@@ -157,17 +186,17 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
     % Determine which image to display in the right panel
     switch handles.display(2)
 
-      % Next frame
+      % The reconstructed image
       case 2
-        img2 = img_next;
+        img2 = reconstruct_detection(orig_img, spots);
 
-      % Difference between current and next frame
+      % The difference between filtered and reconstructed
       case 3
-        img2 = (orig_img - img_next);
+        img2 = img - reconstruct_detection(orig_img, spots);
 
-      % Raw image
+      % The filtered image
       otherwise
-        img2 = orig_img;
+        img2 = img;
     end
 
     % If we have already created the axes and the images, we can simply change their
@@ -175,22 +204,32 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
     if (numel(handles.img) > 1 & all(ishandle(handles.img)))
       set(handles.img(1),'CData', img1);
       set(handles.img(2),'CData', img2);
+
+      plot_spots(handles.data, spots, 'r');
     else
 
       % Otherwise, we create the two images in their respective axes
-      handles.img = image(img1,'Parent', handles.axes(1),'CDataMapping', 'scaled');
-      handles.img(2) = image(img2,'Parent', handles.axes(2),'CDataMapping', 'scaled');
+      handles.img = image(img1,'Parent', handles.axes(1),...
+                        'CDataMapping', 'scaled',...
+                        'Tag', 'image');
+      handles.img(2) = image(img2,'Parent', handles.axes(2), ...
+                        'CDataMapping', 'scaled',...
+                        'Tag', 'image');
 
       % Hide the axes and prevent a distortion of the image due to stretching
       set(handles.axes,'Visible', 'off',  ...
                  'DataAspectRatio',  [1 1 1]);
+
+      % Now add the detected spots
+      handles.data = plot_spots(handles.axes(2), spots, 'r');
+
+      % Drag and Zoom library from Evgeny Pr aka iroln
+      dragzoom(handles.axes, 'on')
     end
 
-    % Release the image if need be
-    if (recompute)
-      set(hFig, 'Name', 'Images Segmentation');
-      set(handles.all_buttons, 'Enable', 'on');
-    end
+    % Release the image
+    set(hFig, 'Name', 'Images Segmentation');
+    set(handles.all_buttons, 'Enable', 'on');
 
     return
   end
@@ -212,7 +251,7 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
 
       % Call the editing function
       case 'edit'
-        opts.filtering = edit_options(opts.filtering);
+        opts.segmenting = edit_options(opts.segmenting);
 
       % Call the loading function
       case 'load'
@@ -249,7 +288,7 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
     switch type
 
       % Each checkbox is responsible for its respective boolean fields
-      case {'detrend','denoise'}
+      case {'detrend','denoise','filter_spots'}
         segmentations(indx).(type) = logical(get(hObject, 'Value'));
 
       % The slider varies the frame index
@@ -335,7 +374,7 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
     return
   end
 
-  function [hFig, handles] = create_figure(channels)
+  function [hFig, handles] = create_figure
   % This function actually creates the GUI, placing all the elements
   % and linking the calbacks.
 
@@ -343,7 +382,7 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
     nchannels = length(channels);
 
     % Initialize the possible segmentations and their corresponding channels
-    typestring = {'None','Spots ("A trous")', 'Nuclei'};
+    typestring = {'None','detect_spots','lidke_fit', 'Nuclei'};
     typechannel = {'luminescence','fluorescence'};
 
     % Initialize the structure used for the interface
@@ -523,7 +562,7 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
                          'Units', 'normalized',  ...
                          'Position', [0.1 0.1 0.25 0.8], ...
                          'Style', 'radiobutton',  ...
-                         'String', 'Current frame', ...
+                         'String', 'Filtered image', ...
                          'Tag', 'radio21');
     enabled = [enabled hControl];
 
@@ -531,7 +570,7 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
                          'Units', 'normalized',  ...
                          'Position', [0.4 0.1 0.25 0.8], ...
                          'Style', 'radiobutton',  ...
-                         'String', 'Next frame', ...
+                         'String', 'Reconstructed image', ...
                          'Tag', 'radio22');
     enabled = [enabled hControl];
 
@@ -598,6 +637,16 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
                          'Tag', 'denoise');
     enabled = [enabled hDenoise];
 
+    hFilter = uicontrol('Parent', hPanel, ...
+                         'Units', 'normalized',  ...
+                         'Callback', @gui_Callback, ...
+                         'Position', [0.9 0.4 0.1 0.05], ...
+                         'String', 'Filter spots',  ...
+                         'Style', 'checkbox',  ...
+                         'Tag', 'filter_spots');
+    enabled = [enabled hFilter];
+
+
     % The buttons which allows to edit, load and save parameters
     hEdit = uicontrol('Parent', hPanel, ...
                        'Units', 'normalized',  ...
@@ -636,17 +685,22 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
                      'text', hIndex, ...
                      'detrend', hDetrend, ...
                      'denoise', hDenoise, ...
+                     'filter_spots', hFilter, ...
                      'list', hChannel, ...
                      'segmentation_type', hType, ...
                      'axes', [hAxes hAxesNext], ...
                      'experiment', hName, ...
                      'all_buttons', enabled, ...
                      'img', -1, ...
+                     'data', -1, ...
                      'prev_frame', -1, ...
                      'frame', 1, ...
                      'display', [1 1], ...
                      'prev_channel', -1, ...
                      'current', 1);
+
+    % Link both axes and activate the pan
+    linkaxes(handles.axes);
 
     return;
   end

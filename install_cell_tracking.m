@@ -66,6 +66,15 @@ function install_cell_tracking
       error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
     end
   end
+  if (exist('bilinear_mex') ~= 3)
+    try
+      mex -setup;
+      eval(['mex MEX' filesep 'bilinear_mex.c']);
+    catch ME
+      cd ..;
+      error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
+    end
+  end
 
   cd ..;
 

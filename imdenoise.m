@@ -52,6 +52,10 @@ function [img, noise] = imdenoise(img, rm_bkg, func, varargin)
     rm_bkg = false;
   end
 
+  % Remove empty cells
+  args = args(~cellfun('isempty', args));
+  args = args(cellfun(@(x)(isfinite(x) && x>=0), args));
+
   % Get the image type and convert to double
   img_class = class(img);
   img = double(img);

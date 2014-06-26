@@ -171,6 +171,8 @@ function mystruct = edit_options(mystruct, name)
 
             count = count + 1;
           end
+
+        % We use a push button to edit the underlying structure recursively
         case 'button'
           hControl = uicontrol('Parent', hPanel, ...
                         'Units', 'pixels',  ...
@@ -181,15 +183,19 @@ function mystruct = edit_options(mystruct, name)
                         'Tag', myvals{i,1});
       end
 
+      % We need to count how many items we display, and sotre their handlers
       count = count + 1;
       fields(i) = hControl;
     end
+
+    % We might need to resize the figure one last time
     curr_size = get(hPanel, 'Position');
     if (count*50 + 30 > curr_size(4))
       diff_size = curr_size(4) - (count*50 + 30);
       set(hPanel, 'Position', curr_size+[0 diff_size 0 -diff_size]);
     end
 
+    % Remove the slider if not needed
     curr_size = get(hPanel, 'Position');
     if (curr_size(4) - psize(4) < 1)
       set(hSlider, 'Visible', 'off');
@@ -197,6 +203,7 @@ function mystruct = edit_options(mystruct, name)
       set(hSlider, 'Max', curr_size(4) - psize(4), 'Value', curr_size(4) - psize(4));
     end
 
+    % Store everything and display the panel
     handles = struct('panel', hPanel, ...
                      'controls', fields, ...
                      'fix_offset', psize(2), ...
@@ -208,23 +215,27 @@ function mystruct = edit_options(mystruct, name)
     return;
   end
 
+  % Used to prevent the figure from closing
   function empty(hObject, eventdata, handles)
     return;
   end
 
+  % Upon cancel, we simply exit without applying any modifications
   function cancel_CloseRequestFcn(hObject, eventdata, handles)
     uiresume(gcbf)
 
     return;
   end
 
+  % Update the panel according to the movements of the mouse scroll button
   function scrolling(hObject, scroll_struct)
 
+    % Move a bit faster
     move = 2*scroll_struct.VerticalScrollCount * scroll_struct.VerticalScrollAmount;
 
     handles = get(hFig, 'UserData');
 
-    %# slider value
+    % Update the slider value
     offsets = get(handles.slider, {'Value', 'Min', 'Max'});
     new_offset = offsets{1} - move;
     new_offset = max(new_offset, offsets{2});
@@ -232,49 +243,60 @@ function mystruct = edit_options(mystruct, name)
 
     set(handles.slider,'Value', new_offset);
 
-    %# update panel position
-    p = get(handles.panel, 'Position');  %# panel current position
+    % Update the panel position
+    p = get(handles.panel, 'Position'); 
     set(handles.panel, 'Position',[p(1) -new_offset+handles.fix_offset p(3) p(4)])
 
     return;
   end
 
+  % Recursively edit a structure
   function recursive_edit(hObject, eventdata, handles)
 
+    % Hide the current panel
     set(hFig, 'Visible', 'off');
     fieldname = get(hObject, 'Tag');
 
+    % Fancy naming for the panel title
     if (isempty(name))
       fname = fieldname;
     else
       fname = [name '.' fieldname];
     end
 
+    % Edit the substructure
     value = edit_options(mystruct.(fieldname), fname);
+
+    % Store the new values
     mystruct.(fieldname) = value;
+
+    % Display the old panel
     set(hFig, 'Visible', 'on');
 
     return
   end
 
+  % Move using the slider values
   function slider_Callback(hObject, eventdata, handles)
 
     handles = get(hFig, 'UserData');
 
-    %# slider value
+    % The slider value
     offset = get(handles.slider,'Value');
 
-    %# update panel position
-    p = get(handles.panel, 'Position');  %# panel current position
+    % Update the panel position
+    p = get(handles.panel, 'Position');
     set(handles.panel, 'Position',[p(1) -offset+handles.fix_offset p(3) p(4)])
 
     return
   end
 
+  % Store the new values
   function save_CloseRequestFcn(hObject, eventdata, handles)
 
     handles = get(hFig, 'UserData');
 
+    % Retrieve the different types of values that are displayed
     for i=1:size(values, 1)
       switch values{i,4}
         case 'edit'
@@ -287,6 +309,7 @@ function mystruct = edit_options(mystruct, name)
           continue;
       end
 
+      % And convert them back to their original types
       if (~isempty(val))
         switch values{i,3}
           case 'cell'
@@ -296,6 +319,8 @@ function mystruct = edit_options(mystruct, name)
             val = val(grow, gcol);
           case 'num'
             [tmp, correct] = mystr2double(val);
+
+            % Enforce the data type
             while (~correct)
               answer = inputdlg(['''' values{i,1} ''' is not a valid number, do you want to correct it ?'], 'Correct a numerical value', 1, {val});
               if (isempty(answer))
@@ -309,6 +334,7 @@ function mystruct = edit_options(mystruct, name)
           case 'func'
             [tmp, correct] = mystr2func(val);
 
+            % Enforce the data type
             while (~correct)
               if (iscell(val))
                 val = char(val(~cellfun('isempty', val)));
@@ -326,20 +352,55 @@ function mystruct = edit_options(mystruct, name)
             end
 
             val = tmp;
+
+            if (length(val)==1)
+              val = val{1};
+            end
           case 'strel'
             val = strel('arbitrary', val);
+        end
+      else
+        % The empty values keeping the proper type
+        switch values{i,3}
+          case 'cell'
+            val = {{}};
+          case 'num'
+            val = NaN;
+          case 'func'
+            correct = false;
+            % Enforce the data type
+            while (~correct)
+
+              answer = inputdlg(['''' values{i,1} ''' is not a valid function, do you want to correct it ?'], 'Correct a function handle', 1, {val});
+              if (isempty(answer))
+                [tmp, correct] = mystr2func(values{i, 2});
+              else
+                [tmp, correct] = mystr2func(answer{1});
+              end
+            end
+
+            val = tmp;
+
+            if (length(val)==1)
+              val = val{1};
+            end
+
+          case 'strel'
+            val = strel('arbitrary', []);
         end
       end
 
       mystruct.(values{i,1}) = val;
     end
 
+    % And resume
     uiresume(gcbf)
 
     return
   end
 end
 
+% Convert a string to a function, making some verifications in between
 function [values, correct] = mystr2func(value)
 
   if (iscell(value))
@@ -357,6 +418,7 @@ function [values, correct] = mystr2func(value)
   return;
 end
 
+% Convert a string to a list of double numbers
 function [values, correct] = mystr2double(value)
 
   splits = regexp(value, '\s+', 'split');
@@ -367,18 +429,24 @@ function [values, correct] = mystr2double(value)
   return;
 end
 
+% Create the main table to store the values, their type and the type of uibutton to
+% be displayed
 function values = parse_struct(mystruct)
 
+  % We get all fields
   fields = fieldnames(mystruct);
   values = cell(length(fields), 4);
 
+  % And parse them
   for i=1:length(fields)
     field = fields{i};
     val = mystruct.(field);
 
+    % First store the name and its value
     values{i, 1} = field;
     values{i, 2} = val;
 
+    % Now check its type and act accordingly
     switch class(val)
 
       case {'double', 'single', 'int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64'}

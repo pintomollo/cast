@@ -86,7 +86,7 @@ function [projection, atrous] = imatrou(img, size_max, coef)
 
   % Loop over the different sizes of kernel
   for i=1:nplanes
-    
+
     % Create the kernel of the correct size
     atrou_kernel = insert_holes(kernel, i);
 

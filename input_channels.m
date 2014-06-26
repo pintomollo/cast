@@ -212,6 +212,9 @@ function [mytracking, opts] = input_channels(fname)
       % Hide the axes and prevent a distortion of the image due to stretching
       set(handles.axes,'Visible', 'off',  ...
                  'DataAspectRatio',  [1 1 1]);
+
+      % Drag and Zoom library from Evgeny Pr aka iroln
+      dragzoom(handles.axes, 'on')
     end
 
     % Release the image if need be
@@ -476,7 +479,8 @@ function [mytracking, opts] = input_channels(fname)
 
       % This is a highly non-linear filtering which prevents proper
       % signal comparison between recordings
-      answer = questdlg('Some channels will be detrended, continue ?');
+      answer = questdlg({'Some channels will be detrended, continue ?','', ...
+                         '(This is a quite slow and non-linear process..)'});
       ok = strcmp(answer,'Yes');
     end
     if (ok & size(unique(colors,'rows'),1)~=nchannels)
