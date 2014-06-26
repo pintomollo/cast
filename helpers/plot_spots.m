@@ -16,6 +16,8 @@ function hgroup = plot_spots(h, spots, color)
     spots = spots{1};
   end
 
+  spots = spots(all(~isnan(spots),2),:);
+
   if (strncmp(get(h, 'Type'), 'hggroup',7))
     hgroup = h;
   else
@@ -30,19 +32,21 @@ function hgroup = plot_spots(h, spots, color)
   hrects = get(hgroup, 'Children');
   nrects = length(hrects);
 
-  for i=1:size(spots, 1)
-    pos = [spots(i, 1:2)-2*spots(i,3) 4*spots(i, [3 3])];
+  nspots = size(spots, 1);
+
+  for i=1:nspots
+    pos = [spots(i, 1:2)-2*spots(i,3) max(4*spots(i, [3 3]), [1 1])];
 
     if (i>nrects)
       rectangle('Position', pos, 'Curvature', [1 1], 'Parent', hgroup, 'EdgeColor', color);
     else
-      set(hrects, 'Position', pos, 'EdgeColor', color);
+      set(hrects(i), 'Position', pos, 'EdgeColor', color);
     end
   end
 
   set(haxes,'NextPlot', status);
 
-  delete(hrects(i+1:nrects))
+  delete(hrects(nspots+1:nrects))
 
   return;
 end

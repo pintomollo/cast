@@ -28,10 +28,10 @@ function spots = detect_spots(imgs, thresh, max_size)
   if (nargin == 0)
     error('Tracking:detect_spots', 'Not enough parameters provided (min=1)');
   elseif (nargin < 2)
-    atrous_max_size = Inf;
-    atrous_thresh = 3;
+    thresh = 3;
+    max_size = Inf;
   elseif (nargin < 3)
-    atrous_thresh = 3;
+    max_size = Inf;
   end
 
   % Image size
@@ -71,7 +71,7 @@ function spots = detect_spots(imgs, thresh, max_size)
     [coord_y, coord_x] = find(bw);
 
     % Invert to carthesian coordinates and append the score
-    estim_pos = [coord_x, coord_y, atrous(coord_y, coord_x)];
+    estim_pos = [coord_x, coord_y, atrous(sub2ind([m,n], coord_y, coord_x))];
 
     % And store the results
     spots{i} = estim_pos;

@@ -154,14 +154,14 @@ function opts = load_parameters(opts, fnames)
         elseif (line(1) ~= '%')
 
           % We extract the field name (only chars) and the corresponding value
-          tokens = regexp(line,'^(\w+)\s+(.+)$','tokens');
+          tokens = regexp(line,'^(.*\.)?([^\.]+)\s+(.+)$','tokens');
 
           % If we found the two elements, we can assign the value to the field
-          if (~isempty(tokens) & length(tokens{1}) == 2)
+          if (~isempty(tokens) & length(tokens{1}) == 3)
 
             try
               % We use the eval function to interpret the values as in MATLAB 
-              eval(['opts.' prefix '(tokens{1}{1}) = ' tokens{1}{2} ';']);
+              eval(['opts.' prefix tokens{1}{1} '(tokens{1}{2}) = ' tokens{1}{3} ';']);
             catch ME
               warning('Tracking:LoadingParameters', ['An error occured when loading field ''' prefix '.' tokens{1}{1} '''\n' ME.message])
               break;
@@ -187,6 +187,9 @@ function opts = load_parameters(opts, fnames)
       opts.config_files = [opts.config_files; fnames(:)];
     end
   end
+
+  % Recompute the pixel size just in case
+  opts = set_pixel_size(opts);
 
   return;
 end

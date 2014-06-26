@@ -48,6 +48,10 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
   img = [];
   orig_img = [];
   img_next = [];
+  spots = [];
+  filt_spots = [];
+  reconstr = [];
+  reconstr_filt = [];
 
   % Display the figure
   set(hFig,'Visible', 'on');
@@ -104,16 +108,16 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
       handles.prev_frame = -1;
     end
 
-    % Because it takes long, display it and block the GUI
-    set(hFig, 'Name', 'Images Segmentation (Processing...)');
-    set(handles.all_buttons, 'Enable', 'off');
-    drawnow;
-    refresh(hFig);
-
-    % Here we recompute all the filtering of the frame
-    noise = [];
-
     if (recompute)
+      % Because it takes long, display it and block the GUI
+      set(hFig, 'Name', 'Images Segmentation (Processing...)');
+      set(handles.all_buttons, 'Enable', 'off');
+      drawnow;
+      refresh(hFig);
+
+      % Here we recompute all the filtering of the frame
+      noise = [];
+
       % Try to avoid reloading frames as much as possible
       if (handles.prev_frame == nimg-1)
         orig_img = img_next;
@@ -141,30 +145,43 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
         [img, noise] = imdenoise(img, opts.segmenting.denoise_remove_bkg, ...
                         opts.segmenting.denoise_func, opts.segmenting.denoise_size);
       end
-    end
 
-    % Segment the image
-    contents = get(handles.segmentation_type,'String');
-    switch contents{segmentations(indx).type}
-      case 'detect_spots'
-        spots = detect_spots(img, noise, opts.segmenting.segment_noise_thresh, ...
-                             opts.segmenting.segment_max_size/opts.pixel_size);
-      otherwise
-        spots = [];
-        disp('No segmentation')
-    end
+      % Segment the image
+      contents = get(handles.segmentation_type,'String');
+      switch contents{segmentations(indx).type}
+        case 'detect_spots'
+          spots = detect_spots(img, opts.segmenting.atrous_thresh, ...
+                               opts.segmenting.atrous_max_size/opts.pixel_size);
+          spots = estimate_spots(img, spots, opts.segmenting.filter_max_size/(2*opts.pixel_size), ...
+                               opts.segmenting.estimate_thresh, ...
+                               opts.segmenting.estimate_niter, ...
+                               opts.segmenting.estimate_stop, ...
+                               opts.segmenting.estimate_weight, ...
+                               opts.segmenting.estimate_fit_position);
+        otherwise
+          spots = [];
+          disp('No segmentation')
+      end
 
-    % Filter the detected spots ?
-    if (segmentations(indx).filter_spots)
+      % Filter the detected spots
       if (isempty(noise))
         noise = estimate_noise(img);
       end
-      extrema = [opts.segmenting.segment_min_size opts.segmenting.segment_max_size]/...
+      extrema = [opts.segmenting.filter_min_size opts.segmenting.filter_max_size]/...
                  opts.pixel_size;
-      spots = filter_spots(spots, opts.segmenting.segment_noise_thresh*noise(2), ...
-                                opts.segmenting.segment_fusion_thresh, extrema);
+      filt_spots = filter_spots(spots, extrema, opts.segmenting.filter_min_intensity*noise(2), ...
+                                opts.segmenting.filter_overlap);
+
+      reconstr = reconstruct_detection(orig_img, real(spots));
+      reconstr_filt = reconstruct_detection(orig_img, filt_spots);
+    end
+
+    if (segmentations(indx).filter_spots)
+      curr_spots = filt_spots;
+      curr_rec = reconstr_filt;
     else
-      spots = spots;
+      curr_spots = real(spots);
+      curr_rec = reconstr;
     end
 
     % Determine which image to display in the left panel
@@ -188,11 +205,11 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
 
       % The reconstructed image
       case 2
-        img2 = reconstruct_detection(orig_img, spots);
+        img2 = curr_rec;
 
       % The difference between filtered and reconstructed
       case 3
-        img2 = img - reconstruct_detection(orig_img, spots);
+        img2 = img - curr_rec;
 
       % The filtered image
       otherwise
@@ -205,7 +222,7 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
       set(handles.img(1),'CData', img1);
       set(handles.img(2),'CData', img2);
 
-      plot_spots(handles.data, spots, 'r');
+      plot_spots(handles.data, curr_spots, 'r');
     else
 
       % Otherwise, we create the two images in their respective axes
@@ -221,15 +238,17 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
                  'DataAspectRatio',  [1 1 1]);
 
       % Now add the detected spots
-      handles.data = plot_spots(handles.axes(2), spots, 'r');
+      handles.data = plot_spots(handles.axes(2), curr_spots, 'r');
 
       % Drag and Zoom library from Evgeny Pr aka iroln
       dragzoom(handles.axes, 'on')
     end
 
-    % Release the image
-    set(hFig, 'Name', 'Images Segmentation');
-    set(handles.all_buttons, 'Enable', 'on');
+    if (recompute)
+      % Release the image
+      set(hFig, 'Name', 'Images Segmentation');
+      set(handles.all_buttons, 'Enable', 'on');
+    end
 
     return
   end
@@ -246,6 +265,9 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
     % And get the type of button which called the callback (from its tag)
     type = get(hObject, 'tag');
 
+    % By default, recompute
+    recompute = true;
+
     % Handle all three buttons differently
     switch type
 
@@ -260,11 +282,12 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
       % Call the saving function
       case 'save'
         save_parameters(opts);
+        recompute = false;
     end
 
     % Release the GUI and recompute the filters
     set(handles.all_buttons, 'Enable', 'on');
-    update_display(true);
+    update_display(recompute);
 
     return
   end
@@ -288,8 +311,13 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
     switch type
 
       % Each checkbox is responsible for its respective boolean fields
-      case {'detrend','denoise','filter_spots'}
+      case {'detrend','denoise'}
         segmentations(indx).(type) = logical(get(hObject, 'Value'));
+
+      % But filtering does not require recomputing
+      case 'filter_spots'
+        segmentations(indx).(type) = logical(get(hObject, 'Value'));
+        recompute = false;
 
       % The slider varies the frame index
       case 'slider'
@@ -310,7 +338,6 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
       % A different selection in one of the drop-down lists
       case 'type'
         segmentations(indx).(type) = get(hObject, 'Value');
-        recompute = false;
 
       % Otherwise, do nothing. This is used to cancel the deletion requests
       otherwise

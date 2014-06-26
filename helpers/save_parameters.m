@@ -155,6 +155,17 @@ function myprint(fid, variable, spacer, prefix)
       case 'char'
         fprintf(fid, [prefix spacer '''%s''\n'], variable);
 
+      % Print the functions as handlers
+      case 'function_handle'
+
+        % For loading, we need the @
+        string = func2str(variable);
+        if (string(1)~='@')
+          string = ['@' string];
+        end
+
+        fprintf(fid, [prefix spacer '%s\n'], string);
+
       % When we do not know what to do, we print the type of object we found
       otherwise
         fprintf(fid, [prefix spacer '''%s''\n'], class(variable));

@@ -88,6 +88,7 @@ function [gauss_params] = estimate_spots(imgs, estim_pos, wsize, thresh, niter, 
   % Now we try to pre-compute a maximum of vectors to speed up the regressions !
 
   % Create an index map to extract the sub-windows
+  wsize = max(ceil(wsize), 1);
   indx = [-wsize:wsize];
   [X,Y] = meshgrid(indx.', indx);
 
@@ -123,12 +124,15 @@ function [gauss_params] = estimate_spots(imgs, estim_pos, wsize, thresh, niter, 
       % We keep only the brightest pixels as suggested in [1].
       goods = (window(:) > thresh);
 
-      % Fit either a centered or a full symmetric 2d gaussian
-      if (fit_full)
-        curr_params(i,:) = regress_2d_gaussian(window(goods), niter, weight, stop);
-      else
-        curr_params(i,:) = regress_2d_centered_gaussian(window(goods), niter, ...
-                                                        weight, stop);
+      % Avoid empty windows
+      if (any(goods))
+        % Fit either a centered or a full symmetric 2d gaussian
+        if (fit_full)
+          curr_params(i,:) = regress_2d_gaussian(window(goods), niter, weight, stop);
+        else
+          curr_params(i,:) = regress_2d_centered_gaussian(window(goods), niter, ...
+                                                          weight, stop);
+        end
       end
     end
 

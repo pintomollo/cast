@@ -48,11 +48,17 @@ function fused_spots = filter_spots(all_spots, extrema_size, min_intensity, ...
     all_spots = {all_spots};
   end
 
+  % Assign the output
+  fused_spots = cell(size(all_spots));
+
   % Loop over all the planes
-  for i = 1:length(all_spots)
+  for nimg = 1:length(all_spots)
 
     % Get the current set of spots
-    spots = all_spots{i};
+    spots = all_spots{nimg};
+
+    % Prepare the list
+    curr_fused = NaN(0,size(spots,2));
 
     % No work needed
     if (isempty(spots))
@@ -71,14 +77,13 @@ function fused_spots = filter_spots(all_spots, extrema_size, min_intensity, ...
 
     % And their respective sizes
     rads = spots(:,3);
-    rads = bsxfun(@plus, rads, rads.') / 2;
+    rads = bsxfun(@plus, rads, rads.');
 
     % Get an estimate of the spot signal for weighting the fused spots
     signal = spots(:,3).^2 .* spots(:,4);
 
     % Now check which ones should be fused
     fused = (dist < (1-overlap_thresh) * rads);
-    fused_spots = NaN(0,size(spots,2));
 
     % Loop over all spots to see if fusion is required. Note that each spots should
     % at least fuse with itself !
@@ -106,7 +111,7 @@ function fused_spots = filter_spots(all_spots, extrema_size, min_intensity, ...
 
         % Fused with itself !
         if (sum(groups) == 1)
-          fused_spots = [fused_spots; spots(groups, :)];
+          curr_fused = [curr_fused; spots(groups, :)];
 
         % Otherwise, need to create a new spot
         else
@@ -132,13 +137,21 @@ function fused_spots = filter_spots(all_spots, extrema_size, min_intensity, ...
           weights = weights / sum(weights);
 
           % Average and store the new spot
-          fused_spots = [fused_spots; sum(bsxfun(@times, curr_spots, weights), 1)];
+          curr_fused = [curr_fused; sum(bsxfun(@times, curr_spots, weights), 1)];
         end
 
         % Remove the fused spots from the list
         fused(:, groups) = false;
       end
     end
+
+    % Store the whole list
+    fused_spots{nimg} = curr_fused;
+  end
+
+  % If we have only one element, use the matrix directly
+  if (numel(fused_spots)==1)
+    fused_spots = fused_spots{1};
   end
 
   return;

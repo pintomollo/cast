@@ -33,6 +33,7 @@ function mystruct = get_struct(type, nstruct)
                         'hot_pixels', true, ...     % Remove the hot pixels in the image (see imhotpixels.m)
                         'max', -Inf, ...            % Original maximum value used for rescaling
                         'min', Inf, ...             % Original minimum value used for rescaling
+                        'metadata', '', ...         % Recordings metadata
                         'normalize', true, ...      % Normalize the whole stack
                         'type', 'dic');             % Type of channel
 
@@ -51,15 +52,21 @@ function mystruct = get_struct(type, nstruct)
 
     % Structure containing the different parameters required for tracking spots
     case 'image_segmentation'
-      mystruct = struct('segment_max_size', 1, ...       % Maximal radius (in um) of the spots (see imatrous.m)
-                        'segment_min_size', 0.1, ...     % Minimal radius (in um) of the spots (see filter_spots.m)
-                        'detrend_meshpoints', 32, ...    % see imdetrend.m
-                        'denoise_func', @median_mex, ... % see imdenoise.m
-                        'denoise_size', -1,          ... % see imdenoise.m
-                        'denoise_remove_bkg', true, ...  % see imdenoise.m
-                        'atrous_size_max', 2, ...        % see imatrous.m
-                        'segment_fusion_thresh', 1, ...  % Minimal distance between detected spots (see filter_spots.m)
-                        'segment_noise_thresh', 1);      % Threshold used to remove the noise (see imatrou.m)
+      mystruct = struct('filter_max_size', 1, ...          % max radius (in um), see filter_spots.m
+                        'filter_min_size', 0.1, ...        % min radius (in um), see filter_spots.m
+                        'filter_min_intensity', 2, ...     % min intensity (x noise variance), see filter_spots.m
+                        'filter_overlap', 0.75, ...        % see filter_spots.m
+                        'detrend_meshpoints', 32, ...      % see imdetrend.m
+                        'denoise_func', @gaussian_mex, ... % see imdenoise.m
+                        'denoise_size', -1,          ...   % see imdenoise.m
+                        'denoise_remove_bkg', false, ...   % see imdenoise.m
+                        'atrous_max_size', 2, ...          % see imatrous.m
+                        'atrous_thresh', 10, ...           % see imatrous.m
+                        'estimate_thresh', 1, ...          % thresh x noise variance, see estimate_spots.m
+                        'estimate_niter', 15, ...          % see estimate_spots.m
+                        'estimate_stop', 1e-2, ...         % see estimate_spots.m
+                        'estimate_weight', 0.1, ...        % see estimate_spots.m
+                        'estimate_fit_position', false);   % see estimate_spots.m
 
 
     % Structure used to handle the metadata provided by the microscope
@@ -80,8 +87,7 @@ function mystruct = get_struct(type, nstruct)
       mystruct = struct('channels', mychannel, ...  % Channels of the recording
                         'segmentations', mysegment, ... % Segmentation data
                         'tracking', [], ...         % Tracking data
-                        'experiment', '', ...       % Name of the experiment
-                        'metadata', []);            % Recordings metadata
+                        'experiment', '');          % Name of the experiment
 
     % Global structure of options/parameters for an analysis
     case 'options'
@@ -90,7 +96,7 @@ function mystruct = get_struct(type, nstruct)
                         'ccd_pixel_size', 6.45, ... % X-Y size of the pixels in µm (of the CCD camera, without magnification)
                         'magnification', 63, ...    % Magnification of the objective of the microscope
                         'filtering', get_struct('image_filters'), ... % Parameters for filtering the recordings
-                        'pixel_size', 0, ...        % X-Y size of the pixels in ï¿½m (computed as ccd_pixel_size / magnification)
+                        'pixel_size', -1, ...        % X-Y size of the pixels in um (computed as ccd_pixel_size / magnification)
                         'segmenting', get_struct('image_segmentation'), ... % Parameters for segmenting the recordings
                         'verbosity', 2);            % Verbosity level of the analysis
 
@@ -593,6 +599,9 @@ function mystruct = get_struct(type, nstruct)
     otherwise
       mystruct = struct();
   end
+
+  % Compute the pixel size
+  mystruct = set_pixel_size(mystruct);
 
   % Repeat the structure to fit the size (nstruct can be multi-dimensional)
   mystruct = repmat(mystruct,nstruct);

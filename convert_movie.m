@@ -132,10 +132,10 @@ function [newfile] = bftools_convert(fname)
 
   if (ispc)
     cmd_name = ['"' fname '"'];
-    [res, infos] = system(['showinf.bat -stitch -nopix -nometa ' cmd_name]);
+    [res, metadata] = system(['showinf.bat -stitch -nopix -nometa ' cmd_name]);
   else
     cmd_name = strrep(fname,' ','\ ');
-    [res, infos] = system(['./showinf -stitch -nopix -nometa ' cmd_name]);
+    [res, metadata] = system(['./showinf -stitch -nopix -nometa ' cmd_name]);
   end
 
   if (ishandle(hInfo))
@@ -144,12 +144,12 @@ function [newfile] = bftools_convert(fname)
 
   if (res ~= 0)
     cd(curdir);
-    error(infos);
+    error(metadata);
   end
 
-  format = regexp(infos, 'file format\s*\[([ -\w]+)\]', 'tokens');
-  is_rgb = regexp(infos, 'RGB\s*=\s*(\w+)', 'tokens');
-  file_pattern = regexp(infos, 'File pattern = (.*)\nUsed', 'tokens');
+  format = regexp(metadata, 'file format\s*\[([ -\w]+)\]', 'tokens');
+  is_rgb = regexp(metadata, 'RGB\s*=\s*(\w+)', 'tokens');
+  file_pattern = regexp(metadata, 'File pattern = (.*)\nUsed', 'tokens');
 
   % In case of multiple files, regroup them into one single file
   if (~isempty(file_pattern))
@@ -159,7 +159,7 @@ function [newfile] = bftools_convert(fname)
   % Something went terribly wrong...
   if (isempty(format) | isempty(is_rgb))
     cd(curdir);
-    error('Tracking:lociFormat', ['The metadata does not present the expected information: ''file format'' and ''RGB'' :\n\n' infos]);
+    error('Tracking:lociFormat', ['The metadata does not present the expected information: ''file format'' and ''RGB'' :\n\n' metadata]);
   end
 
   format = format{1}{1};

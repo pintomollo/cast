@@ -28,6 +28,9 @@ function mystruct = edit_options(mystruct, name)
   uiwait(hFig);
   delete(hFig);
 
+  % Recompute the pixel size just in case
+  mystruct = set_pixel_size(mystruct);
+
   return;
 
   % Function which creates the figure along with all the fields and controls
