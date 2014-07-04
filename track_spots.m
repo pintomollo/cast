@@ -1,397 +1,545 @@
-function [links, spots] = track_spots(spots, opts)
+function links = track_spots(spots, funcs, max_move, max_gap, allow_branching_gap, verbosity)
+% TRACK_SPOTS tracks spots over time using a global optimization algorithm [1].
+%
+%   LINKS = TRACK_SPOTS(SPOTS, FUNCS) LINKS the sets of SPOTS using the provided
+%   cost functions FUNCS. SPOTS should be a cell vector, each cell containing a matrix
+%   of detected SPOTS at the corresponding time point. Each matrix should contain one
+%   spot per row, the organisation of which depends on the expected format for the
+%   cost functions FUNCS. The standard functions (see get_struct.m) expect:
+%     [X_coord, Y_coord, sigma, amplitude, ..., row_index, frame_index]
+%   FUNCS should be a cell array of 4 function handlers, in the following order:
+%     {linking_function, bridging_function, joining_function, splitting_function}
+%   Providing an empty cell for any of the three last functions disables this function
+%   in the tracking algorithm [1].
+%   LINKS will be a cell vector with the same size as SPOTS, each cell containing a
+%   matrix with one spot-to-spot link per row, connecting a "start" spot from a
+%   previous frame, to an "end" spot in the current frame, as follow:
+%     [end_spot_index, start_spot_index, start_spot_frame_index]
+%
+%   PLEASE NOTE that this algorithm works using sparse matrices and thus requires cost
+%   matrices in which 0 is the highest cost and -Inf the lowest one. A simple
+%   transformation to obtain such a matrix is to utilize -exp(-dist^2). For examples
+%   of such cost functions, see linking_cost_sparse_mex.m, bridging_cost_sparse_mex.m,
+%   joining_cost_sparse_mex, splitting_cost_sparse_mex.m.
+%
+%   LINKS = TRACK_SPOTS(SPOTS, FUNCS, MAX_MOVEMENT) defines in addition the maximum
+%   number of pixels a spot can travel between two consecutive frames (default: Inf).
+%
+%   LINKS = TRACK_SPOTS(SPOTS, FUNCS, MAX_MOVEMENT, MAX_GAP_LENGTH) defines the maximum
+%   number of frames a spot can be "lost" in a track, while the track gaps over them
+%   (default: 5).
+%
+%   LINKS = TRACK_SPOTS(SPOTS, FUNCS, MAX_MOVEMENT, MAX_GAP_LENGTH, ALLOW_BRANCHING_GAP)
+%   defines if merging and splitting can occur over MAX_GAP_LENGTH (default: false).
+%
+%   LINKS = TRACK_SPOTS(..., VERBOSITY) when VERBOSITY > 1, displays a progress bar.
+%
+%   LINKS = TRACK_SPOTS(SPOTS, OPTS) extracts the corresponding parameter values from
+%   OPTS.spot_tracking (see get_struct.m), utilizing OPTS.pixel_size and OPTS.time_interval
+%   to compute the per pixel / per frame values. OPTS should have the structure
+%   provided by get_struct('options').
+%
+%   LINKS = TRACK_SPOTS(MYTRACKING, ...) tracks the spots segmented in MYTRACKING.
+%
+% References:
+%   [1] Jaqaman K, Loerke D, Mettlen M, Kuwata H, Grinstein S, et al. Robust
+%       single-particle tracking in live-cell time-lapse sequences. Nat Methods 5: 
+%       695-702 (2008).
+%
+% Gönczy & Naef labs, EPFL
+% Simon Blanchoud
+% 04.07.2014
 
-  % Input checking
+  % Input checking and default values
   if (nargin < 2)
-    opts = get_struct('ASSET');
+    error('Tracking:track_spots', 'Not enough parameters provided (min=2)');
+  elseif (nargin < 3)
+    max_move = Inf;
+    max_gap = 5;
+    allow_branching_gap = false;
+    verbosity = 2;
+  elseif (nargin < 4)
+    max_gap = 5;
+    allow_branching_gap = false;
+    verbosity = 2;
+  elseif (nargin < 5)
+    allow_branching_gap = false;
+    verbosity = 2;
+  elseif (nargin < 6)
+    verbosity = 2;
   end
 
+  % Check whether we got the options structure
+  if (isstruct(funcs))
+    opts = funcs;
+
+    % Get the function handlers
+    funcs = {opts.spot_tracking.linking_function, ...
+             opts.spot_tracking.bridging_function, ...
+             opts.spot_tracking.joining_function, ...
+             opts.spot_tracking.splitting_function};
+
+    % And call itself with the proper values
+    links = track_spots(spots, funcs, ...
+            opts.time_interval*opts.spot_tracking.spot_max_speed/opts.pixel_size, ...
+            opts.spot_tracking.bridging_max_gap, ...
+            opts.spot_tracking.allow_branching_gap, opts.verbosity);
+    return;
+  end
+
+  % For conveniance, always work with cell vector
+  if (~iscell(funcs))
+    funcs = {funcs};
+  end
+
+  % Create empty function handlers in case not enough where provided
+  weighting_funcs = cell(4, 1);
+  weighting_funcs(1:min(length(funcs), end)) = funcs(1:min(4, end));
+
+  % Create a structure to store the one which might be provided
+  mystruct = [];
   if (isstruct(spots))
-    mymovie = spots;
-    if (isfield(mymovie, 'experiment'))
-      tmp_struct = mymovie.data.spots;
+
+    % We can either get a full experiment, or the detections sub-structure
+    if (isfield(spots, 'experiment'))
+
+      % Store the structure
+      mystruct = spots;
+
+      % Loop over all channels and call itself recursively
+      for i = 1:length(mystruct.channels)
+        mystruct.segmentations(i).detections = track_spots( ...
+                    mystruct.segmentations(i).detections, funcs, max_move, max_gap, ...
+                    allow_branching_gap, verbosity);
+      end
+
+      % Save the result and exit
+      links = mystruct;
+
+      return;
+
+    % Here we got a detection structure (at least we assume so)
     else
-      tmp_struct = mymovie;
-    end
 
-    nframes = length(tmp_struct);
-    spots = cell(nframes, 1);
+      % Store the structure
+      mystruct = spots;
 
-    for i=1:nframes
-      spots{i} = [tmp_struct(i).carth tmp_struct(i).properties];
+      % Get the number of frames, initialize the spot cell vector
+      nframes = length(mystruct);
+      spots = cell(nframes, 1);
+
+      % Build the proper matrices
+      for i = 1:nframes
+        spots{i} = [mystruct(i).carth mystruct(i).properties];
+      end
     end
-  else
-    mymovie = [];
-    nframes = length(spots);
   end
+
+  % Get the number of frames from the spots array
+  nframes = length(spots);
 
   % Initialize the output variable
   links = cell(nframes, 1);
 
-  if (isfield(opts, 'pixel_size'))
-    opts = set_pixel_size(opts);
-
-    pixel_size = opts.pixel_size;
-  elseif (isfield(opts, 'spot_tracking') & isfield(opts.spot_tracking, 'pixel_size'))
-    opts.spot_tracking = set_pixel_size(opts.spot_tracking);
-
-    pixel_size = opts.spot_tracking.pixel_size;
-  else
-    pixel_size = 1;
+  % Make sure we at elast got this handler !
+  frame_linking_weight = weighting_funcs{1};
+  if (isempty(frame_linking_weight))
+    error('Tracking:track_spots', 'No valid frame to frame weighting function provided');
   end
 
-  if (pixel_size <= 0)
-    pixel_size = 1;
+  % A nice status-bar if possible
+  do_display = (verbosity > 1 && nframes > 2);
+  if (do_display)
+    hwait = waitbar(0,'','Name','Cell Tracking');
+
+    % Update the waitbar
+    waitbar(0, hwait, ['Linking spots between consecutive frames...']);
   end
 
-  if (isfield(opts, 'spot_tracking'))
-    opts = opts.spot_tracking;
-  end
-
-  spot_max_movement = opts.frame_displacement;
-  frame_weight = opts.linking_function;
-  max_frames = opts.frame_window;
-
-  % The maximal size of the spot in pixels
-  spot_max_movement = (spot_max_movement / pixel_size);
-
+  % Initialize some variables for the frame to frame to operate properly, at frame 1
+  % there is nothing before that so both are empty for now on
   pts = [];
   npts = 0;
-  ndim = 0;
 
+  % We store all assignments as we need them later to compute the average distance
   all_assign = [];
-  prev_max = NaN;
 
-  do_display = (isfield(opts, 'verbosity') && opts.verbosity > 1);
-  if (do_display)
-    cpb = ConsoleProgressBar();
-    cpb.setLeftMargin(4);   % progress bar left margin
-    cpb.setTopMargin(1);    % rows margin
-    cpb.setLength(100);      % progress bar length: [.....]
-    cpb.setMinimum(0);
-    cpb.setMaximum(nframes);
+  % Loop over all frames forward
+  for i = 1:nframes
 
-    cpb.setElapsedTimeVisible(1);
-    cpb.setRemainedTimeVisible(1);
-    cpb.setElapsedTimePosition('left');
-    cpb.setRemainedTimePosition('right');
-
-    cpb.start();
-  end
-
-  nprops = 0;
-  for i=1:nframes
-
+    % Store the previous data
     prev_pts = pts;
     prev_npts = npts;
 
+    % And load the current data
     pts = spots{i};
-    [npts, tmp] = size(pts);
+    npts = size(pts, 1);
 
-    if (npts > 0 && nprops == 0)
-      nprops = tmp - 2;
-    end
+    % If one of the two is empty, no linking will happen
+    if (prev_npts > 0 && npts > 0)
 
-    if (ndim == 0)
-      ndim = tmp;
-    end
-    
-    if (prev_npts > 0 & npts > 0)
+      % Get the spot-to-spot cost matrix for linking them
+      mutual_dist = frame_linking_weight(prev_pts, pts, max_move);
 
-      dist = Inf(npts + prev_npts);
-      
-      [mutual_dist, weight] = frame_weight(prev_pts, pts);
-      mutual_dist(mutual_dist > spot_max_movement) = Inf;
-      mutual_dist = mutual_dist .* weight;
-      prev_max = spot_max_movement;
+      % Get the data from the resulting sparse matrix
+      [indxi, indxj, vals] = get_sparse_data_mex(mutual_dist);
 
-      ends = eye(max(npts,prev_npts))*prev_max;
-      ends(ends==0) = Inf;
-      min_dist = min(mutual_dist(:));
-      trans_dist = Inf(npts,prev_npts);
-      trans_dist(mutual_dist.' < Inf) = min_dist;
+      % Use some default values if no linkin is possible
+      if (isempty(vals))
+        curr_max = -0.1;
+        min_dist = -1;
+      else
+        curr_max = max(vals);
+        min_dist = min(vals);
+      end
 
-      dist(1:prev_npts,1:npts) = mutual_dist;
-      dist(1:prev_npts,npts+1:end) = ends(1:prev_npts,1:prev_npts);
-      dist(prev_npts+1:end,1:npts) = ends(1:npts,1:npts);
-      dist(prev_npts+1:end,npts+1:end) = trans_dist;
+      % Build the data requried for the no-linking parts of the matrix [1]
+      ends_indx = [1:max(npts,prev_npts)].';
+      ends = ones(size(ends_indx))*curr_max;
 
-      %[assign, cost] = munkres(dist);
-      %[assign, cost] = assignmentoptimal(dist);
-      [assign, cost] = lapjv_fast(dist);
+      % No build the full indexes for the final sparse matrix
+      indxi = [indxi; ...                         % Linking
+               ends_indx(1:prev_npts); ...        % End of a track
+               ends_indx(1:npts)+prev_npts; ...   % Start of a track
+               indxj+prev_npts];                  % Requried for symmetry
 
+      % Same for the other matrix indexes
+      indxj = [indxj; ends_indx(1:prev_npts)+npts; ends_indx(1:npts); indxi+npts];
+
+      % And the corresponding values
+      vals = [vals; ends(1:prev_npts); ends(1:npts); ones(size(vals))*min_dist];
+
+      % Now build the full sparse matrix using only the requried number of values
+      dist = sparse(indxi, indxj, vals, npts + prev_npts, npts + prev_npts, ...
+                    length(vals));
+
+      % And solve this using this alternative implementation of the Hungarian algorithm
+      [assign, cost] = lapjv_fast_sparse(dist);
+
+      % Keep only the relevant part of the assignments (others are required for symmetry)
       assign = assign(1:prev_npts);
+
+      % And keep only the ones representing a link
       indxs = 1:length(assign);
       good_indx = (assign <= npts);
-
       assign = assign(good_indx);
       indxs = indxs(good_indx);
 
+      % Extract the corresponding costs for later use
       assign_dist = dist(sub2ind(size(dist),indxs,assign));
-      %assign_dist = assign_dist(:);
-      %good_indx = (assign(1:prev_npts) <= npts);
       all_assign = [all_assign; assign_dist(:)];
-      
-      [assign, perms] = sort(assign(:));
-      %[junk tmp] = sort(assign);
 
-      %valids = (tmp <= prev_npts);
-      %valids(npts+1:end) = false;
-      %links{i} = [junk(valids) tmp(valids) (i-ones(sum(valids), 1))];
+      % Invert the assignment indexes as we store next -> prev links
+      [assign, perms] = sort(assign(:));
+
+      % And store everything
       links{i} = [assign indxs(perms).' (i-ones(length(assign), 1))];
     end
 
+    % Still store something to avoid errors later when accessing columns
     if (isempty(links{i}))
       links{i} = NaN(0, 3);
     end
 
+    % Update the progress bar
     if (do_display)
-      text = sprintf('Progress: %d/%d', i, nframes);
-      cpb.setValue(i);
-      cpb.setText(text);
+      waitbar(i/nframes,hwait);
     end
   end
 
-  if (do_display)
-    cpb.stop();
+  % Convert the costs back to distances
+  dists = (sqrt(-log(-all_assign)));
+
+  % And get the overall average distance
+  avg_movement = mean(dists(isfinite(dists)));
+
+  % Get the size of spot matrices to initialize properly the lists for the branching
+  for i=1:nframes
+    if (~isempty(spots{i}))
+      ndim = size(spots{i},2);
+      break;
+    end
   end
 
-  if (max_frames == 0)
-    return;
-  end
-
-  avg_movement = mean(all_assign);
-
+  % We need to build several lists for bridging/merging/splitting
   starts = zeros(0, ndim+2);
   ends = zeros(0, ndim+2);
   interm = zeros(0, ndim+2);
+  tmp_interm = zeros(0, ndim+2);
 
-  closing_weight = opts.gap_function;
-  joining_weight = opts.joining_function;
-  splitting_weight = opts.splitting_function;
+  % Because the gap links two frames ...
+  branching_gap = max_gap*allow_branching_gap + 1;
+  max_gap = max_gap + 1;
 
-  tracking_options = ~[isempty(closing_weight) isempty(joining_weight) isempty(splitting_weight)];
-  prev_starts = [];
+  % Get the corresponding cost functions
+  closing_weight = weighting_funcs{2};
+  joining_weight = weighting_funcs{3};
+  splitting_weight = weighting_funcs{4};
 
+  % And check if we need to skip some functionalities
+  tracking_options = ~[(isempty(closing_weight) || max_gap==1), ...
+                       isempty(joining_weight), ...
+                       isempty(splitting_weight)] & (nframes > 2);
+
+  % Decide whether we need to build a list of intermediate spots
+  get_interm = any(tracking_options(2:3));
+
+  % Maybe skip the whole assignment part
   if (any(tracking_options))
-    for i=nframes:-1:2
 
-      indx_interm = links{i}(:,1);
-      indx_starts = [];
+    % Update the waitbar
+    if (do_display)
+      waitbar(0, hwait, ['Building a list of tracks for bridging/splitting/merging...']);
+    end
 
+    % All the tracks need to end in the last frame
+    prev_ends = [1:size(spots{end}, 1)];
+
+    % Loop over all frames, backwards, to follow the previous links
+    for i = nframes:-1:2
+
+      % Get the current links
+      curr_links = links{i};
+
+      % Intermediate spots cannot be end spots
+      indx_interm = setdiff(curr_links(:,1), prev_ends);
+
+      % Start spots do not connect to any previous spot
       nstarts = size(spots{i},1);
-      indx_starts = setdiff([1:nstarts], indx_interm);
+      indx_starts = setdiff([1:nstarts], curr_links(:,1));
       nstarts = length(indx_starts);
 
+      % If we have some starting spots, store them, including their indexes
       if (nstarts>0)
-        starts(end+1:end+nstarts,:) = [spots{i}(indx_starts,:) indx_starts(:) ones(nstarts,1)*i];
+        starts(end+1:end+nstarts,:) = [spots{i}(indx_starts,:) indx_starts(:) ...
+                                                               ones(nstarts,1)*i];
       end
 
+      % End points are spots in the previous frame, not linked to any spot
       nends = size(spots{i-1},1);
-      indx_ends = setdiff([1:nends], links{i}(:,2));
+      indx_ends = setdiff([1:nends], curr_links(:,2));
       nends = length(indx_ends);
+
+      % Store them similarly
       if (nends>0)
-        ends(end+1:end+nends,:) = [spots{i-1}(indx_ends,:) indx_ends(:) ones(nends,1)*i-1];
+        ends(end+1:end+nends,:) = [spots{i-1}(indx_ends,:) indx_ends(:) ...
+                                                           ones(nends,1)*i-1];
       end
 
-      %%%%%%%%%%%%%%%%%%%%%%%%%%% PROBLEMS HERE !!!!!
-      if (~isempty(spots{i}) & any(tracking_options(2:3)))
+      % If we need to, check whether some of the intermediary spots could be
+      % either merging points or splitting points
+      if (get_interm)
 
-        join_dist = frame_weight(spots{i-1}(indx_ends,:), spots{i}(indx_interm,:));
-
-        if (~isempty(prev_starts))
-          split_dist = frame_weight(spots{i+1}(prev_starts, :), spots{i}(indx_interm, :));
-          join_dist = [join_dist; split_dist];
-        end
-
-        indx_interm = indx_interm(any(join_dist < spot_max_movement, 1));
+        % Check if we have some in this frame
         ninterm = length(indx_interm);
 
+        % We utilize an intermediary list so that we can compare to all intermediary
+        % spots, including accross gaps if need be.
         if (ninterm>0)
-          interm(end+1:end+ninterm,:) = [spots{i}(indx_interm,:) indx_interm(:) ones(ninterm,1)*i];
+          tmp_interm(end+1:end+ninterm,:) = [spots{i}(indx_interm,:) indx_interm(:) ...
+                                                                  ones(ninterm,1)*i];
         end
+
+        % Now we need to decide whether they could be interesting spots, to do so, we
+        % call the corresponding cost function and verify wether they pass the
+        % max_gap and max_movement thresholds.
+        good_interm = false(1, size(tmp_interm, 1));
+
+        % First for the merging part
+        if (tracking_options(2))
+
+          % Call the function to check whether they pass the various thresholds
+          can_join = joining_weight(ends, tmp_interm, max_move, branching_gap);
+          good_interm = good_interm | can_join;
+        end
+
+        % Then for the splitting
+        if (tracking_options(3))
+
+          % Again using the splitting function itself
+          can_split = splitting_weight(starts, tmp_interm, max_move, branching_gap);
+          good_interm = good_interm | can_split;
+        end
+
+        % Get the subset of potential candidates
+        new_interm = tmp_interm(good_interm, :);
+        ninterm = size(new_interm, 1);
+
+        % Sotre them in the actual list of intermediary spots
+        if (ninterm>0)
+          interm(end+1:end+ninterm,:) = new_interm;
+        end
+
+        % Update our intermediary list, removing used spots and ones that are too
+        % far away over time to gap with the next frame
+        tmp_interm = tmp_interm(~good_interm, :);
+        tmp_interm = tmp_interm(tmp_interm(:,end)<=i+branching_gap,:);
       end
 
-      prev_starts = indx_starts;
+      % Update the track ends
+      prev_ends = indx_ends;
+
+      % And the progress bar
+      if (do_display)
+        waitbar((nframes-i+1)/nframes,hwait);
+      end
     end
-    
+
+    % Update the waitbar
+    if (do_display)
+      waitbar(0, hwait, ['Assigning bridging/splitting/merging of tracks... (please wait)']);
+    end
+
+    % Get the final number of spots
     nstarts = size(starts, 1);
     nends = size(ends, 1);
     ninterm = size(interm, 1);
 
-    dist = Inf(nstarts + nends + 2*ninterm);
-
+    % Compute the bridging costs
     if (tracking_options(1))
-      mutual_dist = closing_weight(ends, starts);
-
-      frame_indx = -bsxfun(@minus,ends(:,end),starts(:,end).');
-
-      mutual_dist(frame_indx < 1 | frame_indx > max_frames | mutual_dist > spot_max_movement) = Inf;
+      mutual_dist = closing_weight(ends, starts, max_move, max_gap);
     else
-      mutual_dist = Inf(nends, nstarts);
+      mutual_dist = sparse(nends, nstarts);
     end
 
+    if (do_display)
+      waitbar(1/6,hwait);
+    end
+
+    % The merging costs, we also need an alternative costs vector [1]
     if (tracking_options(2))
-      [merge_dist, merge_weight, alt_weight] = joining_weight(ends, interm, spots, links);
-      frame_indx = -bsxfun(@minus, ends(:,end), interm(:,end).');
-      merge_weight = merge_dist .* merge_weight;
-      merge_weight(merge_dist > spot_max_movement | frame_indx ~= 1) = Inf;
-      alt_merge_weight = avg_movement * alt_weight;
+      [merge_weight, alt_merge_weight] = joining_weight(ends, interm, max_move, branching_gap, avg_movement, spots, links);
     else
-      merge_weight = Inf(nends, ninterm);
-      alt_merge_weight = Inf(ninterm);
+      merge_weight = sparse(nends, ninterm);
+      alt_merge_weight = sparse(ninterm);
     end
 
+    if (do_display)
+      waitbar(2/6,hwait);
+    end
+
+    % And the splitting costs, including the alternative costs vector
     if (tracking_options(3))
-      [split_dist, split_weight, alt_split_weight] = splitting_weight(interm, starts, spots, links);
-      frame_indx = -bsxfun(@minus, interm(:,end), starts(:,end).');
-      split_weight = split_dist .* split_weight;
-      split_weight(split_dist > spot_max_movement | frame_indx ~= 1) = Inf;
-      alt_split_weight = avg_movement * alt_split_weight;
+      [split_weight, alt_split_weight] = splitting_weight(starts, interm, max_move, branching_gap, avg_movement, spots, links);
     else
-      split_weight = Inf(ninterm, nstarts);
-      alt_split_weight = Inf(ninterm);
+      split_weight = sparse(ninterm, nstarts);
+      alt_split_weight = sparse(ninterm);
     end
 
+    if (do_display)
+      waitbar(3/6,hwait);
+    end
+
+    % Now build the full matrix [1]
     % Note that end-end merging and start-start splitting is not allowed by this
-    % algorithm, which might make sense...
+    % algorithm, which makes sense...
 
-    dist(1:nends,1:nstarts) = mutual_dist;
-    dist(1:nends,nstarts+1:nstarts+ninterm) = merge_weight;
-    dist(nends+1:nends+ninterm,1:nstarts) = split_weight;
+    % Get the individual indexes and values from the different sparse matrices, and
+    % concatenate them into one single list.
 
-    trans_dist = dist(1:nends+ninterm, 1:nstarts+ninterm).';
-    trans_dist(trans_dist < Inf) = min(trans_dist(:));
+    % Bridging is the top left matrix
+    [indxi, indxj, vals] = get_sparse_data_mex(mutual_dist);
+    all_indxi = indxi;
+    all_indxj = indxj;
+    all_vals = vals;
 
-    alt_cost = prctile(dist(~isinf(dist)), 90);
-    alt_dist = eye(max(nends, nstarts))*alt_cost;
-    alt_dist(alt_dist==0) = Inf;
+    % Merging is shifted on the right, after the bridging one
+    [indxi, indxj, vals] = get_sparse_data_mex(merge_weight);
+    all_indxi = [all_indxi; indxi];
+    all_indxj = [all_indxj; indxj+nstarts];
+    all_vals = [all_vals; vals];
 
-    dist(1:nends,nstarts+ninterm+1:end-ninterm) = alt_dist(1:nends,1:nends);
-    dist(nends+ninterm+1:end-ninterm,1:nstarts) = alt_dist(1:nstarts,1:nstarts);
+    % While splitting it under the bridging one
+    [indxi, indxj, vals] = get_sparse_data_mex(split_weight);
+    all_indxi = [all_indxi; indxj+nends];
+    all_indxj = [all_indxj; indxi];
+    all_vals = [all_vals; vals];
 
-    dist(nends+1:nends+ninterm,end-ninterm+1:end) = alt_split_weight;
-    dist(end-ninterm+1:end,nstarts+1:nstarts+ninterm) = alt_merge_weight;
+    if (do_display)
+      waitbar(4/6,hwait);
+    end
 
-    dist(nends+ninterm+1:end,nstarts+ninterm+1:end) = trans_dist;
+    % We need to extract the cost for no linking
+    if (isempty(all_vals))
+      alt_cost = -0.1;
+      min_dist = -1;
+    else
+      alt_cost = prctile(all_vals, 90);
+      min_dist = min(all_vals);
+    end
 
-    %disp('Let''s go !')
+    % Build a generic vector for these parts of the matrix
+    alt_indx = [1:max(max(nends,nstarts),ninterm)].';
+    alt_dist = ones(size(alt_indx))*alt_cost;
 
-    %figure;
-    %imagesc(dist)
+    % Now build the full array of indexes
+    all_indxi = [all_indxi; ...           % Bridging/Merging/Splitting
+                 alt_indx(1:nends); ...   % No gap, "d" in [1]
+                 alt_indx(1:nstarts)+nends+ninterm; ... % No gap, "b" in [1]
+                 alt_indx(1:ninterm)+nends; ... % No splitting, "d'" in [1]
+                 alt_indx(1:ninterm)+nends+nstarts+ninterm; ... % No merging, "b'" [1]
+                 all_indxj+nends+ninterm];  % The lower right block, for symmetry
 
-    %[assign, cost] = munkres(dist);
-    %[assign, cost] = assignmentoptimal(dist);
-    [assign, cost] = lapjv_fast(dist);
-    
-  %  hold on;scatter(assign, [1:length(assign)])
+    % Same for the second coordinate
+    all_indxj = [all_indxj; alt_indx(1:nends)+nstarts+ninterm; alt_indx(1:nstarts); ...
+                 alt_indx(1:ninterm)+nstarts+ninterm+nends; ...
+                 alt_indx(1:ninterm)+nstarts; all_indxi+nstarts+ninterm];
 
+    % And the corresponding values
+    all_vals = [all_vals; alt_dist(1:nends); alt_dist(1:nstarts); alt_split_weight; ...
+                alt_merge_weight; ones(size(all_vals))*min_dist];
+
+    % Finally, build the whole sparse matrix
+    dist = sparse(all_indxi, all_indxj, all_vals, nstarts + nends + 2*ninterm, ...
+                  nstarts + nends + 2*ninterm, length(all_vals));
+
+    if (do_display)
+      waitbar(5/6,hwait);
+    end
+
+    % And solve it !
+    [assign, cost] = lapjv_fast_sparse(dist);
+
+    % Identify the type of assignment chosen
     for i=1:nends+ninterm
+
+      % Bridging/Splitting
       if (assign(i) <= nstarts)
         target = starts(assign(i), :);
+
+      % Merging
       elseif (assign(i) < nstarts + ninterm)
         target = interm(assign(i) - nstarts, :);
       else
         continue;
       end
 
+      % Bridging
       if (i <= nends)
-        %reference = [target(end-1) ends(i,end-1:end)];
         reference = ends(i,:);
+
+      % Splitting
       else
-        %reference = [target(end-1) interm(i-nends,end-1:end)];
         reference = interm(i-nends,:);
       end
 
-      if (opts.interpolate)
-        ninterp = target(end) - reference(end);
-        new_pts = bsxfun(@plus, bsxfun(@times, (reference(1:2) - target(1:2)) / ninterp, [1:ninterp-1].'), target(1:2));
-
-        curr_pos = target(end-1);
-        curr_indx = target(end);
-        for j=1:ninterp-1
-          curr_indx = target(end)-j;
-          nprev = size(spots{curr_indx}, 1) + 1;
-          spots{curr_indx} = [spots{curr_indx}; [new_pts(j,:) NaN(1,nprops)]];
-          links{curr_indx+1} = [links{curr_indx+1}; [curr_pos nprev curr_indx]];
-          curr_pos = nprev;
-        end
-        links{curr_indx} = [links{curr_indx}; [curr_pos, reference(end-1), curr_indx-1]];
-      else
-        links{target(end)} = [links{target(end)}; [target(end-1), reference(end-1:end)]];
-      end
+      % Update the link list accordingly
+      links{target(end)} = [links{target(end)}; [target(end-1), reference(end-1:end)]];
     end
   end
 
-  if (opts.min_path_length > 0)
-    min_length = opts.min_path_length;
-    path_length = cell(nframes, 1);
+  % Close the progress bar
+  if (do_display)
+    close(hwait);
+  end
 
+  % And store the corresponding information in the structure, if need be
+  if (~isempty(mystruct))
     for i=1:nframes
-      nimg = i;
-
-      curr_links = links{nimg};
-      path_length{nimg} = zeros(size(spots{nimg}, 1), 1);
-      for j=1:size(curr_links, 1)
-        path_length{nimg}(curr_links(j,1)) = path_length{curr_links(j,3)}(curr_links(j,2)) + nimg - curr_links(j,3);
-      end
+      mystruct(i).cluster = links{i};
     end
-    for i=nframes:-1:1
-      nimg = i;
 
-      curr_links = links{nimg};
-      if (~isempty(curr_links))
-        for j=1:size(curr_links, 1)
-          path_length{curr_links(j,3)}(curr_links(j,2)) = path_length{nimg}(curr_links(j,1));
-        end
-      end
-
-      long = (path_length{nimg} > min_length);
-      good_indx = find(long);
-      links{nimg} = curr_links(ismember(curr_links(:,1), good_indx), :);
-
-      bad_indx = find(~long);
-      spots{nimg}(bad_indx, :) = NaN;
-      bad_prev = curr_links(ismember(curr_links(:,1), bad_indx), 2:3);
-      if (~isempty(bad_prev))
-        prev_frames = unique(bad_prev(:, 2)).';
-
-        for p=prev_frames
-          %interpolated = isnan(spots{nimg-1}(bad_prev, end));
-          %spots{nimg-1}(bad_prev(interpolated), :) = NaN;
-          curr_prev = bad_prev(bad_prev(:,2)==p,1);
-          spots{p}(curr_prev, :) = NaN;
-        end
-      end
-    end
-  end
-
-  if (~isempty(mymovie))
-    if (isfield(mymovie, 'experiment'))
-      if (opts.interpolate)
-        for i=1:nframes
-          mymovie.data.spots(i).cluster = links{i};
-          mymovie.data.spots(i).carth = spots{i}(:, 1:2);
-          mymovie.data.spots(i).properties = spots{i}(:, 3:end);
-        end
-      else
-        for i=1:nframes
-          mymovie.data.spots(i).cluster = links{i};
-        end
-      end
-    else
-      if (opts.interpolate)
-        for i=1:nframes
-          mymovie(i).cluster = links{i};
-          mymovie(i).carth = spots{i}(:, 1:2);
-          mymovie(i).properties = spots{i}(:, 3:end);
-        end
-      else
-        for i=1:nframes
-          mymovie(i).cluster = links{i};
-        end
-      end
-    end
-    links = mymovie;
+    links = mystruct;
   end
 
   return

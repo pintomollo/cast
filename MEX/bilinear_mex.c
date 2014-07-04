@@ -22,7 +22,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     if (n == 2) {
       x_indx = mxGetPr(prhs[1]);
       y_indx = x_indx + m;
-      
+
       n = 1;
     } else if (m == 2) {
       if ((x_indx = mxCalloc(n, sizeof(double))) == NULL) {

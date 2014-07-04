@@ -38,11 +38,24 @@ function install_cell_tracking
     end
   end
 
+  % Check if the sparse 64bits flag is needed
+  if ~isempty(strfind(computer(),'64'))
+    mexopts = ' -largeArrayDims';
+  else
+    mexopts = '';
+  end
+
+  % Ask for the configuration only once
+  did_setup = false;
+
   % Try to compile the necessary MEX files
   if (exist('median_mex') ~= 3)
     try
-      mex -setup;
+      if (~did_setup)
+        mex -setup;
+      end
       eval(['mex MEX' filesep 'median_mex.c']);
+      did_setup = true;
     catch ME
       cd ..;
       error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
@@ -50,8 +63,11 @@ function install_cell_tracking
   end
   if (exist('gaussian_mex') ~= 3)
     try
-      mex -setup;
+      if (~did_setup)
+        mex -setup;
+      end
       eval(['mex MEX' filesep 'gaussian_mex.c']);
+      did_setup = true;
     catch ME
       cd ..;
       error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
@@ -59,8 +75,11 @@ function install_cell_tracking
   end
   if (exist('nl_means_mex') ~= 3)
     try
-      mex -setup;
+      if (~did_setup)
+        mex -setup;
+      end
       eval(['mex MEX' filesep 'nl_means_mex.cpp']);
+      did_setup = true;
     catch ME
       cd ..;
       error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
@@ -68,14 +87,75 @@ function install_cell_tracking
   end
   if (exist('bilinear_mex') ~= 3)
     try
-      mex -setup;
+      if (~did_setup)
+        mex -setup;
+      end
       eval(['mex MEX' filesep 'bilinear_mex.c']);
+      did_setup = true;
     catch ME
       cd ..;
       error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
     end
   end
-
+  if (exist('get_sparse_data_mex') ~= 3)
+    try
+      if (~did_setup)
+        mex -setup;
+      end
+      eval(['mex' mexopts ' MEX' filesep 'get_sparse_data_mex.c']);
+      did_setup = true;
+    catch ME
+      cd ..;
+      error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
+    end
+  end
+  if (exist('linking_cost_sparse_mex') ~= 3)
+    try
+      if (~did_setup)
+        mex -setup;
+      end
+      eval(['mex' mexopts ' MEX' filesep 'linking_cost_sparse_mex.c']);
+      did_setup = true;
+    catch ME
+      cd ..;
+      error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
+    end
+  end
+  if (exist('bridging_cost_sparse_mex') ~= 3)
+    try
+      if (~did_setup)
+        mex -setup;
+      end
+      eval(['mex' mexopts ' MEX' filesep 'bridging_cost_sparse_mex.c']);
+      did_setup = true;
+    catch ME
+      cd ..;
+      error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
+    end
+  end  if (exist('joining_cost_sparse_mex') ~= 3)
+    try
+      if (~did_setup)
+        mex -setup;
+      end
+      eval(['mex' mexopts ' MEX' filesep 'joining_cost_sparse_mex.c']);
+      did_setup = true;
+    catch ME
+      cd ..;
+      error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
+    end
+  end
+  if (exist('splitting_cost_sparse_mex') ~= 3)
+    try
+      if (~did_setup)
+        mex -setup;
+      end
+      eval(['mex' mexopts ' MEX' filesep 'splitting_cost_sparse_mex.c']);
+      did_setup = true;
+    catch ME
+      cd ..;
+      error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
+    end
+  end
   cd ..;
 
   % This folder is required as well

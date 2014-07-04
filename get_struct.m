@@ -91,13 +91,18 @@ function mystruct = get_struct(type, nstruct)
 
     % Global structure of options/parameters for an analysis
     case 'options'
+      myfilt = get_struct('image_filters');
+      mysegm = get_struct('image_segmentation');
+      mytrac = get_struct('spot_tracking');
       mystruct = struct('config_files', {{}}, ...   % The various configuration files loaded
                         'binning', 1, ...           % Pixel binning used during acquisition
                         'ccd_pixel_size', 6.45, ... % X-Y size of the pixels in µm (of the CCD camera, without magnification)
                         'magnification', 63, ...    % Magnification of the objective of the microscope
-                        'filtering', get_struct('image_filters'), ... % Parameters for filtering the recordings
-                        'pixel_size', -1, ...        % X-Y size of the pixels in um (computed as ccd_pixel_size / magnification)
-                        'segmenting', get_struct('image_segmentation'), ... % Parameters for segmenting the recordings
+                        'spot_tracking', mytrac, ...% Parameters for tracking the spots
+                        'filtering', myfilt, ...    % Parameters for filtering the recordings
+                        'pixel_size', -1, ...       % X-Y size of the pixels in um (computed as ccd_pixel_size / magnification)
+                        'segmenting', mysegm, ...   % Parameters for segmenting the recordings
+                        'time_interval', 300, ...   % Time interval between frames (in seconds)
                         'verbosity', 2);            % Verbosity level of the analysis
 
     % Structure used to segment a channel
@@ -107,7 +112,21 @@ function mystruct = get_struct(type, nstruct)
                         'detrend', false, ...       % Detrend the segmentation (see imdetrend.m)
                         'filter_spots', true, ...   % Filter the spots (see filter_spots.m)
                         'detections', mydetection, ... % the structure to store the resulting detections
-                        'type', {{}});              % The type of segmentation
+                        'type', {{}});                 % the type of segmentation
+
+    % Structure containing the different parameters required for tracking spots
+    case 'spot_tracking'
+      mystruct = struct('spot_max_speed', 0.5, ...    % Maximal speed of displacement of a spot (in um/s)
+                        'allow_branching_gap', false, ...     % see track_spots.m
+                        'bridging_max_gap', 3, ...            % Considered number of frames for the gap closing algorithm (see track_spots.m)
+                        'bridging_function', @relative_distance, ... % Function used to measure the gap-closing weight
+                        'joining_function', @merging_distance, ... % Same but for the joinging weight
+                        'splitting_function', @splitting_distance, ... % For the splitting weight
+                        'linking_function', @mutual_distance, ... % And for the frame-to-frame linking 
+                        'interpolate', false, ...         % Interpolate the missing positions ?
+                        'min_path_length', 2);            % Min path length for it to be kept
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     % The general structure that contains all the information required for
@@ -515,30 +534,6 @@ function mystruct = get_struct(type, nstruct)
                         'max_overlap', 0.37, ...
                         'max_ratio', 0.52, ...
                         'max_score', 0.047);
-
-    % Structure containing the different parameters required for tracking spots
-    case 'spot_tracking'
-      mystruct = struct('fusion_thresh', 2.5, ...         % Minimal distance in um to another spot (estimation) before fusion
-                        'frame_displacement', 0.5, ...    % Maximal displacement of a spot (in um) between two frames 
-                        'frame_window', 3, ...          % Considered number of frames for the gap closing algorithm (see track_spots.m)
-                        'gap_function', @relative_distance, ... % Function used to measure the gap-closing weight
-                        'joining_function', @merging_distance, ... % Same but for the joinging weight
-                        'splitting_function', @splitting_distance, ... % For the splitting weight
-                        'linking_function', @mutual_distance, ... % And for the frame-to-frame linking 
-                        'max_size', 1, ...              % Maximal size (in um) of the spots
-                        'smoothing_complexity', 1, ...
-                        'interpolate', false, ...
-                        'max_particles', 5, ...
-                        'max_iterations', 20, ...
-                        'min_path_length', 2, ...
-                        'projection_type', 'perp', ...
-                        'projection_dist', 1, ...
-                        'projection_bin_size', 5, ...
-                        'projection_frames', 10, ...
-                        'intensity_thresh', 30, ...
-                        'fit_intensities', 'separate', ...
-                        'iteration_threshold', 1e-10, ...
-                        'noise_thresh', 1);             % Threshold used to remove the nosie (see imatrou.m)
 
     % Structure used to store the parameters required to compute the temperature of the posterior decoding (see find_temperature.m)
     case 'temperatures'

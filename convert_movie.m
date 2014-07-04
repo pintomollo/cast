@@ -1,13 +1,13 @@
 function [converted_file] = convert_movie(name)
 % CONVERT_MOVIE converts a recording such that it can be tracked properly.
 %
-%   [MYMOVIE] = CONVERT_MOVIE(NAME, OPTS) loads the movie NAME into MYMOVIE
-%   using the provided options from OPTS. If NAME is empty, the user will be
-%   prompted to choose the adequate file.
+%   [CONVERTED] = CONVERT_MOVIE(NAME) converts the movie NAME into CONVERTED
+%   which is a single OME-TIFF stack file for convenience. The LOCI command toolbox
+%   is used for this process. This allows to work with a single file type later on.
 %
-% Naef labs, EPFL
+% Gönczy & Naef labs, EPFL
 % Simon Blanchoud
-% 01.05.2014
+% 04.07.2014
 
   % Initialization
   converted_file = '';
@@ -75,18 +75,8 @@ function [converted_file] = convert_movie(name)
     return;
   end
 
-  % We convert the provided type into a more handy one
-  %new_fname = bftools_convert(fname);
+  % We convert the provided type into a more handy one using LOCI
   converted_file = bftools_convert(fname);
-
-  % Ask the user to identify the different channels
-  %mymovie = identify_channels(new_fname);
-
-  % Use the movie name as the name for the entire experiment
-  %mymovie.experiment = name;
-
-  % Rescale the channels (including some filtering)
-  %mymovie = rescale_movie(mymovie);
 
   return;
 end
@@ -119,6 +109,7 @@ function [newfile] = bftools_convert(fname)
   % Creat the fancy name for display (otherwise it thinks they are LaTeX commands)
   printname = strrep(name(slash:end),'_','\_');
 
+  % Look for the LOCI command line tool
   curdir = pwd;
   cmd_path = which('bfconvert.bat');
   if (isempty(cmd_path))
@@ -126,10 +117,13 @@ function [newfile] = bftools_convert(fname)
   end
   [mypath, junk] = fileparts(cmd_path);
 
+  % This can take a while, so inform the user
   hInfo = warndlg('Parsing metadata, please wait.', 'Converting movie...');
 
+  % Move to the correct folder
   cd(mypath);
 
+  % And call the LOCI utility to extract the metadata
   if (ispc)
     cmd_name = ['"' fname '"'];
     [res, metadata] = system(['showinf.bat -stitch -nopix -nometa ' cmd_name]);
@@ -138,15 +132,18 @@ function [newfile] = bftools_convert(fname)
     [res, metadata] = system(['./showinf -stitch -nopix -nometa ' cmd_name]);
   end
 
+  % Delete the information if need be
   if (ishandle(hInfo))
     delete(hInfo);
   end
 
+  % Check if an error occured
   if (res ~= 0)
     cd(curdir);
     error(metadata);
   end
 
+  % Extract the three important informations from the extracted metadata
   format = regexp(metadata, 'file format\s*\[([ -\w]+)\]', 'tokens');
   is_rgb = regexp(metadata, 'RGB\s*=\s*(\w+)', 'tokens');
   file_pattern = regexp(metadata, 'File pattern = (.*)\nUsed', 'tokens');
@@ -162,6 +159,7 @@ function [newfile] = bftools_convert(fname)
     error('Tracking:lociFormat', ['The metadata does not present the expected information: ''file format'' and ''RGB'' :\n\n' metadata]);
   end
 
+  % Get the information out of the search results
   format = format{1}{1};
   is_rgb = strncmp(is_rgb{1}{1}, 'true', 4);
 
@@ -217,6 +215,7 @@ function [newfile] = bftools_convert(fname)
     end
   end
 
+  % This also takes quite some time, so warn the user
   hInfo = warndlg('Converting to OME-TIFF, please wait.', 'Converting movie...');
 
   % Call directly the command line tool to do the job
@@ -228,10 +227,12 @@ function [newfile] = bftools_convert(fname)
     [res, infos] = system(['./bfconvert -stitch -separate ' cmd_name ' ' cmd_newname]);
   end
 
+  % Delete the window if need be
   if (ishandle(hInfo))
     delete(hInfo);
   end
 
+  % Check if an error occured
   if (res ~= 0)
     cd(curdir);
     error(infos);

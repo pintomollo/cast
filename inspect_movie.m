@@ -5,7 +5,7 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
 %   [MYTRACKING, OPTS] = INSPECT_MOVIE(MYTRACKING,OPTS) displays the window using the
 %   data contained in MYTRACKING and the parameter values from OPTS. It updates them
 %   accordingly to the user's choice. MYTRACKING should be a 'mytracking' structure as
-%   created by input_channels.m
+%   created by inspect_channels.m
 %
 %   [...] = INSPECT_MOVIE() prompts the user to select a MYTRACKING containing Matlab
 %   file before opening the GUI.
@@ -47,7 +47,6 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
   % different calls to the callback functions.
   img = [];
   orig_img = [];
-  img_next = [];
   spots = [];
   filt_spots = [];
   reconstr = [];
@@ -118,17 +117,9 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
       % Here we recompute all the filtering of the frame
       noise = [];
 
-      % Try to avoid reloading frames as much as possible
-      if (handles.prev_frame == nimg-1)
-        orig_img = img_next;
-        img_next = double(load_data(channels(indx).fname, nimg+1));
-      elseif (handles.prev_frame == nimg+1)
-        img_next = orig_img;
-        orig_img = double(load_data(channels(indx).fname, nimg));
-      elseif (handles.prev_frame ~= nimg)
-        orig_img = double(load_data(channels(indx).fname, nimg));
-        img_next = double(load_data(channels(indx).fname, nimg+1));
-      end
+      % Load the new image
+      orig_img = double(load_data(channels(indx).fname, nimg));
+
       % Update the index
       handles.prev_frame = nimg;
 
@@ -176,6 +167,7 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
       reconstr_filt = reconstruct_detection(orig_img, filt_spots);
     end
 
+    % Decide which type of spots to display
     if (segmentations(indx).filter_spots)
       curr_spots = filt_spots;
       curr_rec = reconstr_filt;
@@ -609,7 +601,7 @@ function [mytracking, opts] = inspect_movie(mytracking, opts)
                          'Tag', 'radio23');
     enabled = [enabled hControl];
 
-    % The type, color and compression of the channel, along with its labels
+    % The type of segmentation to perform, along with its label
     hText = uicontrol('Parent', hPanel, ...
                       'Units', 'normalized',  ...
                       'Position', [0.875 0.925 0.075 0.05], ...

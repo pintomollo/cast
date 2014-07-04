@@ -1,12 +1,12 @@
 function [mytracking] = preprocess_movie(mytracking, opts)
 % PREPROCESS_MOVIE converts the OME-TIFF recordings contained in a tracking structure
-% into properly filtered (as defined by the structure, see input_channels.m) UINT16
+% into properly filtered (as defined by the structure, see inspect_channels.m) UINT16
 % files.
 %
 %   [MYTRACKING] = PREPROCESS_MOVIE(MYTRACKING, OPTS) rescales all the recordings used
 %   in the tracking experiement using OPTS.
 %
-% Gonczy & Naef labs, EPFL
+% Gönczy & Naef labs, EPFL
 % Simon Blanchoud
 % 18.05.2014
 
@@ -24,37 +24,48 @@ function [mytracking] = preprocess_movie(mytracking, opts)
   % Loop over all of them
   for k = 1:nchannels
 
-% HERE NEED TO STORE THE METADATAs
+    % Now we extract the corresponding metadata for potential later use
+    curdir = pwd;
+    cmd_path = which('bfconvert.bat');
 
-%  curdir = pwd;
-%  cmd_path = which('bfconvert.bat');
-%  if (isempty(cmd_path))
-%    error('Tracking:lociMissing', 'The LOCI command line tools are not present !\nPlease follow the instructions provided by install_cell_tracking');
-%  end
-%  [mypath, junk] = fileparts(cmd_path);
+    % We need LOCI to do so...
+    if (isempty(cmd_path))
+      error('Tracking:lociMissing', 'The LOCI command line tools are not present !\nPlease follow the instructions provided by install_cell_tracking');
+    end
+    [mypath, junk] = fileparts(cmd_path);
 
-%  hInfo = warndlg('Parsing metadata, please wait.', 'Converting movie...');
+    % This can take a while, so inform the user
+    hInfo = warndlg('Populating metadata, please wait.', 'Preprocessing movie...');
 
-%  cd(mypath);
+    % Move to the correct folder
+    cd(mypath);
 
-%  if (ispc)
-%    cmd_name = ['"' fname '"'];
-%    [res, metadata] = system(['showinf.bat -stitch -nopix -nometa ' cmd_name]);
-%  else
-%    cmd_name = strrep(fname,' ','\ ');
-%    [res, metadata] = system(['./showinf -stitch -nopix -nometa ' cmd_name]);
-%  end
+    % We need the absolute path for Java to work properly
+    fname = absolutepath(mytracking.channels(k).fname);
 
-%  if (ishandle(hInfo))
-%    delete(hInfo);
-%  end
+    % And call the LOCI utility to extract the metadata
+    if (ispc)
+      cmd_name = ['"' fname '"'];
+      [res, metadata] = system(['showinf.bat -nopix -nometa -omexml-only ' cmd_name]);
 
-%  if (res ~= 0)
-%    cd(curdir);
-%    error(metadata);
-%  end
+    else
+      cmd_name = strrep(fname,' ','\ ');
+      [res, metadata] = system(['./showinf -nopix -nometa -omexml-only ' cmd_name]);
+    end
 
+    % Delete the information if need be
+    if (ishandle(hInfo))
+      delete(hInfo);
+    end
 
+    % Check if an error occured
+    if (res ~= 0)
+      cd(curdir);
+      error(metadata);
+    end
+
+    % Store the resulting metadata
+    mytracking.channels(k).metadata = metadata;
 
     % Stire the original file name as we will replace it by the rescaled one
     mytracking.channels(k).file = mytracking.channels(k).fname;
@@ -70,6 +81,7 @@ function [mytracking] = preprocess_movie(mytracking, opts)
       waitbar(0, hwait, ['Preprocessing Movie ' strrep(mytracking.channels(k).file(indx:end),'_','\_')]);
     end
 
+    % Get the absolute file name
     fname = absolutepath(mytracking.channels(k).file);
 
     % Get the name of the new file

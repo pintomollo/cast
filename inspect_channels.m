@@ -1,16 +1,16 @@
-function [mytracking, opts] = input_channels(fname)
-% INPUT_CHANNELS displays a pop-up window for the user to manually identify the
+function [mytracking, opts] = inspect_channels(fname)
+% INSPECT_CHANNELS displays a pop-up window for the user to manually identify the
 % type of data contained in the different channels of a movie recording.
 %
-%   [MYTRACKING] = INPUT_CHANNELS(CHANNELS) displays the window using the data
+%   [MYTRACKING] = INSPECT_CHANNELS(CHANNELS) displays the window using the data
 %   contained in CHANNELS, updates it accordingly to the user's choice and returns
 %   the adequate structure for later analysis MYTRACKING. CHANNELS can either
 %   be a string, a cell list of strings or a 'channel' structure (see get_struct.m).
 %
-%   [...] = INPUT_CHANNELS() prompts the user to select a recording and converts
+%   [...] = INSPECT_CHANNELS() prompts the user to select a recording and converts
 %   it before opening the GUI.
 %
-%   [MYTRACKING, OPTS] = INPUT_CHANNELS(...) returns in addition the parameters
+%   [MYTRACKING, OPTS] = INSPECT_CHANNELS(...) returns in addition the parameters
 %   required to filter the various channels as chosen by the user.
 %
 % Gonczy & Naef labs, EPFL
