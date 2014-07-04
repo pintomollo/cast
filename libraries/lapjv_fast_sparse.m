@@ -74,6 +74,7 @@ disp(b-b)
   %validMat = isfinite(costMat);
   %validCol = any(validMat);
   %validRow = any(validMat,2);
+  % Now in sparse mode !
   [indxi, indxj, vals] = get_sparse_data_mex(costMat);
   validCol = ismember([1:size(costMat,2)], indxj);
   validRow = ismember([1:size(costMat,1)].', indxi);
@@ -106,6 +107,7 @@ disp(b-b)
   % Log scaling
   %dMat = dMat + (1-M);
   %dMat = log(dMat);
+  % Now in sparse mode !
   [indxi, indxj, vals] = get_sparse_data_mex(dMat);
   logM = log(vals + (1-M));
   logM = logM - max(logM) - 1;
@@ -117,6 +119,7 @@ disp(b-b)
   %    maxcost = Inf;
   %end
   %dMat(~realVals)=maxcost;
+  % Now in sparse mode !
   realVals = isfinite(logM);
   maxcost=max(logM(realVals))*dim+1;
   if isempty(maxcost)
@@ -128,6 +131,7 @@ disp(b-b)
 
   % moved here by pmm to make sure resolution is finite and smaller
   % than the smallest difference
+  % Now in sparse mode !
   if nargin<2
       %vals = unique(dMat(realVals));
       vals = unique([0; logM(realVals)]);
@@ -143,6 +147,7 @@ disp(b-b)
   rowsol = zeros(1,dim)-1;  % column assigned to row in solution
   colsol = zeros(dim,1)-1;  % row assigned to column in solution
 
+  % Now in sparse mode !
   nums = numel(dMat);
   mean_dMat = sum(logM)/nums;
   std_dMat = sqrt((sum((logM - mean_dMat).^2) + (nums-length(logM))*(mean_dMat^2))/nums);
@@ -361,4 +366,4 @@ disp(b-b)
   if cost>maxcost
       cost=Inf;
   end
-end % lapjv_fast
+end % lapjv_fast_sparse
