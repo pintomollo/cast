@@ -1,120 +1,6 @@
-#include <math.h> // Needed for the ceil() prototype
-#include "mex.h"
+#include "gaussian_spots.h"
 
-// Define few opeartions useful to compute the costs
-
-#define __MAX__(A, B)     ((A)>=(B)? (A) : (B))
-#define __SQR__(A)        ((A) * (A))
-#define __WGT__(A)        ((A)>=1? (A) : (1/((A)*(A))))
-
-/// See paper "A Fast, Compact Approximation of the Exponential Function".
-/// 2x to 9x faster than exp(x)!
-/// Can be off by about +-4% in the range -100 to 100.
-double fast_exp(double y) {
-  double d;
-  *((int*)(&d) + 0) = 0;
-  *((int*)(&d) + 1) = (int)(1512775 * y + 1072632447);
-  return d;
-}
-
-// Retrieve the signal from a gaussian spot in a cell array of spot matrices
-double get_signal(int frame_indx, int spot_indx, const mxArray *spots) {
-
-  mwSize m, n;
-  const mxArray *cell_element_ptr;
-  double *spot;
-  double signal;
-
-  signal = 0;
-  if (spot_indx >= 0) {
-
-    // Get the corresponding cell content
-    cell_element_ptr = mxGetCell(spots, frame_indx);
-    m  = mxGetM(cell_element_ptr);
-    n  = mxGetN(cell_element_ptr);
-
-    // Compute the signal as the integral under the 2D gaussian
-    if (spot_indx < m && n > 3) {
-      spot  = mxGetPr(cell_element_ptr);
-      signal = __SQR__(spot[spot_indx + 2*m]) * spot[spot_indx + 3*m];
-    }
-  }
-
-  return signal;
-}
-
-// Retrives the signal of the spot next in the track of the current spot
-double get_next_signal(int frame, int spot_indx, const mxArray *spots, const mxArray *links) {
-
-  mwSize mmax, m, n;
-  mwIndex i,j, parent_indx, frame_indx;
-  const mxArray *cell_element_ptr;
-  double *curr_indx, *prev_indx, *frames;
-
-  mmax = mxGetNumberOfElements(links);
-
-  // Look for a link that points towards us, in all consecutive frames
-  parent_indx = -1;
-  for (j=frame+1; j<mmax; j++) {
-    cell_element_ptr = mxGetCell(links, j);
-    m  = mxGetM(cell_element_ptr);
-    n  = mxGetN(cell_element_ptr);
-
-    curr_indx  = mxGetPr(cell_element_ptr);
-    prev_indx = curr_indx + m;
-    frames = prev_indx + m;
-
-    // Need to check each individual link
-    for (i=0; i<m; i++) {
-      if (frames[i] == frame + 1 && prev_indx[i] == spot_indx + 1) {
-        parent_indx = curr_indx[i] - 1;
-        frame_indx = j;
-        break;
-      }
-    }
-
-    // When found, stop
-    if (parent_indx != -1) {
-      break;
-    }
-  }
-
-  // Retrives the corresponding signal
-  return get_signal(frame_indx, parent_indx, spots);
-}
-
-// Get the signal of the previous spot in the track of the current spot
-double get_prev_signal(int frame, int spot_indx, const mxArray *spots, const mxArray *links) {
-
-  mwSize m, n;
-  mwIndex i, child_indx, child_frame;
-  const mxArray *cell_element_ptr;
-  double *curr_indx, *prev_indx, *frame_indx;
-
-  cell_element_ptr = mxGetCell(links, frame);
-  m  = mxGetM(cell_element_ptr);
-  n  = mxGetN(cell_element_ptr);
-
-  // Here it's easier as we know that our spot must point towards its predecessor
-  curr_indx  = mxGetPr(cell_element_ptr);
-  prev_indx = curr_indx + m;
-  frame_indx = prev_indx + m;
-
-  // So simply find the link of the current spot
-  child_indx = -1;
-  child_frame = 0;
-  for (i=0; i<m; i++) {
-    if (curr_indx[i] == spot_indx + 1) {
-      child_indx = prev_indx[i] - 1;
-      child_frame = frame_indx[i] - 1;
-
-      break;
-    }
-  }
-
-  // Retrieve the signal of the corresponding spot
-  return get_signal(child_frame, child_indx, spots);
-}
+#include "gaussian_spots.c"
 
 // The main of the MATLAB interface
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -125,18 +11,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mwIndex *irs,*jcs,i,j, count, *irs2, *jcs2;
   const mxArray *spots, *links;
   double *x1,*y1,*t1,*x2,*y2,*t2,*rs,*i1,*i2, *rs2;
-  double dist, dist2, thresh, thresh2, signal1, signal2, signal_prev;
+  double dist, dist2, thresh, thresh2, thresh3, signal1, signal2, signal_prev;
   double weight, alt_weight, alt_move;
   bool is_test;
 
   // Check for proper number of input and output arguments
   if (nrhs == 4) {
     is_test = true;
-  } else if (nrhs == 7) {
+  } else if (nrhs == 8) {
     is_test = false;
   } else {
     mexErrMsgIdAndTxt( "MATLAB:joining_cost_sparse_mex:invalidNumInputs",
-        "Four or seven input arguments required.");
+        "Four or eight input arguments required.");
   }
 
   // Check data type of input argument
@@ -144,9 +30,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgIdAndTxt( "MATLAB:joining_cost_sparse_mex:inputNotDouble",
         "Input arguments (1,2,3) must be of type double.");
   }
-  if (!is_test && !(mxIsCell(prhs[5]) && mxIsCell(prhs[6]))) {
+  if (!is_test && !(mxIsCell(prhs[6]) && mxIsCell(prhs[7]))) {
     mexErrMsgIdAndTxt( "MATLAB:joining_cost_sparse_mex:inputNotCell",
-        "Input arguments (6, 7) must be of type cell.");
+        "Input arguments (7, 8) must be of type cell.");
   }
 
   // Get the size and pointers to input data
@@ -201,13 +87,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // Here we compute the actual costs
   } else {
 
+    // The last threshold
+    thresh3 = mxGetScalar(prhs[4]);
+
     // The average movement, for the alternative costs
-    alt_move = mxGetScalar(prhs[4]);
+    alt_move = mxGetScalar(prhs[5]);
     alt_move = -__SQR__(alt_move);
 
     // The list of all information, to retrieve the intensitites
-    spots = prhs[5];
-    links = prhs[6];
+    spots = prhs[6];
+    links = prhs[7];
 
     // Prepare the output
     plhs[0] = mxCreateSparse(m1,m2,nzmax,false);
@@ -243,29 +132,33 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         // But only if it passes the threshold
         if (dist < thresh && dist2 <= thresh2 && dist2 > 0) {
 
-          // Here we might need to increase the number of elements in the matrix
-          if (count >= nzmax){
-            nzmax += nzstep;
-
-            mxSetNzmax(plhs[0], nzmax);
-            mxSetPr(plhs[0], mxRealloc(rs, nzmax*sizeof(double)));
-            mxSetIr(plhs[0], mxRealloc(irs, nzmax*sizeof(mwIndex)));
-
-            rs  = mxGetPr(plhs[0]);
-            irs = mxGetIr(plhs[0]);
-          }
-
           // Get the other signal
           signal1 = get_signal(t1[j]-1, i1[j]-1, spots);
 
           // The weight
           weight = __WGT__(signal2 / (signal1 + signal_prev));
 
-          // Store it in the matrix
-          rs[count] = -fast_exp(-dist*weight);
-          irs[count] = j;
+          // Enforce the intensity threshold
+          if (weight <= thresh3) {
 
-          count++;
+            // Here we might need to increase the number of elements in the matrix
+            if (count >= nzmax){
+              nzmax += nzstep;
+
+              mxSetNzmax(plhs[0], nzmax);
+              mxSetPr(plhs[0], mxRealloc(rs, nzmax*sizeof(double)));
+              mxSetIr(plhs[0], mxRealloc(irs, nzmax*sizeof(mwIndex)));
+
+              rs  = mxGetPr(plhs[0]);
+              irs = mxGetIr(plhs[0]);
+            }
+
+            // Store it in the matrix
+            rs[count] = -fast_exp(-dist*weight);
+            irs[count] = j;
+
+            count++;
+          }
         }
       }
     }

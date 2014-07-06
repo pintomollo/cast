@@ -119,10 +119,11 @@ function mystruct = get_struct(type, nstruct)
       mystruct = struct('spot_max_speed', 0.5, ...    % Maximal speed of displacement of a spot (in um/s)
                         'allow_branching_gap', false, ...     % see track_spots.m
                         'bridging_max_gap', 3, ...            % Considered number of frames for the gap closing algorithm (see track_spots.m)
-                        'bridging_function', @relative_distance, ... % Function used to measure the gap-closing weight
-                        'joining_function', @merging_distance, ... % Same but for the joinging weight
-                        'splitting_function', @splitting_distance, ... % For the splitting weight
-                        'linking_function', @mutual_distance, ... % And for the frame-to-frame linking 
+                        'max_intensity_ratio', Inf, ...       % see track_spots.m
+                        'bridging_function', @bridging_cost_sparse_mex, ... % Function used to measure the gap-closing weight
+                        'joining_function', @joining_cost_sparse_mex, ... % Same but for the joinging weight
+                        'splitting_function', @splitting_cost_sparse_mex, ... % For the splitting weight
+                        'linking_function', @linking_cost_sparse_mex, ... % And for the frame-to-frame linking 
                         'interpolate', false, ...         % Interpolate the missing positions ?
                         'min_path_length', 2);            % Min path length for it to be kept
 

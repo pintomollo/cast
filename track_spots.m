@@ -1,4 +1,4 @@
-function links = track_spots(spots, funcs, max_move, max_gap, allow_branching_gap, verbosity)
+function links = track_spots(spots, funcs, max_move, max_gap, max_ratio, allow_branching_gap, verbosity)
 % TRACK_SPOTS tracks spots over time using a global optimization algorithm [1].
 %
 %   LINKS = TRACK_SPOTS(SPOTS, FUNCS) LINKS the sets of SPOTS using the provided
@@ -29,8 +29,12 @@ function links = track_spots(spots, funcs, max_move, max_gap, allow_branching_ga
 %   number of frames a spot can be "lost" in a track, while the track gaps over them
 %   (default: 5).
 %
-%   LINKS = TRACK_SPOTS(SPOTS, FUNCS, MAX_MOVEMENT, MAX_GAP_LENGTH, ALLOW_BRANCHING_GAP)
-%   defines if merging and splitting can occur over MAX_GAP_LENGTH (default: false).
+%   LINKS = TRACK_SPOTS(SPOTS, FUNCS, MAX_MOVEMENT, MAX_GAP_LENGTH, MAX_RATIO) defines
+%   an upper bound to the allowed signal ratios as defined in [1] (default: Inf).
+%
+%   LINKS = TRACK_SPOTS(SPOTS, FUNCS, MAX_MOVEMENT, MAX_GAP_LENGTH, MAX_RATIO, ...
+%   ALLOW_BRANCHING_GAP) defines if merging and splitting can occur over MAX_GAP_LENGTH
+%   (default: false).
 %
 %   LINKS = TRACK_SPOTS(..., VERBOSITY) when VERBOSITY > 1, displays a progress bar.
 %
@@ -56,16 +60,22 @@ function links = track_spots(spots, funcs, max_move, max_gap, allow_branching_ga
   elseif (nargin < 3)
     max_move = Inf;
     max_gap = 5;
+    max_ratio = Inf;
     allow_branching_gap = false;
     verbosity = 2;
   elseif (nargin < 4)
     max_gap = 5;
+    max_ratio = Inf;
     allow_branching_gap = false;
     verbosity = 2;
   elseif (nargin < 5)
+    max_ratio = Inf;
     allow_branching_gap = false;
     verbosity = 2;
   elseif (nargin < 6)
+    allow_branching_gap = false;
+    verbosity = 2;
+  elseif (nargin < 7)
     verbosity = 2;
   end
 
@@ -83,6 +93,7 @@ function links = track_spots(spots, funcs, max_move, max_gap, allow_branching_ga
     links = track_spots(spots, funcs, ...
             opts.time_interval*opts.spot_tracking.spot_max_speed/opts.pixel_size, ...
             opts.spot_tracking.bridging_max_gap, ...
+            opts.spot_tracking.max_intensity_ratio, ...
             opts.spot_tracking.allow_branching_gap, opts.verbosity);
     return;
   end
@@ -110,7 +121,7 @@ function links = track_spots(spots, funcs, max_move, max_gap, allow_branching_ga
       for i = 1:length(mystruct.channels)
         mystruct.segmentations(i).detections = track_spots( ...
                     mystruct.segmentations(i).detections, funcs, max_move, max_gap, ...
-                    allow_branching_gap, verbosity);
+                    max_ratio, allow_branching_gap, verbosity);
       end
 
       % Save the result and exit
@@ -179,7 +190,7 @@ function links = track_spots(spots, funcs, max_move, max_gap, allow_branching_ga
     if (prev_npts > 0 && npts > 0)
 
       % Get the spot-to-spot cost matrix for linking them
-      mutual_dist = frame_linking_weight(prev_pts, pts, max_move);
+      mutual_dist = frame_linking_weight(prev_pts, pts, max_move, max_ratio);
 
       % Get the data from the resulting sparse matrix
       [indxi, indxj, vals] = get_sparse_data_mex(mutual_dist);
@@ -397,7 +408,7 @@ function links = track_spots(spots, funcs, max_move, max_gap, allow_branching_ga
 
     % Compute the bridging costs
     if (tracking_options(1))
-      mutual_dist = closing_weight(ends, starts, max_move, max_gap);
+      mutual_dist = closing_weight(ends, starts, max_move, max_gap, max_ratio);
     else
       mutual_dist = sparse(nends, nstarts);
     end
@@ -408,7 +419,7 @@ function links = track_spots(spots, funcs, max_move, max_gap, allow_branching_ga
 
     % The merging costs, we also need an alternative costs vector [1]
     if (tracking_options(2))
-      [merge_weight, alt_merge_weight] = joining_weight(ends, interm, max_move, branching_gap, avg_movement, spots, links);
+      [merge_weight, alt_merge_weight] = joining_weight(ends, interm, max_move, branching_gap, max_ratio, avg_movement, spots, links);
     else
       merge_weight = sparse(nends, ninterm);
       alt_merge_weight = sparse(ninterm);
@@ -420,7 +431,7 @@ function links = track_spots(spots, funcs, max_move, max_gap, allow_branching_ga
 
     % And the splitting costs, including the alternative costs vector
     if (tracking_options(3))
-      [split_weight, alt_split_weight] = splitting_weight(starts, interm, max_move, branching_gap, avg_movement, spots, links);
+      [split_weight, alt_split_weight] = splitting_weight(starts, interm, max_move, branching_gap, max_ratio, avg_movement, spots, links);
     else
       split_weight = sparse(ninterm, nstarts);
       alt_split_weight = sparse(ninterm);
