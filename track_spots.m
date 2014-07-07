@@ -50,7 +50,7 @@ function links = track_spots(spots, funcs, max_move, max_gap, max_ratio, allow_b
 %       single-particle tracking in live-cell time-lapse sequences. Nat Methods 5: 
 %       695-702 (2008).
 %
-% Gönczy & Naef labs, EPFL
+% Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 04.07.2014
 

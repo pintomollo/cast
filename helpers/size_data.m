@@ -5,7 +5,7 @@ function [nframes, ssize] = size_data(fname)
 %   FNAME. It requires a file format readable by imformats. SIZE_DATA returns -1 in
 %   case of error.
 %
-% Neaf lab, EPFL
+% Gonczy and Naef labs, EPFL
 % Simon Blanchoud
 % 15.05.2014
 

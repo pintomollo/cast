@@ -35,7 +35,7 @@ function [gammas] = estimate_noise(img, filter_type, block_size, mfilter, precis
 %   [3] Greenwood J, Sandomire M, Sample size required for estimating the standard
 %       deviation as a per cent of its true value. J Am Stat 45 (1950)
 %
-% Gönczy & Naef labs, EPFL
+% Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 15.05.2014
 

@@ -19,7 +19,7 @@ function hgroup = plot_spots(h, spots, color)
 %
 %   HGROUP = PLOT_SPOTS(HAXES, ...) draws the hggroup in the axes defined by HAXES.
 %
-% Gönczy and Naef labs, EPFL
+% Gonczy and Naef labs, EPFL
 % Simon Blanchoud
 % 04.07.2014
 

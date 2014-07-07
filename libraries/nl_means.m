@@ -12,61 +12,69 @@ function [M1] = nl_means(M, T, k, max_dist, do_median, ndims)
 %
 % References:
 % [1] Buades A, Coll B, Morel JM, "On image denoising methods". SIAM Multiscale Model
-%     Simul 4 (2005) 490–530.
+%     Simul 4 (2005) 490-530.
 %
-% This code is a simplified version of the toolbox from Gabirel Peyre (2006).
+% This code is a simplified version of the toolbox from Gabirel Peyre (2006):
+% http://www.mathworks.com/matlabcentral/fileexchange/13619-toolbox-non-local-means
 % All Copyrights to him
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 19.06.2014
 
-switch nargin
-  case 1
-    T=0.05;
-    k=3;
-    max_dist=15;
-    do_median=false;
-    ndims=25;
-  case 2
-    k=3;
-    max_dist=15;
-    do_median=false;
-    ndims=25;
-  case 3
-    max_dist=15;
-    do_median=false;
-    ndims=25;
-  case 4
-    do_median=false;
-    ndims=25;
-  case 5
-    ndims=25;
-  case 0
-    disp('Error: no image provided !')
-    M1 = NaN;
-end
+  % Input checking and default values
+  switch nargin
+    case 1
+      T=0.05;
+      k=3;
+      max_dist=15;
+      do_median=false;
+      ndims=25;
+    case 2
+      k=3;
+      max_dist=15;
+      do_median=false;
+      ndims=25;
+    case 3
+      max_dist=15;
+      do_median=false;
+      ndims=25;
+    case 4
+      do_median=false;
+      ndims=25;
+    case 5
+      ndims=25;
+    case 0
+      disp('Error: no image provided !')
+      M1 = NaN;
+  end
 
-if (k>9)
-  disp('Error: neighborhood cannot be larger than 9 !')
-  M1 = NaN(size(M));
+  % Enforce the neighborhood size
+  if (k>9)
+    disp('Error: neighborhood cannot be larger than 9 !')
+    M1 = NaN(size(M));
+
+    return;
+  end
+
+  % Precompute as much as possible
+  [m,n,s] = size(M);
+  [Vy,Vx] = meshgrid(1:n,1:m);
+
+  % Prepare the output
+  M1=M;
+
+  % Loop over all the planes
+  for i = 1:s
+
+    % Lift to high dimensional patch space
+    [Ha,P,Psi] = perform_lowdim_embedding(M(:,:,i),k,ndims,Vy,Vx);
+
+    % Compute the filtering
+    [M1(:,:,i),Wx,Wy] = nl_means_mex(M(:,:,i),Ha,Ha,Vx-1,Vy-1,T,max_dist, do_median, false, [], [], 0);
+  end
 
   return;
-end
-
-[m,n,s] = size(M);
-[Vy,Vx] = meshgrid(1:n,1:m);
-
-M1=M;
-
-for i=1:s
-  % lift to high dimensional patch space
-  [Ha,P,Psi] = perform_lowdim_embedding(M(:,:,i),k,ndims,Vy,Vx);
-
-  [M1(:,:,i),Wx,Wy] = nl_means_mex(M(:,:,i),Ha,Ha,Vx-1,Vy-1,T,max_dist, do_median, false, [], [], 0);
-end
-
-return;
 end
 
 function [H,P,Psi] = perform_lowdim_embedding(M,k,ndims, Vy, Vx)

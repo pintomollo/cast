@@ -18,6 +18,6 @@
 %       single-particle tracking in live-cell time-lapse sequences. Nat Methods 5:
 %       695-702 (2008).
 %
-% Gönczy & Naef labs, EPFL
+% Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 06.07.2014

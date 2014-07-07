@@ -20,7 +20,7 @@ function [img, minval, maxval] = imnorm(img, minval, maxval, mode, minrange, max
 %   such that the pixel value in IMG ranges between LBOUND and UBOUND. Provide an
 %   empty string for MODE to ignore this parameter.
 %
-% Naef lab, EPFL
+% Gonczy and Naef labs, EPFL
 % Simon Blanchoud
 % 15.05.2014
 

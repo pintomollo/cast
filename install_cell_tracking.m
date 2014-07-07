@@ -3,7 +3,7 @@ function install_cell_tracking
 % and handles the directories structure and the dependent libraries. It also
 % compiles the required MEX libraries, hence a C/C++ compiler is requried.
 %
-% Naef labs, EPFL
+% Gonczy and Naef labs, EPFL
 % Simon Blanchoud
 % 01.05.2014
 

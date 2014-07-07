@@ -9,7 +9,7 @@ function mystruct = edit_options(mystruct, name)
 %   [...] = EDIT_OPTIONS(ORIGINAL, NAME) displays NAME in the title
 %   bar. Used primarly during esition of sub-structures.
 %
-% Naef lab, EPFL
+% Gonczy and Naef labs, EPFL
 % Simon Blanchoud
 % 09.05.14
 

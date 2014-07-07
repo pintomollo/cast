@@ -17,7 +17,7 @@ function [all_mvals, all_svals, all_nelems] = mymean(all_vals, dim, indexes)
 %   [MEAN, STD, NPTS] = MYMEAN(...) also returns the number of considered points,
 %   in each dimension/group depending on the required measurements.
 %
-% Gönczy & Naef labs, EPFL
+% Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 15.05.2014
 

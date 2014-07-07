@@ -20,7 +20,7 @@ function [img, noise] = imdenoise(img, rm_bkg, func, varargin)
 %   [1] Jaensch, S. et al. Automated tracking and analysis of centrosomes in early
 %       Caenorhabditis elegans embryos. Bioinformatics. (2010)
 %
-% Gönczy & Naef labs, EPFL
+% Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 19.06.14
 

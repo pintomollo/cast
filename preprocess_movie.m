@@ -6,7 +6,7 @@ function [mytracking] = preprocess_movie(mytracking, opts)
 %   [MYTRACKING] = PREPROCESS_MOVIE(MYTRACKING, OPTS) rescales all the recordings used
 %   in the tracking experiement using OPTS.
 %
-% Gönczy & Naef labs, EPFL
+% Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 18.05.2014
 

@@ -8,7 +8,7 @@ function export_tracking(mytracking, fname, opts)
 %   write to. By default, the name contained in MYTRACKING.experiment is used.
 %   If no folder is specified in FNAME, files are written in the 'export' folder.
 %
-% Gönczy and Naef labs, EPFL
+% Gonczy and Naef labs, EPFL
 % Simon Blanchoud
 % 06.07.2014
 
@@ -87,7 +87,7 @@ function export_tracking(mytracking, fname, opts)
       full_mat(indx_min:indx_max,j,:) = bsxfun(@times, curr_path(:,1:ncols), ...
                                                rescale_factor);
 
-      % Get a name
+      % Get a name for the current path
       path_names{j+1} = ['Track_' num2str(j)];
 
       % Update the progress bar

@@ -7,7 +7,7 @@ function done = save_data(fname, imgs)
 %
 %   DONE = SAVE_DATA(FNAME, STACK) stores the whole STACK in FNAME.
 %
-% Gönczy & Naef labs, EPFL
+% Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 15.05.2014
 

@@ -10,7 +10,7 @@ function mystruct = get_struct(type, nstruct)
 %
 %   MYSTRUCT = GET_STRUCT(TYPE) returns one structure (SIZE = 1).
 %
-% Naef lab, EPFL
+% Gonczy and Naef labs, EPFL
 % Simon Blanchoud
 % 13.05.2014
 

@@ -5,7 +5,7 @@ function [converted_file] = convert_movie(name)
 %   which is a single OME-TIFF stack file for convenience. The LOCI command toolbox
 %   is used for this process. This allows to work with a single file type later on.
 %
-% Gönczy & Naef labs, EPFL
+% Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 04.07.2014
 
