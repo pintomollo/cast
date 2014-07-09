@@ -124,8 +124,9 @@ function mystruct = get_struct(type, nstruct)
                         'joining_function', @joining_cost_sparse_mex, ... % Same but for the joinging weight
                         'splitting_function', @splitting_cost_sparse_mex, ... % For the splitting weight
                         'linking_function', @linking_cost_sparse_mex, ... % And for the frame-to-frame linking 
-                        'interpolate', false, ...         % Interpolate the missing positions ?
-                        'min_path_length', 2);            % Min path length for it to be kept
+                        'interpolate', true, ...        % see filter_tracking.m
+                        'max_zip_length', 3, ...        % see filter_tracking.m
+                        'min_path_length', 10);         % see filter_tracking.m
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

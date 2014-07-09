@@ -31,7 +31,7 @@ function [gauss_params] = estimate_spots(imgs, estim_pos, wsize, thresh, niter, 
 %
 % References:
 %   [1] Guo, H, A Simple Algorithm for Fitting a Gaussian Function [DSP Tips and
-%       Tricks]. IEEE Signal Process Mag 28: 134–137, (2011).
+%       Tricks]. IEEE Signal Process Mag 28: 134-137, (2011).
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud
