@@ -32,6 +32,9 @@ function [converted_file] = convert_movie(name)
       if (dirpath(1) ~= filesep && isempty(strfind(name, ':')))
         dirpath = ['.' filesep dirpath];
       end
+
+      % Reconstruct the full path
+      fname = fullfile(dirpath, fname);
     else
       fname = name;
     end
@@ -146,11 +149,17 @@ function [newfile] = bftools_convert(fname)
   % Extract the three important informations from the extracted metadata
   format = regexp(metadata, 'file format\s*\[([ -\w]+)\]', 'tokens');
   is_rgb = regexp(metadata, 'RGB\s*=\s*(\w+)', 'tokens');
-  file_pattern = regexp(metadata, 'File pattern = (.*)\nUsed', 'tokens');
+  file_pattern = regexp(metadata, 'File pattern = ([^\n]*)\n', 'tokens');
 
   % In case of multiple files, regroup them into one single file
   if (~isempty(file_pattern))
-    file_pattern = regexprep(file_pattern{1}, '<\d+-\d+>', '');
+    orig_pattern = file_pattern{1};
+    file_pattern = regexprep(orig_pattern, '<\d+-\d+>', '');
+
+    % In case we did not delete the pattern, it means there was nothing to merge !
+    if (length(orig_pattern) == length(file_pattern))
+      file_pattern = '';
+    end
   end
 
   % Something went terribly wrong...

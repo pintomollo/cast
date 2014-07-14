@@ -589,7 +589,7 @@ void mexFunction(       int nlhs, mxArray *plhs[],
 
 
   // -- outpout 1 : M1 -- 
-  int dims[3] = {m,n,s};
+  const mwSize dims[3] = {m,n,s};
   plhs[0] = mxCreateNumericArray(3, dims, mxDOUBLE_CLASS, mxREAL );       
   M1 = mxGetPr(plhs[0]);
 

@@ -54,7 +54,7 @@ function install_cell_tracking
       if (~did_setup)
         mex -setup;
       end
-      eval(['mex MEX' filesep 'median_mex.c']);
+      eval(['mex' mexopts ' MEX' filesep 'median_mex.c']);
       did_setup = true;
     catch ME
       cd ..;
@@ -66,7 +66,7 @@ function install_cell_tracking
       if (~did_setup)
         mex -setup;
       end
-      eval(['mex MEX' filesep 'gaussian_mex.c']);
+      eval(['mex' mexopts ' MEX' filesep 'gaussian_mex.c']);
       did_setup = true;
     catch ME
       cd ..;
@@ -78,7 +78,7 @@ function install_cell_tracking
       if (~did_setup)
         mex -setup;
       end
-      eval(['mex MEX' filesep 'nl_means_mex.cpp']);
+      eval(['mex' mexopts ' MEX' filesep 'nl_means_mex.cpp']);
       did_setup = true;
     catch ME
       cd ..;
@@ -90,7 +90,7 @@ function install_cell_tracking
       if (~did_setup)
         mex -setup;
       end
-      eval(['mex MEX' filesep 'bilinear_mex.c']);
+      eval(['mex' mexopts ' MEX' filesep 'bilinear_mex.c']);
       did_setup = true;
     catch ME
       cd ..;
@@ -132,7 +132,8 @@ function install_cell_tracking
       cd ..;
       error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
     end
-  end  if (exist('joining_cost_sparse_mex') ~= 3)
+  end
+  if (exist('joining_cost_sparse_mex') ~= 3)
     try
       if (~did_setup)
         mex -setup;

@@ -29,6 +29,8 @@ function [mytracking] = segment_movie(mytracking, opts)
     switch type
       case 'detect_spots'
         is_spot = true;
+      case {'None','none'}
+        % Skipping it !
       otherwise
         disp(['Warning: segmentation type "' type '" unknown, ignoring.']);
     end

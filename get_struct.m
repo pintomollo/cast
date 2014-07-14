@@ -123,7 +123,11 @@ function mystruct = get_struct(type, nstruct)
                         'bridging_function', @bridging_cost_sparse_mex, ... % Function used to measure the gap-closing weight
                         'joining_function', @joining_cost_sparse_mex, ... % Same but for the joinging weight
                         'splitting_function', @splitting_cost_sparse_mex, ... % For the splitting weight
-                        'linking_function', @linking_cost_sparse_mex, ... % And for the frame-to-frame linking 
+                        'linking_function', @linking_cost_sparse_mex); ... % And for the frame-to-frame linking 
+
+    case 'tracks_filtering'
+      mystruct = struct('reestimate_spots', true, ...
+                        'post_processing_funcs', {{}}, ...
                         'interpolate', true, ...        % see filter_tracking.m
                         'max_zip_length', 3, ...        % see filter_tracking.m
                         'min_path_length', 10);         % see filter_tracking.m

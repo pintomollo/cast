@@ -38,7 +38,7 @@ function export_tracking(mytracking, fname, opts)
   rescale_factor = [1 ([1 1 1] * opts.pixel_size) 1];
 
   % The list of columns to export
-  colname = {'Status', 'X_coord_um', 'Y_coord_um', 'sigma_um', 'amplitude_int'};
+  colname = {'status', '', '', 'sigma_um', 'amplitude_int'};
   ncols = length(colname);
 
   % A hidden waitbar
@@ -95,11 +95,11 @@ function export_tracking(mytracking, fname, opts)
     end
 
     % Write the matrix
-    write_csv([fname num2str(i)], colname, path_names, time_stamp, full_mat);
+    folder = write_csv([fname num2str(i)], colname, path_names, time_stamp, full_mat);
   end
 
   % And zip them together
-  zip(fname, [fname '*.csv']);
+  zip(fname, fullfile(folder, [fname '*.csv']));
 
   % Close the waitbar
   close(hwait);
@@ -108,7 +108,7 @@ function export_tracking(mytracking, fname, opts)
 end
 
 % This function writes a 3D matrix into single CSV files.
-function write_csv(fname, colnames, col_headers, row_headers, matrix)
+function folder = write_csv(fname, colnames, col_headers, row_headers, matrix)
 
   % Check if there is a folder name in the name itself
   [filepath, name, ext] = fileparts(fname);
@@ -126,46 +126,63 @@ function write_csv(fname, colnames, col_headers, row_headers, matrix)
   % Build the full name
   fname = fullfile(filepath, name);
 
+  keep_cols = ~cellfun('isempty', colnames);
+
+  colnames = colnames(keep_cols);
+
+  matrix = matrix(:,:,keep_cols);
+
   % Get the dimensions of the matrix
   [nframes, npaths, ncols] = size(matrix);
 
+  full_mat = NaN(nframes, npaths*ncols);
+  full_headers = cell(1,npaths*ncols+1);
+  full_cols = cell(1,npaths*ncols+1);
+
   % Loop over the columns
+  full_headers(1,1) = col_headers(1);
   for i=1:ncols
-
-    % Open the specified CSV file
-    curr_name = [fname '_' colnames{i} '.csv'];
-    fid = fopen(curr_name, 'wt');
-
-    % If there is an error, maybe we don't have the absolute path
-    if (fid<0)
-      curr_name = fullfile(pwd, curr_name);
-      fname = fullfile(pwd, fname);
-
-      % And if it still does not work, then we skip this file
-      fid = fopen(curr_name,'wt');
-      if (fid<0)
-        return;
-      end
-    end
-
-    % Write the headers first
-    for j=1:length(col_headers)
-      fprintf(fid, '%s,', col_headers{j});
-    end
-    fprintf(fid, '\n');
-
-    % Then the rows of the matrix
-    for j=1:nframes
-      fprintf(fid, '%s,', row_headers{j});
-
-      fprintf(fid, '%f,', matrix(j,:,i));
-
-      fprintf(fid, '\n');
-    end
-
-    % And close the file
-    fclose(fid);
+    full_mat(:,i:ncols:end) = matrix(:,:,i);
+    full_headers(1+i:ncols:end) = col_headers(2:end);
+    full_cols(1+i:ncols:end) = colnames(i);
   end
+
+  % Open the specified CSV file
+  curr_name = [fname '.csv'];
+  fid = fopen(curr_name, 'wt');
+
+  % If there is an error, maybe we don't have the absolute path
+  if (fid<0)
+    curr_name = fullfile(pwd, curr_name);
+    fname = fullfile(pwd, fname);
+
+    % And if it still does not work, then we skip this file
+    fid = fopen(curr_name,'wt');
+    if (fid<0)
+      return;
+    end
+  end
+
+  % Write the headers first
+  fprintf(fid, '%s,', full_headers{:});
+  fprintf(fid, '\n');
+  fprintf(fid, '%s,', full_cols{:});
+  fprintf(fid, '\n');
+
+  % Then the rows of the matrix
+  for j=1:nframes
+    fprintf(fid, '%s,', row_headers{j});
+
+    fprintf(fid, '%f,', full_mat(j,:));
+
+    fprintf(fid, '\n');
+  end
+
+  % And close the file
+  fclose(fid);
+
+  % Get the actual folder
+  [folder, name, ext] = fileparts(fname);
 
   return;
 end

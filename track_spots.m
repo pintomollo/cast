@@ -141,7 +141,9 @@ function links = track_spots(spots, funcs, max_move, max_gap, max_ratio, allow_b
 
       % Build the proper matrices
       for i = 1:nframes
-        spots{i} = [mystruct(i).carth mystruct(i).properties];
+        if (~all(isnan(mystruct(i).carth(:))))
+          spots{i} = [mystruct(i).carth mystruct(i).properties];
+        end
       end
     end
   end
@@ -209,10 +211,10 @@ function links = track_spots(spots, funcs, max_move, max_gap, max_ratio, allow_b
       ends = ones(size(ends_indx))*curr_max;
 
       % No build the full indexes for the final sparse matrix
-      indxi = [indxi; ...                         % Linking
-               ends_indx(1:prev_npts); ...        % End of a track
-               ends_indx(1:npts)+prev_npts; ...   % Start of a track
-               indxj+prev_npts];                  % Requried for symmetry
+      indxii = [indxi; ...                         % Linking
+                ends_indx(1:prev_npts); ...        % End of a track
+                ends_indx(1:npts)+prev_npts; ...   % Start of a track
+                indxj+prev_npts];                  % Requried for symmetry
 
       % Same for the other matrix indexes
       indxj = [indxj; ends_indx(1:prev_npts)+npts; ends_indx(1:npts); indxi+npts];
@@ -221,7 +223,7 @@ function links = track_spots(spots, funcs, max_move, max_gap, max_ratio, allow_b
       vals = [vals; ends(1:prev_npts); ends(1:npts); ones(size(vals))*min_dist];
 
       % Now build the full sparse matrix using only the requried number of values
-      dist = sparse(indxi, indxj, vals, npts + prev_npts, npts + prev_npts, ...
+      dist = sparse(indxii, indxj, vals, npts + prev_npts, npts + prev_npts, ...
                     length(vals));
 
       % And solve this using this alternative implementation of the Hungarian algorithm

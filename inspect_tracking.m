@@ -93,9 +93,6 @@ function [mytracking, opts] = inspect_tracking(mytracking, opts)
       % The name
       set(handles.uipanel,'Title', [channels(indx).type ' ' num2str(indx)]);
 
-      % The slider
-      set(handles.text, 'String', ['Frame #' num2str(nimg)]);
-
       % And setup the indexes correctly
       handles.prev_channel = indx;
       handles.prev_frame = -1;
@@ -104,6 +101,10 @@ function [mytracking, opts] = inspect_tracking(mytracking, opts)
     if (recompute)
       % Because it takes long, display it and block the GUI
       set(hFig, 'Name', 'Cell Tracking (Processing...)');
+
+      % The slider
+      set(handles.text, 'String', ['Frame #' num2str(nimg)]);
+
       set(handles.all_buttons, 'Enable', 'off');
       drawnow;
       refresh(hFig);
@@ -126,7 +127,10 @@ function [mytracking, opts] = inspect_tracking(mytracking, opts)
       spots = [segmentations(indx).detections(nimg).carth segmentations(indx).detections(nimg).properties];
       spots_next = [segmentations(indx).detections(nimg+1).carth segmentations(indx).detections(nimg+1).properties];
 
-      links = track_spots({spots, spots_next}, {opts.spot_tracking.linking_function}, opts.spot_tracking.frame_max_displacement/opts.pixel_size);
+      spots = spots(all(~isnan(spots),2),:);
+      spots_next = spots_next(all(~isnan(spots_next),2),:);
+
+      links = track_spots({spots, spots_next}, {opts.spot_tracking.linking_function}, (opts.spot_tracking.spot_max_speed/opts.pixel_size)*opts.time_interval, opts.spot_tracking.bridging_max_gap, opts.spot_tracking.max_intensity_ratio, opts.spot_tracking.allow_branching_gap);
 
       paths = reconstruct_tracks({spots, spots_next}, links);
 

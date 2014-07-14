@@ -15,7 +15,7 @@ function [mytracking] = preprocess_movie(mytracking, opts)
 
   % A nice status-bar if possible
   if (opts.verbosity > 1)
-    hwait = waitbar(0,'','Name','Cell Tracking');
+    hwait = waitbar(0,'','Name','Cell Tracking','Visible','off');
   end
 
   % Get the number of channels to parse
@@ -23,6 +23,14 @@ function [mytracking] = preprocess_movie(mytracking, opts)
 
   % Loop over all of them
   for k = 1:nchannels
+
+    % We need the absolute path for Java to work properly
+    fname = absolutepath(mytracking.channels(k).fname);
+
+    % Hide the bar in case we are loop several times
+    if (opts.verbosity > 1)
+      set(hwait, 'Visible','off');
+    end
 
     % Now we extract the corresponding metadata for potential later use
     curdir = pwd;
@@ -40,9 +48,6 @@ function [mytracking] = preprocess_movie(mytracking, opts)
     % Move to the correct folder
     cd(mypath);
 
-    % We need the absolute path for Java to work properly
-    fname = absolutepath(mytracking.channels(k).fname);
-
     % And call the LOCI utility to extract the metadata
     if (ispc)
       cmd_name = ['"' fname '"'];
@@ -58,9 +63,11 @@ function [mytracking] = preprocess_movie(mytracking, opts)
       delete(hInfo);
     end
 
+    % Go back to the original folder
+    cd(curdir);
+
     % Check if an error occured
     if (res ~= 0)
-      cd(curdir);
       error(metadata);
     end
 
@@ -79,6 +86,7 @@ function [mytracking] = preprocess_movie(mytracking, opts)
     end
     if (opts.verbosity > 1)
       waitbar(0, hwait, ['Preprocessing Movie ' strrep(mytracking.channels(k).file(indx:end),'_','\_')]);
+      set(hwait, 'Visible', 'on');
     end
 
     % Get the absolute file name
