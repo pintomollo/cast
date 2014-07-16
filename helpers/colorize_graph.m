@@ -22,7 +22,24 @@ function colors = colorize_graph(coords, colors)
 
   % Compute the average position for each path
   if (iscell(coords))
-    coords = cellfun(@(x)(mymean(x(:,1:2))), coords);
+    paths = coords;
+    colors = redbluemap(length(paths));
+
+    coords = cellfun(@(x)(mymean(x(:,2:3), 1)), paths, 'UniformOutput', false);
+    coords = cat(1, coords{:});
+  end
+
+  % Verify that we do not have doublets (because of the integer pixel values)
+  [tmp_coord, junk, indx] = unique(coords, 'rows');
+  if (numel(tmp_coord) ~= numel(coords))
+
+    % In this case, we loop over the duplicates and addsome random noise
+    for i=1:length(junk)
+      goods = (indx==i);
+      if (sum(goods)>1)
+        coords(goods, :) = coords(goods, :) + rand(sum(goods), 2);
+      end
+    end
   end
 
   % Split the coordinates

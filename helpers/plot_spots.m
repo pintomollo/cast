@@ -126,5 +126,10 @@ function hgroup = plot_spots(h, spots, color)
   % Delete additional previous circles
   delete(hcircls(count+1:ncircls))
 
+  % Prevent the output if not needed
+  if (nargout == 0)
+    clearvars
+  end
+
   return;
 end

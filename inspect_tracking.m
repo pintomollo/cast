@@ -5,7 +5,7 @@ function [mytracking, opts] = inspect_tracking(mytracking, opts)
 %   [MYTRACKING, OPTS] = INSPECT_TRACKING(MYTRACKING,OPTS) displays the window using
 %   the data contained in MYTRACKING and the parameter values from OPTS. It updates
 %   them accordingly to the user's choice. MYTRACKING should be a 'mytracking'
-%   structure as created by inspect_movie.m
+%   structure as created by inspect_recording.m
 %
 %   [...] = INSPECT_TRACKING() prompts the user to select a MYTRACKING containing
 %   Matlab file before opening the GUI.
@@ -45,7 +45,6 @@ function [mytracking, opts] = inspect_tracking(mytracking, opts)
 
   % Allocate the various images. This allows them to be "persistent" between
   % different calls to the callback functions.
-  img = [];
   orig_img = [];
   img_next = [];
   spots = [];

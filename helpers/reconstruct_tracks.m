@@ -1,4 +1,4 @@
-function paths = reconstruct_tracks(spots, links)
+function paths = reconstruct_tracks(spots, links, low_duplicates)
 % RECONSTRUCT_TRACKS gathers single plane detections into individual tracks.
 %
 %   PATHS = RECONSTRUCT_TRACKS(SPOTS, LINKS) create a cell array PATHS which contains
@@ -11,9 +11,27 @@ function paths = reconstruct_tracks(spots, links)
 %   PATHS = RECONSTRUCT_TRACKS(MYTRACKING) extracts the paths from MYTRACKING. PATHS
 %   then becomes a cell array of cell arrays (one for each channel).
 %
+%   PATHS = RECONSTRUCT_TRACKS(..., LOW_DUPLICATES) if true, does not duplicate the
+%   entire history of a path at every division/fusion event but creates a new one
+%   instead.
+%
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 07.07.2014
+
+  % Parse inputs and default values
+  if (nargin < 2)
+    links = {};
+    low_duplicates = false;
+  elseif (nargin < 3)
+    low_duplicates = true;
+  end
+
+  % Maybe no link were given after all
+  if (islogical(links))
+    low_duplicates = links;
+    links = {};
+  end
 
   % We got a structure, so extract from there
   if (isstruct(spots))
@@ -46,8 +64,10 @@ function paths = reconstruct_tracks(spots, links)
 
       % Copy the data to the adecquate format
       for i = 1:nframes
-        spots{i} = [mystruct(i).carth mystruct(i).properties];
-        links{i} = mystruct(i).cluster;
+        if (~all(isnan(mystruct(i).carth(:))))
+          spots{i} = [mystruct(i).carth mystruct(i).properties];
+          links{i} = mystruct(i).cluster;
+        end
       end
     end
   end
@@ -111,6 +131,18 @@ function paths = reconstruct_tracks(spots, links)
           paths{indx(k)} = [paths{indx(k)}; [status curr_spots(j,:) i]];
         end
 
+        % If there is a division, we need to stop the two incoming paths
+        if (low_duplicates & division)
+          indxs(indx, 2) = -1;
+          indxs(indx, 2) = 0;
+
+          % And create a new fresh one
+          paths{end+1} = [status curr_spots(j,:) i];
+
+          % Get a new index
+          indx = length(paths);
+        end
+
       % Otherwise, create a new path
       else
         paths{end+1} = [status curr_spots(j,:) i];
@@ -134,11 +166,26 @@ function paths = reconstruct_tracks(spots, links)
           found = any(curr_indxs(:,1)==link(1) & curr_indxs(:,2)==link(2));
           indxs(indx(l),:) = [link(1,:) found];
 
-          % In case we have a fusion, we duplicate the history to create two
-          % independent tracks
-          for k = 2:nlinks
-            paths{end+1} = paths{indx(l)};
-            indxs(end+1,:) = [link(k,:) found];
+          % Maybe there is a splitting event occuring
+          if (low_duplicates & (status < 0))
+
+            % Then we copy only the last position, for continuity
+            for k = 1:nlinks
+              paths{end+1} = paths{indx(l)}(end, :);
+              indxs(end+1,:) = [link(k,:) found];
+            end
+
+            % And stop the incoming track
+            indxs(indx(l), 2) = -1;
+            indxs(indx(l), 2) = 0;
+
+          else
+            % In case we have a fusion, we duplicate the history to create two
+            % independent tracks
+            for k = 2:nlinks
+              paths{end+1} = paths{indx(l)};
+              indxs(end+1,:) = [link(k,:) found];
+            end
           end
         end
       end

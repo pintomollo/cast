@@ -267,11 +267,25 @@ function links = track_spots(spots, funcs, max_move, max_gap, max_ratio, allow_b
   avg_movement = mean(dists(isfinite(dists)));
 
   % Get the size of spot matrices to initialize properly the lists for the branching
+  ndim = -1;
   for i=1:nframes
     if (~isempty(spots{i}))
       ndim = size(spots{i},2);
       break;
     end
+  end
+
+  % No data at all...
+  if (ndim < 2)
+    if (~isempty(mystruct))
+      links = mystruct;
+    end
+
+    if (do_display)
+      close(hwait);
+    end
+
+    return;
   end
 
   % We need to build several lists for bridging/merging/splitting
@@ -486,12 +500,12 @@ function links = track_spots(spots, funcs, max_move, max_gap, max_ratio, allow_b
     alt_dist = ones(size(alt_indx))*alt_cost;
 
     % Now build the full array of indexes
-    all_indxi = [all_indxi; ...           % Bridging/Merging/Splitting
-                 alt_indx(1:nends); ...   % No gap, "d" in [1]
-                 alt_indx(1:nstarts)+nends+ninterm; ... % No gap, "b" in [1]
-                 alt_indx(1:ninterm)+nends; ... % No splitting, "d'" in [1]
-                 alt_indx(1:ninterm)+nends+nstarts+ninterm; ... % No merging, "b'" [1]
-                 all_indxj+nends+ninterm];  % The lower right block, for symmetry
+    all_indxii = [all_indxi; ...           % Bridging/Merging/Splitting
+                  alt_indx(1:nends); ...   % No gap, "d" in [1]
+                  alt_indx(1:nstarts)+nends+ninterm; ... % No gap, "b" in [1]
+                  alt_indx(1:ninterm)+nends; ... % No splitting, "d'" in [1]
+                  alt_indx(1:ninterm)+nends+nstarts+ninterm; ... % No merging, "b'" [1]
+                  all_indxj+nends+ninterm];  % The lower right block, for symmetry
 
     % Same for the second coordinate
     all_indxj = [all_indxj; alt_indx(1:nends)+nstarts+ninterm; alt_indx(1:nstarts); ...
@@ -503,7 +517,7 @@ function links = track_spots(spots, funcs, max_move, max_gap, max_ratio, allow_b
                 alt_merge_weight; ones(size(all_vals))*min_dist];
 
     % Finally, build the whole sparse matrix
-    dist = sparse(all_indxi, all_indxj, all_vals, nstarts + nends + 2*ninterm, ...
+    dist = sparse(all_indxii, all_indxj, all_vals, nstarts + nends + 2*ninterm, ...
                   nstarts + nends + 2*ninterm, length(all_vals));
 
     if (do_display)

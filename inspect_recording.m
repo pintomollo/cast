@@ -1,16 +1,16 @@
-function [mytracking, opts] = inspect_movie(fname)
-% INSPECT_MOVIE displays a pop-up window for the user to manually identify the
+function [mytracking, opts] = inspect_recording(fname)
+% INSPECT_RECORDING displays a pop-up window for the user to manually identify the
 % type of data contained in the different channels of a movie recording.
 %
-%   [MYTRACKING] = INSPECT_MOVIE(CHANNELS) displays the window using the data
+%   [MYTRACKING] = INSPECT_RECORDING(CHANNELS) displays the window using the data
 %   contained in CHANNELS, updates it accordingly to the user's choice and returns
 %   the adequate structure for later analysis MYTRACKING. CHANNELS can either
 %   be a string, a cell list of strings or a 'channel' structure (see get_struct.m).
 %
-%   [...] = INSPECT_MOVIE() prompts the user to select a recording and converts
+%   [...] = INSPECT_RECORDING() prompts the user to select a recording and converts
 %   it before opening the GUI.
 %
-%   [MYTRACKING, OPTS] = INSPECT_MOVIE(...) returns in addition the parameters
+%   [MYTRACKING, OPTS] = INSPECT_RECORDING(...) returns in addition the parameters
 %   required to filter the various channels as chosen by the user.
 %
 % Gonczy & Naef labs, EPFL
@@ -60,7 +60,7 @@ function [mytracking, opts] = inspect_movie(fname)
   uiwait(hFig);
 
   % Now that the data are correct, create the whole structure
-  mytracking = get_struct('mytracking');
+  mytracking = get_struct('myrecording');
   % Copy the channels
   mytracking.channels = channels;
   % And get the experiment name

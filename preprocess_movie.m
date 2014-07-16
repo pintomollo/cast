@@ -1,4 +1,4 @@
-function [mytracking] = preprocess_movie(mytracking, opts)
+function [mytracking, opts] = preprocess_movie(mytracking, opts)
 % PREPROCESS_MOVIE converts the OME-TIFF recordings contained in a tracking structure
 % into properly filtered (as defined by the structure, see inspect_channels.m) UINT16
 % files.

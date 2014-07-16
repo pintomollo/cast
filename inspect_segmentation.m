@@ -100,7 +100,6 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
 
       % The type of segmentation
       set(handles.segmentation_type, 'Value',  segmentations(indx).type);
-      set(handles.text, 'String', ['Frame #' num2str(nimg)]);
 
       % And setup the indexes correctly
       handles.prev_channel = indx;
@@ -113,6 +112,9 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
       set(handles.all_buttons, 'Enable', 'off');
       drawnow;
       refresh(hFig);
+
+      % The frame index
+      set(handles.text, 'String', ['Frame #' num2str(nimg)]);
 
       % Here we recompute all the filtering of the frame
       noise = [];

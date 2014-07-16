@@ -24,7 +24,7 @@ function hgroup = plot_paths(h, paths, color)
     h = gca;
     color = 'y';
   elseif (nargin == 2)
-    if (ischar(paths))
+    if (iscell(h))
       color = paths;
       paths = h;
       h = gca;
@@ -100,6 +100,11 @@ function hgroup = plot_paths(h, paths, color)
 
   % Delete additional previous circles
   delete(hlines(count+1:nlines))
+
+  % Prevent the output if not needed
+  if (nargout == 0)
+    clearvars
+  end
 
   return;
 end

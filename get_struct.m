@@ -46,21 +46,21 @@ function mystruct = get_struct(type, nstruct)
     % The few parameters required to filter the image appropriately
     case 'image_filters'
       mystruct = struct('hot_pixels_threshold', 15, ...     % see imhotpixels.m
-                        'cosmic_rays_threshold', 3, ...     % see imcosmics.m
+                        'cosmic_rays_threshold', 15, ...    % see imcosmics.m
                         'cosmic_rays_window_size', 10, ...  % see imcosmics.m
                         'detrend_meshpoints', 32);          % see imdetrend.m
 
     % Structure containing the different parameters required for tracking spots
     case 'image_segmentation'
-      mystruct = struct('filter_max_size', 1, ...          % max radius (in um), see filter_spots.m
-                        'filter_min_size', 0.1, ...        % min radius (in um), see filter_spots.m
-                        'filter_min_intensity', 2, ...     % min intensity (x noise variance), see filter_spots.m
+      mystruct = struct('filter_max_size', 10, ...          % max radius (in um), see filter_spots.m
+                        'filter_min_size', 4, ...        % min radius (in um), see filter_spots.m
+                        'filter_min_intensity', 3, ...     % min intensity (x noise variance), see filter_spots.m
                         'filter_overlap', 0.75, ...        % see filter_spots.m
                         'detrend_meshpoints', 32, ...      % see imdetrend.m
                         'denoise_func', @gaussian_mex, ... % see imdenoise.m
                         'denoise_size', -1,          ...   % see imdenoise.m
-                        'denoise_remove_bkg', false, ...   % see imdenoise.m
-                        'atrous_max_size', 2, ...          % see imatrous.m
+                        'denoise_remove_bkg', true, ...    % see imdenoise.m
+                        'atrous_max_size', 25, ...          % see imatrous.m
                         'atrous_thresh', 10, ...           % see imatrous.m
                         'estimate_thresh', 1, ...          % thresh x noise variance, see estimate_spots.m
                         'estimate_niter', 15, ...          % see estimate_spots.m
@@ -81,12 +81,13 @@ function mystruct = get_struct(type, nstruct)
                         'z_position', []);          % Z-position of the frame
 
     % Global structure of a recording and analysis
-    case 'mytracking'
+    case 'myrecording'
       mychannel = get_struct('channel', 0);
       mysegment = get_struct('segmentation', 0);
+      mytracks = get_struct('tracking', 0);
       mystruct = struct('channels', mychannel, ...  % Channels of the recording
                         'segmentations', mysegment, ... % Segmentation data
-                        'tracking', [], ...         % Tracking data
+                        'trackings', mytracks, ...   % Tracking data
                         'experiment', '');          % Name of the experiment
 
     % Global structure of options/parameters for an analysis
@@ -94,12 +95,14 @@ function mystruct = get_struct(type, nstruct)
       myfilt = get_struct('image_filters');
       mysegm = get_struct('image_segmentation');
       mytrac = get_struct('spot_tracking');
+      mytrkf = get_struct('tracks_filtering');
       mystruct = struct('config_files', {{}}, ...   % The various configuration files loaded
                         'binning', 1, ...           % Pixel binning used during acquisition
-                        'ccd_pixel_size', 6.45, ... % X-Y size of the pixels in µm (of the CCD camera, without magnification)
-                        'magnification', 63, ...    % Magnification of the objective of the microscope
+                        'ccd_pixel_size', 16, ... % X-Y size of the pixels in µm (of the CCD camera, without magnification)
+                        'magnification', 20, ...    % Magnification of the objective of the microscope
                         'spot_tracking', mytrac, ...% Parameters for tracking the spots
                         'filtering', myfilt, ...    % Parameters for filtering the recordings
+                        'tracks_filtering', mytrkf, ... % Parameters for filtering the tracks
                         'pixel_size', -1, ...       % X-Y size of the pixels in um (computed as ccd_pixel_size / magnification)
                         'segmenting', mysegm, ...   % Parameters for segmenting the recordings
                         'time_interval', 300, ...   % Time interval between frames (in seconds)
@@ -125,10 +128,15 @@ function mystruct = get_struct(type, nstruct)
                         'splitting_function', @splitting_cost_sparse_mex, ... % For the splitting weight
                         'linking_function', @linking_cost_sparse_mex); ... % And for the frame-to-frame linking 
 
-    case 'tracks_filtering'
+    case 'tracking'
+      mydetection = get_struct('detection',0);
       mystruct = struct('reestimate_spots', true, ...
+                        'force_cell_behavior', true, ...
                         'post_processing_funcs', {{}}, ...
-                        'interpolate', true, ...        % see filter_tracking.m
+                        'detections', mydetection); % the structure to store the resulting detections
+
+    case 'tracks_filtering'
+      mystruct = struct('interpolate', true, ...        % see filter_tracking.m
                         'max_zip_length', 3, ...        % see filter_tracking.m
                         'min_path_length', 10);         % see filter_tracking.m
 
