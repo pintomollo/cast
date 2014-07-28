@@ -1,4 +1,4 @@
-function export_tracking(mytracking, fname, opts)
+function export_tracking(mytracking, varargin)
 % EXPORT_TRACKING writes CSV files containing the results of the tracking.
 %
 %   EXPORT_TRACKING(MYTRACKING, OPTS) writes in CSV files the content of MYTRACKING,
@@ -13,20 +13,25 @@ function export_tracking(mytracking, fname, opts)
 % 06.07.2014
 
   % Input checking and default values
-  if (nargin == 1)
-    fname = mytracking.experiment;
-    opts = get_struct('options');
-  elseif (nargin == 2)
-    if (isstruct(fname))
-      opts = fname;
-      fname = mytracking.experiment;
-    else
-      opts = get_struct('options');
+  fname = mytracking.experiment;
+  low_duplicates = false;
+  aligning_type = 'time';
+  opts = get_struct('options');
+
+  % Loop over the various inputs and assign them depending on their types
+  for i=1:length(varargin)
+    if (isstruct(varargin{i}))
+      opts = varargin{i};
+    elseif (islogical(varargin{i}))
+      low_duplicates = varargin{i};
+    elseif (ischar(varargin{i}))
+      txt = varargin{i};
+      if (strncmp(txt, 'time', 4) || strncmp(txt, 'start', 5) || strncmp(txt, 'end', 3))
+        aligning_type = txt;
+      else
+        fname = txt;
+      end
     end
-  elseif (isstruct(fname))
-    tmp = fname;
-    fname = opts;
-    opts = tmp;
   end
 
   % Required for the proper conversion from frames to seconds
@@ -45,16 +50,16 @@ function export_tracking(mytracking, fname, opts)
   hwait = waitbar(0,'','Name','Cell Tracking', 'Visible', 'off');
 
   % Now we loop over all channels
-  nchannels = length(mytracking.segmentations);
+  nchannels = length(mytracking.trackings);
   for i=1:nchannels
 
     % Now check how many frames there are
-    nframes = length(mytracking.segmentations(i).detections);
+    nframes = length(mytracking.trackings(i).detections);
 
     set(hwait, 'Visible', 'off');
 
     % Extract the results of the tracking in this channel
-    paths = reconstruct_tracks(mytracking.segmentations(i).detections);
+    paths = reconstruct_tracks(mytracking.trackings(i).detections, low_duplicates);
 
     % Update the status bar
     set(hwait, 'Visible', 'on');
@@ -82,10 +87,23 @@ function export_tracking(mytracking, fname, opts)
       % The indexes to copy the path
       indx_min = min(curr_path(:,end));
       indx_max = max(curr_path(:,end));
+      nindx = indx_max - indx_min;
 
       % Copy the path
-      full_mat(indx_min:indx_max,j,:) = bsxfun(@times, curr_path(:,1:ncols), ...
-                                               rescale_factor);
+      switch aligning_type
+        case 'time'
+          full_mat(indx_min:indx_max,j,:) = bsxfun(@times, curr_path(:,1:ncols), ...
+                                                   rescale_factor);
+        case 'start'
+          full_mat(1:nindx+1,j,:) = bsxfun(@times, curr_path(:,1:ncols), ...
+                                                   rescale_factor);
+        case 'end'
+          full_mat(end-nindx:end,j,:) = bsxfun(@times, curr_path(:,1:ncols), ...
+                                                   rescale_factor);
+        otherwise
+          close(hwait);
+          error('Tracking:BadAligning', ['Alignment type "' aligning_type '" does not exist']);
+      end
 
       % Get a name for the current path
       path_names{j+1} = ['Track_' num2str(j)];
@@ -94,8 +112,19 @@ function export_tracking(mytracking, fname, opts)
       waitbar((j+nchannels*(i-1))/(npaths*nchannels),hwait);
     end
 
-    % Write the matrix
-    folder = write_csv([fname num2str(i)], colname, path_names, time_stamp, full_mat);
+    % In case we do not align them using their frame index, cut the useless portions of the matrix
+    if (strncmp(aligning_type, 'start', 5) || strncmp(aligning_type, 'end', 3))
+
+      % Get the sub-matrx
+      goods = ~all(isnan(full_mat(:,:,1)),2);
+      tmp_mat = full_mat(goods,:,:);
+
+      % Write the matrix
+      folder = write_csv([fname num2str(i)], colname, path_names, time_stamp(1:size(tmp_mat,1)), tmp_mat);
+    else
+      % Write the matrix
+      folder = write_csv([fname num2str(i)], colname, path_names, time_stamp, full_mat);
+    end
   end
 
   % And zip them together

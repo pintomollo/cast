@@ -65,8 +65,10 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
     links = cell(nframes, 1);
 
     for i=1:nframes
-      spots{i} = [mystruct(i).carth mystruct(i).properties];
-      links{i} = mystruct(i).cluster;
+      if (~all(isnan(mystruct(i).carth(:))))
+        spots{i} = [mystruct(i).carth mystruct(i).properties];
+        links{i} = mystruct(i).cluster;
+      end
     end
   end
 
@@ -91,6 +93,7 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
     end
     for i=nframes:-1:1
       curr_links = links{i};
+
       curr_length = path_length{i};
       if (~isempty(curr_links))
         for j=1:size(curr_links, 1)
@@ -100,14 +103,21 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
 
       long = (curr_length > min_path_length);
       good_indx = find(long);
-      new_links = curr_links(ismember(curr_links(:,1), good_indx), :);
 
-      mapping = [1:length(long)].' - cumsum(~long);
-      new_links(:,1) = mapping(new_links(:,1));
+      if any(good_indx)
+        new_links = curr_links(ismember(curr_links(:,1), good_indx), :);
 
-      spots{i} = spots{i}(long, :);
-      links{i} = new_links;
-      diff_indxs{i} = mapping;
+        mapping = [1:length(long)].' - cumsum(~long);
+        new_links(:,1) = mapping(new_links(:,1));
+
+        spots{i} = spots{i}(long, :);
+        links{i} = new_links;
+        diff_indxs{i} = mapping;
+      else
+        spots{i} = NaN(0,nprops+2);
+        links{i} = NaN(0,3);
+        diff_indxs{i} = [];
+      end
     end
     for i=1:nframes
       curr_links = links{i};

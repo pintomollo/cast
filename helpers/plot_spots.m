@@ -1,4 +1,4 @@
-function hgroup = plot_spots(h, spots, color)
+function hgroup = plot_spots(h, spots, color, mark_center)
 % PLOT_SPOTS draws gaussian spots as circles proportional to their variance.
 %
 %   HGROUP = PLOT_SPOTS(SPOTS) draws all SPOTS in the current axes, returning a handler
@@ -28,12 +28,28 @@ function hgroup = plot_spots(h, spots, color)
     spots = h;
     h = gca;
     color = 'r';
+    mark_center = false;
   elseif (nargin == 2)
-    if (ischar(spots))
+    color = 'r';
+    mark_center = false;
+  elseif (nargin == 3)
+    mark_center = false;
+  end
+
+  if (~ishandle(h))
+    if (islogical(spots))
+      mark_center = spots;
+    else
       color = spots;
-      spots = h;
-      h = gca;
     end
+    spots = h;
+    h = gca;
+  end
+
+  if (islogical(color))
+    tmp = color;
+    color = mark_center;
+    mark_center = tmp;
   end
 
   % For simplicity, we always work with cell arrays
@@ -101,20 +117,50 @@ function hgroup = plot_spots(h, spots, color)
       pos = complex_circle*max(2*curr_spots(s,3), 1) + ...
             curr_spots(s,1) + i*curr_spots(s,2);
 
-      % If we ran out of existing circles to modify, creat a new one
-      if (count+s > ncircls)
-        handles(s) = line('XData', real(pos), 'YData', imag(pos), 'Parent', hgroup, ...
-                          'Color', curr_color);
+      if (mark_center)
+        indx = (s-1)*2 + 1;
 
-      % Otherwise, modify the required data, and store the previous handler
+        % If we ran out of existing circles to modify, creat a new one
+        if (count + indx > ncircls)
+          handles(count + indx) = line('XData', real(pos), 'YData', imag(pos), 'Parent', hgroup, ...
+                            'Color', curr_color, 'Marker', 'none');
+
+        % Otherwise, modify the required data, and store the previous handler
+        else
+          set(hcircls(count + indx), 'XData', real(pos), 'YData', imag(pos), 'Color', curr_color, 'Marker', 'none');
+          handles(indx) = hcircls(count + indx);
+        end
+
+        % If we ran out of existing circles to modify, creat a new one
+        if (count + indx + 1 > ncircls)
+          handles(count + indx + 1) = line('XData', curr_spots(s,1), 'YData', curr_spots(s,2), 'Parent', hgroup, ...
+                            'Color', curr_color, 'Marker', 'd');
+
+        % Otherwise, modify the required data, and store the previous handler
+        else
+          set(hcircls(count + indx + 1), 'XData', curr_spots(s,1), 'YData', curr_spots(s,2), 'Color', curr_color, 'Marker', 'd');
+          handles(indx + 1) = hcircls(count + indx + 1);
+        end
       else
-        set(hcircls(count+s), 'XData', real(pos), 'YData', imag(pos), 'Color', curr_color);
-        handles(s) = hcircls(count+s);
+        % If we ran out of existing circles to modify, creat a new one
+        if (count+s > ncircls)
+          handles(s) = line('XData', real(pos), 'YData', imag(pos), 'Parent', hgroup, ...
+                            'Color', curr_color);
+
+        % Otherwise, modify the required data, and store the previous handler
+        else
+          set(hcircls(count+s), 'XData', real(pos), 'YData', imag(pos), 'Color', curr_color);
+          handles(s) = hcircls(count+s);
+        end
       end
     end
 
     % Update the total number of drawn circles
-    count = count + nspots;
+    if (mark_center)
+      count = count + 2*nspots;
+    else
+      count = count + nspots;
+    end
 
     % Bring the current group on top, in that sense, the last ones will be on top !
     uistack(handles, 'top');

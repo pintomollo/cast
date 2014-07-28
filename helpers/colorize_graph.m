@@ -25,8 +25,15 @@ function colors = colorize_graph(coords, colors)
     paths = coords;
     colors = redbluemap(length(paths));
 
-    coords = cellfun(@(x)(mymean(x(:,2:3), 1)), paths, 'UniformOutput', false);
+    empty_cells = cellfun('isempty', paths);
+
+    coords = cellfun(@(x)(mymean(x(:,2:3), 1)), paths(~empty_cells), 'UniformOutput', false);
     coords = cat(1, coords{:});
+  end
+
+  % We do not have anything to work on
+  if (isempty(coords))
+    return;
   end
 
   % Verify that we do not have doublets (because of the integer pixel values)
@@ -127,7 +134,7 @@ function colors = colorize_graph(coords, colors)
   end
 
   % Reorder colors and return it
-  colors = colors(icolors, :);
+  colors(~empty_cells, :) = colors(icolors, :);
 
   return;
 end

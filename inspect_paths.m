@@ -1,13 +1,13 @@
-function [mytracking, opts] = inspect_segmentation(mytracking, opts)
-% INSPECT_SEGMENTATION displays a pop-up window for the user to manually inspect the
-% segmentation that will be performed on the provided movie.
+function [mytracking, opts] = inspect_paths(mytracking, opts)
+% INSPECT_PATHS displays a pop-up window for the user to manually inspect the
+% filtering of the tracks that will be performed on the provided movie.
 %
-%   [MYTRACKING, OPTS] = INSPECT_SEGMENTATION(MYTRACKING,OPTS) displays the window
-%   using the data contained in MYTRACKING and the parameter values from OPTS. It
-%   updates them accordingly to the user's choice. MYTRACKING should be a 'mytracking'
-%   structure as created by inspect_movie.m
+%   [MYTRACKING, OPTS] = INSPECT_PATHS(MYTRACKING,OPTS) displays the window using
+%   the data contained in MYTRACKING and the parameter values from OPTS. It updates
+%   them accordingly to the user's choice. MYTRACKING should be a 'mytracking'
+%   structure as created by inspect_recording.m
 %
-%   [...] = INSPECT_SEGMENTATION() prompts the user to select a MYTRACKING containing
+%   [...] = INSPECT_PATHS() prompts the user to select a MYTRACKING containing
 %   Matlab file before opening the GUI.
 %
 % Gonczy & Naef labs, EPFL
@@ -38,19 +38,24 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
   % Prepare some global variables
   channels = mytracking.channels;
   nchannels = length(channels);
-  segmentations = get_struct('segmentation', [1, nchannels]);
+  segmentations = mytracking.segmentations;
+  trackings = get_struct('tracking', [1 nchannels]);
+
+  % Copy the tracking data at the proper place
+  for i=1:nchannels
+    trackings(i).detections = mytracking.segmentations(i).detections;
+  end
 
   % Create the GUI using segmentations
   [hFig, handles] = create_figure();
 
   % Allocate the various images. This allows them to be "persistent" between
   % different calls to the callback functions.
-  img = [];
   orig_img = [];
-  spots = [];
-  filt_spots = [];
-  reconstr = [];
-  reconstr_filt = [];
+  all_paths = [];
+  paths = [];
+  all_colors = [];
+  colors = [];
 
   % Display the figure
   set(hFig,'Visible', 'on');
@@ -60,7 +65,7 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
   uiwait(hFig);
 
   % Store the segmentations
-  mytracking.segmentations = segmentations;
+  mytracking.trackings = trackings;
   % And get the experiment name
   mytracking.experiment = get(handles.experiment, 'String');
 
@@ -93,105 +98,100 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
       % The name
       set(handles.uipanel,'Title', [channels(indx).type ' ' num2str(indx)]);
 
-      % The filters
-      set(handles.detrend,'Value', segmentations(indx).detrend);
-      set(handles.denoise,'Value', segmentations(indx).denoise);
-      set(handles.filter_spots,'Value', segmentations(indx).filter_spots);
+      set(hFig, 'Name', 'Tracks Filtering (Processing...)');
+      set(handles.all_buttons, 'Enable', 'off');
+      recompute = true;
 
-      % The type of segmentation
-      set(handles.segmentation_type, 'Value',  segmentations(indx).type);
+      % The filters
+      set(handles.refine,'Value', trackings(indx).reestimate_spots);
+      set(handles.force,'Value', trackings(indx).force_cell_behavior);
+
+      all_paths = reconstruct_tracks(trackings(indx).detections, true);
+      all_colors = colorize_graph(all_paths);
 
       % And setup the indexes correctly
       handles.prev_channel = indx;
       handles.prev_frame = -1;
     end
 
+    % The slider
+    set(handles.text, 'String', ['Frame #' num2str(nimg)]);
+
+    % Try to avoid reloading frames as much as possible
+    if (handles.prev_frame ~= nimg)
+      orig_img = double(load_data(channels(indx).fname, nimg));
+    end
+
     if (recompute)
       % Because it takes long, display it and block the GUI
-      set(hFig, 'Name', 'Images Segmentation (Processing...)');
+      set(hFig, 'Name', 'Tracks Filtering (Processing...)');
+
       set(handles.all_buttons, 'Enable', 'off');
       drawnow;
       refresh(hFig);
 
-      % The frame index
-      set(handles.text, 'String', ['Frame #' num2str(nimg)]);
+      links = filter_tracking(trackings(indx).detections, opts.tracks_filtering.min_path_length, opts.tracks_filtering.max_zip_length,opts.tracks_filtering.interpolate);
 
-      % Here we recompute all the filtering of the frame
-      noise = [];
-
-      % Load the new image
-      orig_img = double(load_data(channels(indx).fname, nimg));
-
-      % Update the index
-      handles.prev_frame = nimg;
-
-      % Copy to the working variable
-      img = orig_img;
-
-      % Detrend the image ?
-      if (segmentations(indx).detrend)
-        img = imdetrend(img, opts.segmenting.detrend_meshpoints);
-      end
-
-      % Denoise the image ?
-      if (segmentations(indx).denoise)
-        [img, noise] = imdenoise(img, opts.segmenting.denoise_remove_bkg, ...
-                        opts.segmenting.denoise_func, opts.segmenting.denoise_size);
-      end
-
-      % Segment the image
-      contents = get(handles.segmentation_type,'String');
-      switch contents{segmentations(indx).type}
-        case 'detect_spots'
-          spots = detect_spots(img, opts.segmenting.atrous_thresh, ...
-                               opts.segmenting.atrous_max_size/opts.pixel_size);
-          spots = estimate_spots(img, spots, opts.segmenting.filter_max_size/(2*opts.pixel_size), ...
-                               opts.segmenting.estimate_thresh, ...
-                               opts.segmenting.estimate_niter, ...
-                               opts.segmenting.estimate_stop, ...
-                               opts.segmenting.estimate_weight, ...
-                               opts.segmenting.estimate_fit_position);
-        otherwise
-          spots = [];
-          disp('No segmentation')
-      end
-
-      % Filter the detected spots
-      if (isempty(noise))
-        noise = estimate_noise(img);
-      end
-      extrema = [opts.segmenting.filter_min_size opts.segmenting.filter_max_size]/...
-                 opts.pixel_size;
-      filt_spots = filter_spots(spots, extrema, opts.segmenting.filter_min_intensity*noise(2), ...
-                                opts.segmenting.filter_overlap);
-
-      reconstr = reconstruct_detection(orig_img, real(spots));
-      reconstr_filt = reconstruct_detection(orig_img, filt_spots);
+      paths = reconstruct_tracks(links, true);
+      colors = colorize_graph(paths);
     end
 
-    % Decide which type of spots to display
-    if (segmentations(indx).filter_spots)
-      curr_spots = filt_spots;
-      curr_rec = reconstr_filt;
-    else
-      curr_spots = real(spots);
-      curr_rec = reconstr;
+    spots = cellfun(@(x)(x(x(:,end)==nimg,:)), all_paths, 'UniformOutput', false);
+    spots = cat(1,spots{:});
+
+    spots_filt = cellfun(@(x)(x(x(:,end)==nimg,:)), paths, 'UniformOutput', false);
+    spots_filt = cat(1,spots_filt{:});
+
+    if (trackings(indx).reestimate_spots)
+      if (~recompute)
+        set(hFig, 'Name', 'Tracks Filtering (Processing...)');
+        set(handles.all_buttons, 'Enable', 'off');
+        drawnow;
+        refresh(hFig);
+      end
+
+      spots_filt = reestimate_spots(spots_filt, orig_img, segmentations(indx), opts);
+
+      if (~recompute)
+        set(hFig, 'Name', 'Tracks Filtering');
+        set(handles.all_buttons, 'Enable', 'on');
+      end
     end
+
+    % Update the index
+    handles.prev_frame = nimg;
 
     % Determine which image to display in the left panel
     switch handles.display(1)
 
       % The reconstructed image
       case 2
-        img1 = orig_img;
+        if (~isempty(spots))
+          divs = spots(:,1);
+          spots1 = {spots(divs<0,2:end), spots(divs==0,2:end), spots(divs>0,2:end)};
+        else
+          spots1 = {[]};
+        end
+        links1 = cellfun(@(x)(x(abs(x(:,end)-nimg) < 2,:)), all_paths, 'UniformOutput', false);
+        links1 = links1(~cellfun('isempty', links1));
+        colors1 = colorize_graph(links1);
 
       % The difference between filtered and reconstructed
       case 3
-        img1 = orig_img - img;
+        if (~isempty(spots))
+          divs = spots(:,1);
+          spots1 = {spots(divs<0,2:end), spots(divs==0,2:end), spots(divs>0,2:end)};
+        else
+          spots1 = {[]};
+        end
+        links1 = all_paths;
+        colors1 = all_colors;
 
       % The filtered image
       otherwise
-        img1 = img;
+        spots1 = {[]};
+        links1 = {[]};
+        colors1 = 'k';
     end
 
     % Determine which image to display in the right panel
@@ -199,31 +199,53 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
 
       % The reconstructed image
       case 2
-        img2 = curr_rec;
+        if (~isempty(spots_filt))
+          divs = spots_filt(:,1);
+          spots2 = {spots_filt(divs<0,2:end), spots_filt(divs==0,2:end), spots_filt(divs>0,2:end)};
+        else
+          spots2 = {[]};
+        end
+        links2 = cellfun(@(x)(x(abs(x(:,end)-nimg) < 2,:)), paths, 'UniformOutput', false);
+        links2 = links2(~cellfun('isempty', links2));
+        colors2 = colorize_graph(links2);
 
       % The difference between filtered and reconstructed
       case 3
-        img2 = img - curr_rec;
+        if (~isempty(spots_filt))
+          divs = spots_filt(:,1);
+          spots2 = {spots_filt(divs<0,2:end), spots_filt(divs==0,2:end), spots_filt(divs>0,2:end)};
+        else
+          spots2 = {[]};
+        end
+        links2 = paths;
+        colors2 = colors;
 
       % The filtered image
       otherwise
-        img2 = img;
+        spots2 = {[]};
+        links2 = {[]};
+        colors2 = 'k';
     end
 
     % If we have already created the axes and the images, we can simply change their
     % content (i.e. CData)
+    divisions_colors = 'myg';
     if (numel(handles.img) > 1 & all(ishandle(handles.img)))
-      set(handles.img(1),'CData', img1);
-      set(handles.img(2),'CData', img2);
+      set(handles.img(1),'CData', orig_img);
+      set(handles.img(2),'CData', orig_img);
 
-      plot_spots(handles.data, curr_spots, 'r');
+      plot_paths(handles.data(3), links1, colors1);
+      plot_paths(handles.data(4), links2, colors2);
+
+      plot_spots(handles.data(1), spots1, divisions_colors, true);
+      plot_spots(handles.data(2), spots2, divisions_colors, true);
     else
 
       % Otherwise, we create the two images in their respective axes
-      handles.img = image(img1,'Parent', handles.axes(1),...
+      handles.img = image(orig_img,'Parent', handles.axes(1),...
                         'CDataMapping', 'scaled',...
                         'Tag', 'image');
-      handles.img(2) = image(img2,'Parent', handles.axes(2), ...
+      handles.img(2) = image(orig_img,'Parent', handles.axes(2), ...
                         'CDataMapping', 'scaled',...
                         'Tag', 'image');
 
@@ -231,8 +253,13 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
       set(handles.axes,'Visible', 'off',  ...
                  'DataAspectRatio',  [1 1 1]);
 
-      % Now add the detected spots
-      handles.data = plot_spots(handles.axes(2), curr_spots, 'r');
+      % Now add the links
+      handles.data(3) = plot_paths(handles.axes(1), links1, colors1);
+      handles.data(4) = plot_paths(handles.axes(2), links2, colors2);
+
+      % And their detected spots
+      handles.data(1) = plot_spots(handles.axes(1), spots1, divisions_colors);
+      handles.data(2) = plot_spots(handles.axes(2), spots2, divisions_colors);
 
       % Drag and Zoom library from Evgeny Pr aka iroln
       dragzoom(handles.axes, 'on')
@@ -240,7 +267,7 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
 
     if (recompute)
       % Release the image
-      set(hFig, 'Name', 'Images Segmentation');
+      set(hFig, 'Name', 'Tracks Filtering');
       set(handles.all_buttons, 'Enable', 'on');
     end
 
@@ -267,7 +294,7 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
 
       % Call the editing function
       case 'edit'
-        opts.segmenting = edit_options(opts.segmenting);
+        opts.spot_tracking = edit_options(opts.tracks_filtering);
 
       % Call the loading function
       case 'load'
@@ -305,17 +332,13 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
     switch type
 
       % Each checkbox is responsible for its respective boolean fields
-      case {'detrend','denoise'}
-        segmentations(indx).(type) = logical(get(hObject, 'Value'));
-
-      % But filtering does not require recomputing
-      case 'filter_spots'
-        segmentations(indx).(type) = logical(get(hObject, 'Value'));
-        recompute = false;
+      case {'reestimate_spots','force_cell_behavior'}
+        trackings(indx).(type) = logical(get(hObject, 'Value'));
 
       % The slider varies the frame index
       case 'slider'
         handles.frame = round(get(hObject, 'Value'));
+        recompute = false;
 
       % The radio buttons have the index of their respective choice encoded
       % in their tag (e.g. radioXY). However, because all the iamges are stored
@@ -331,7 +354,7 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
 
       % A different selection in one of the drop-down lists
       case 'type'
-        segmentations(indx).(type) = get(hObject, 'Value');
+        trackings(indx).(type) = get(hObject, 'Value');
 
       % Otherwise, do nothing. This is used to cancel the deletion requests
       otherwise
@@ -348,49 +371,7 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
   % This function converts the various indexes back into strings to prepare
   % the segmentations structure for its standard form.
 
-    % Create a copy of segmentations in case we need to cancel
-    tmp_segmentations = segmentations;
-
-    % We need ot loop over the segmentations
-    nsegmentations = length(segmentations);
-
-    % Get the available types of segmentations and compressions
-    contents = get(handles.segmentation_type,'String');
-    ntypes = length(contents);
-
-    % We want to check if some segmentations have identical features
-    denoise = logical(zeros(nsegmentations,1));
-    detrend = logical(zeros(nsegmentations,1));
-    types = logical(zeros(nsegmentations,ntypes));
-
-    % Convert the indexes into strings and build a summary of the filters
-    for i=1:nsegmentations
-      denoise(i) = segmentations(i).denoise;
-      detrend(i) = (segmentations(i).detrend && channels(i).detrend);
-      types(i,segmentations(i).type) = true;
-      tmp_segmentations(i).type = contents{segmentations(i).type};
-    end
-
-    % Some checks to make sure the user is aware of some potential issues
-    ok = true;
-    if (ok & any(detrend, 1))
-
-      % This is slow process which have apparently already been applied
-      answer = questdlg('Some channels will be detrended a second time, continue ?');
-      ok = strcmp(answer,'Yes');
-    end
-    if (ok & any(sum(types(:,2:end), 1)>1))
-
-      % Just in case, for later display
-      answer = questdlg('Multiple channels will be segmented, continue ?');
-      ok = strcmp(answer,'Yes');
-    end
-
-    % If everything is OK, release the GUI and quit
-    if (ok)
-      segmentations = tmp_segmentations;
-      uiresume(hFig);
-    end
+    uiresume(hFig);
 
     return
   end
@@ -402,10 +383,6 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
     % The number of channels provided
     nchannels = length(channels);
 
-    % Initialize the possible segmentations and their corresponding channels
-    typestring = {'None','detect_spots','lidke_fit', 'Nuclei'};
-    typechannel = {'luminescence','fluorescence'};
-
     % Initialize the structure used for the interface
     liststring = '';
     for i = 1:nchannels
@@ -414,14 +391,6 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
       liststring = [liststring channels(i).type num2str(i)];
       if (i < nchannels)
         liststring = [liststring '|'];
-      end
-
-      % Set the segmentation type
-      type_test = ismember(typechannel, channels(i).type);
-      if any(type_test)
-        segmentations(i).type = find(type_test)+1;
-      else
-        segmentations(i).type = 1;
       end
     end
 
@@ -444,7 +413,7 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
                   'Color',  [0.7 0.7 0.7], ...
                   'Colormap', mygray, ...
                   'MenuBar', 'none',  ...
-                  'Name', 'Images Segmentation',  ...
+                  'Name', 'Tracks Filtering',  ...
                   'NumberTitle', 'off',  ...
                   'Units', 'normalized', ...
                   'Position', [0 0 1 1], ...
@@ -552,7 +521,7 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
                          'Units', 'normalized',  ...
                          'Position', [0.1 0.1 0.25 0.8], ...
                          'Style', 'radiobutton',  ...
-                         'String', 'Filtered image', ...
+                         'String', 'No path', ...
                          'Tag', 'radio11');
     enabled = [enabled hControl];
 
@@ -560,7 +529,7 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
                          'Units', 'normalized',  ...
                          'Position', [0.4 0.1 0.25 0.8], ...
                          'Style', 'radiobutton',  ...
-                         'String', 'Raw image', ...
+                         'String', 'Current links', ...
                          'Tag', 'radio12');
     enabled = [enabled hControl];
 
@@ -568,7 +537,7 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
                          'Units', 'normalized',  ...
                          'Position', [0.7 0.1 0.25 0.8], ...
                          'Style', 'radiobutton',  ...
-                         'String', 'Difference', ...
+                         'String', 'Full paths', ...
                          'Tag', 'radio13');
     enabled = [enabled hControl];
 
@@ -583,7 +552,7 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
                          'Units', 'normalized',  ...
                          'Position', [0.1 0.1 0.25 0.8], ...
                          'Style', 'radiobutton',  ...
-                         'String', 'Filtered image', ...
+                         'String', 'No path', ...
                          'Tag', 'radio21');
     enabled = [enabled hControl];
 
@@ -591,7 +560,7 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
                          'Units', 'normalized',  ...
                          'Position', [0.4 0.1 0.25 0.8], ...
                          'Style', 'radiobutton',  ...
-                         'String', 'Reconstructed image', ...
+                         'String', 'Filtered links', ...
                          'Tag', 'radio22');
     enabled = [enabled hControl];
 
@@ -599,74 +568,28 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
                          'Units', 'normalized',  ...
                          'Position', [0.7 0.1 0.25 0.8], ...
                          'Style', 'radiobutton',  ...
-                         'String', 'Difference', ...
+                         'String', 'Filtered paths', ...
                          'Tag', 'radio23');
     enabled = [enabled hControl];
 
-    % The type of segmentation to perform, along with its label
-    hText = uicontrol('Parent', hPanel, ...
-                      'Units', 'normalized',  ...
-                      'Position', [0.875 0.925 0.075 0.05], ...
-                      'String', 'Segmentation:',  ...
-                      'FontSize', 12, ...
-                      'FontWeight', 'bold', ...
-                      'Style', 'text',  ...
-                      'Tag', 'text16');
-
-    hText = uicontrol('Parent', hPanel, ...
-                      'Units', 'normalized',  ...
-                      'Position', [0.9 0.875 0.05 0.05], ...
-                      'String', 'Type',  ...
-                      'Style', 'text',  ...
-                      'Tag', 'text17');
-
-    hType = uicontrol('Parent', hPanel, ...
-                      'Units', 'normalized',  ...
-                      'Callback', @gui_Callback, ...
-                      'Position', [0.875 0.845 0.1 0.05], ...
-                      'String', typestring, ...
-                      'Style', 'popupmenu',  ...
-                      'Value', 1, ...
-                      'Tag', 'type');
-    enabled = [enabled hType];
-
-    % The various filters, along with their labels
-    hText = uicontrol('Parent', hPanel, ...
-                      'Units', 'normalized',  ...
-                      'Position', [0.9 0.525 0.05 0.05], ...
-                      'String', 'Filters:',  ...
-                      'FontSize', 12, ...
-                      'FontWeight', 'bold', ...
-                      'Style', 'text',  ...
-                      'Tag', 'text16');
-
-    hDetrend = uicontrol('Parent', hPanel, ...
+    % The various options for the user
+    hRefine = uicontrol('Parent', hPanel, ...
                          'Units', 'normalized',  ...
                          'Callback', @gui_Callback, ...
                          'Position', [0.9 0.5 0.1 0.05], ...
-                         'String', 'Detrend',  ...
+                         'String', 'Reestimate spots',  ...
                          'Style', 'checkbox',  ...
-                         'Tag', 'detrend');
-    enabled = [enabled hDetrend];
+                         'Tag', 'reestimate_spots');
+    enabled = [enabled hRefine];
 
-    hDenoise = uicontrol('Parent', hPanel, ...
+    hForce = uicontrol('Parent', hPanel, ...
                          'Units', 'normalized',  ...
                          'Callback', @gui_Callback, ...
                          'Position', [0.9 0.45 0.1 0.05], ...
-                         'String', 'Denoise',  ...
+                         'String', 'Force cell behavior',  ...
                          'Style', 'checkbox',  ...
-                         'Tag', 'denoise');
-    enabled = [enabled hDenoise];
-
-    hFilter = uicontrol('Parent', hPanel, ...
-                         'Units', 'normalized',  ...
-                         'Callback', @gui_Callback, ...
-                         'Position', [0.9 0.4 0.1 0.05], ...
-                         'String', 'Filter spots',  ...
-                         'Style', 'checkbox',  ...
-                         'Tag', 'filter_spots');
-    enabled = [enabled hFilter];
-
+                         'Tag', 'force_cell_behavior');
+    enabled = [enabled hForce];
 
     % The buttons which allows to edit, load and save parameters
     hEdit = uicontrol('Parent', hPanel, ...
@@ -704,11 +627,9 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
     handles = struct('uipanel', hPanel, ...
                      'slider', hFrame, ...
                      'text', hIndex, ...
-                     'detrend', hDetrend, ...
-                     'denoise', hDenoise, ...
-                     'filter_spots', hFilter, ...
+                     'refine', hRefine, ...
+                     'force', hForce, ...
                      'list', hChannel, ...
-                     'segmentation_type', hType, ...
                      'axes', [hAxes hAxesNext], ...
                      'experiment', hName, ...
                      'all_buttons', enabled, ...

@@ -214,7 +214,7 @@ function [mytracking, opts] = inspect_tracking(mytracking, opts)
 
     if (recompute)
       % Release the image
-      set(hFig, 'Name', 'Images Segmentation');
+      set(hFig, 'Name', 'Cell Tracking');
       set(handles.all_buttons, 'Enable', 'on');
     end
 
