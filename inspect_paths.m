@@ -1,4 +1,4 @@
-function [mytracking, opts] = inspect_paths(mytracking, opts)
+function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
 % INSPECT_PATHS displays a pop-up window for the user to manually inspect the
 % filtering of the tracks that will be performed on the provided movie.
 %
@@ -32,8 +32,16 @@ function [mytracking, opts] = inspect_paths(mytracking, opts)
       disp(['Error: ' fname ' does not contain a valid mytracking structure']);
 
       return;
+
+    % Extract the loaded data
+    else
+      mytracking = data.mytracking;
+      opts = data.opts;
     end
   end
+
+  % Store the original options
+  orig_opts = opts;
 
   % Prepare some global variables
   channels = mytracking.channels;
@@ -56,6 +64,7 @@ function [mytracking, opts] = inspect_paths(mytracking, opts)
   paths = [];
   all_colors = [];
   colors = [];
+  is_updated = true;
 
   % Display the figure
   set(hFig,'Visible', 'on');
@@ -106,6 +115,7 @@ function [mytracking, opts] = inspect_paths(mytracking, opts)
       set(handles.refine,'Value', trackings(indx).reestimate_spots);
       set(handles.force,'Value', trackings(indx).force_cell_behavior);
 
+      % The paths
       all_paths = reconstruct_tracks(trackings(indx).detections, true);
       all_colors = colorize_graph(all_paths);
 
@@ -136,10 +146,10 @@ function [mytracking, opts] = inspect_paths(mytracking, opts)
       colors = colorize_graph(paths);
     end
 
-    spots = cellfun(@(x)(x(x(:,end)==nimg,:)), all_paths, 'UniformOutput', false);
+    spots = cellfun(@(x)(x(x(:,end-1)==nimg,:)), all_paths, 'UniformOutput', false);
     spots = cat(1,spots{:});
 
-    spots_filt = cellfun(@(x)(x(x(:,end)==nimg,:)), paths, 'UniformOutput', false);
+    spots_filt = cellfun(@(x)(x(x(:,end-1)==nimg,:)), paths, 'UniformOutput', false);
     spots_filt = cat(1,spots_filt{:});
 
     if (trackings(indx).reestimate_spots)
@@ -172,7 +182,7 @@ function [mytracking, opts] = inspect_paths(mytracking, opts)
         else
           spots1 = {[]};
         end
-        links1 = cellfun(@(x)(x(abs(x(:,end)-nimg) < 2,:)), all_paths, 'UniformOutput', false);
+        links1 = cellfun(@(x)(x(abs(x(:,end-1)-nimg) < 2,:)), all_paths, 'UniformOutput', false);
         links1 = links1(~cellfun('isempty', links1));
         colors1 = colorize_graph(links1);
 
@@ -205,7 +215,7 @@ function [mytracking, opts] = inspect_paths(mytracking, opts)
         else
           spots2 = {[]};
         end
-        links2 = cellfun(@(x)(x(abs(x(:,end)-nimg) < 2,:)), paths, 'UniformOutput', false);
+        links2 = cellfun(@(x)(x(abs(x(:,end-1)-nimg) < 2,:)), paths, 'UniformOutput', false);
         links2 = links2(~cellfun('isempty', links2));
         colors2 = colorize_graph(links2);
 
@@ -294,7 +304,7 @@ function [mytracking, opts] = inspect_paths(mytracking, opts)
 
       % Call the editing function
       case 'edit'
-        opts.spot_tracking = edit_options(opts.tracks_filtering);
+        [opts.tracks_filtering, recompute] = edit_options(opts.tracks_filtering);
 
       % Call the loading function
       case 'load'
@@ -363,6 +373,23 @@ function [mytracking, opts] = inspect_paths(mytracking, opts)
 
     % Update the display accordingly
     update_display(recompute);
+
+    return
+  end
+
+  function cancel_CloseRequestFcn(hObject, eventdata)
+  % This function stops the current processing after confirmation
+
+    % Just double check that the user want to quit
+    answer = questdlg('Do you really want to discard all your changes ?');
+    ok = strcmp(answer,'Yes');
+
+    % If everything is OK, release the GUI and quit
+    if (ok)
+      is_updated = false;
+      opts = orig_opts;
+      uiresume(hFig);
+    end
 
     return
   end
@@ -440,10 +467,19 @@ function [mytracking, opts] = inspect_paths(mytracking, opts)
     hOK = uicontrol('Parent', hFig, ...
                     'Units', 'normalized',  ...
                     'Callback', @channel_CloseRequestFcn, ...
-                    'Position', [0.79 0.02 0.18 0.05], ...
+                    'Position', [0.70 0.02 0.18 0.05], ...
                     'String', 'OK',  ...
                     'Tag', 'pushbutton11');
     enabled = [enabled hOK];
+
+    % The Cancel button
+    hCancel = uicontrol('Parent', hFig, ...
+                    'Units', 'normalized',  ...
+                    'Callback', @cancel_CloseRequestFcn, ...
+                    'Position', [0.90 0.02 0.08 0.05], ...
+                    'String', 'Cancel',  ...
+                    'Tag', 'pushbutton12');
+    enabled = [enabled hCancel];
 
     % The experiment name and its labels
     hText = uicontrol('Parent', hFig, ...
@@ -490,7 +526,7 @@ function [mytracking, opts] = inspect_paths(mytracking, opts)
 
     % The panel itsel
     hPanel = uipanel('Parent', hFig, ...
-                     'Title', [channels(i).type '1'],  ...
+                     'Title', [channels(1).type '1'],  ...
                      'Tag', 'uipanel',  ...
                      'Clipping', 'on',  ...
                      'Position', [0.12 0.11 0.87 0.8]);

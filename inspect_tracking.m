@@ -1,4 +1,4 @@
-function [mytracking, opts] = inspect_tracking(mytracking, opts)
+function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
 % INSPECT_TRACKING displays a pop-up window for the user to manually inspect the
 % segmentation that will be performed on the provided movie.
 %
@@ -32,13 +32,34 @@ function [mytracking, opts] = inspect_tracking(mytracking, opts)
       disp(['Error: ' fname ' does not contain a valid mytracking structure']);
 
       return;
+
+    % Extract the loaded data
+    else
+      mytracking = data.mytracking;
+      opts = data.opts;
     end
   end
+
+  % Store the original options
+  orig_opts = opts;
 
   % Prepare some global variables
   channels = mytracking.channels;
   nchannels = length(channels);
   segmentations = mytracking.segmentations;
+
+  % Make sure the expected structure is present
+  if (length(segmentations) ~= nchannels)
+    segmentations = get_struct('segmentation', [1, nchannels]);
+  end
+
+  % We will also need the detections, even if empty !
+  for i=1:nchannels
+    nframes = size_data(channels(i));
+    if (length(segmentations(i).detections) < nframes)
+      segmentations(i).detections = get_struct('detection', [1 nframes]);
+    end
+  end
 
   % Create the GUI using segmentations
   [hFig, handles] = create_figure();
@@ -50,6 +71,7 @@ function [mytracking, opts] = inspect_tracking(mytracking, opts)
   spots = [];
   spots_next = [];
   paths = [];
+  is_updated = true;
 
   % Display the figure
   set(hFig,'Visible', 'on');
@@ -62,6 +84,10 @@ function [mytracking, opts] = inspect_tracking(mytracking, opts)
   mytracking.segmentations = segmentations;
   % And get the experiment name
   mytracking.experiment = get(handles.experiment, 'String');
+  % And reset the other fields
+  if (is_updated)
+    mytracking.trackings = get_struct('tracking', 0);
+  end
 
   % Delete the whole figure
   delete(hFig);
@@ -99,7 +125,7 @@ function [mytracking, opts] = inspect_tracking(mytracking, opts)
 
     if (recompute)
       % Because it takes long, display it and block the GUI
-      set(hFig, 'Name', 'Cell Tracking (Processing...)');
+      set(hFig, 'Name', 'Tracking (Processing...)');
 
       % The slider
       set(handles.text, 'String', ['Frame #' num2str(nimg)]);
@@ -214,7 +240,7 @@ function [mytracking, opts] = inspect_tracking(mytracking, opts)
 
     if (recompute)
       % Release the image
-      set(hFig, 'Name', 'Cell Tracking');
+      set(hFig, 'Name', 'Tracking');
       set(handles.all_buttons, 'Enable', 'on');
     end
 
@@ -241,7 +267,7 @@ function [mytracking, opts] = inspect_tracking(mytracking, opts)
 
       % Call the editing function
       case 'edit'
-        opts.spot_tracking = edit_options(opts.spot_tracking);
+        [opts.spot_tracking, recompute] = edit_options(opts.spot_tracking);
 
       % Call the loading function
       case 'load'
@@ -318,6 +344,23 @@ function [mytracking, opts] = inspect_tracking(mytracking, opts)
     return
   end
 
+  function cancel_CloseRequestFcn(hObject, eventdata)
+  % This function stops the current processing after confirmation
+
+    % Just double check that the user want to quit
+    answer = questdlg('Do you really want to discard all your changes ?');
+    ok = strcmp(answer,'Yes');
+
+    % If everything is OK, release the GUI and quit
+    if (ok)
+      is_updated = false;
+      opts = orig_opts;
+      uiresume(hFig);
+    end
+
+    return
+  end
+
   function channel_CloseRequestFcn(hObject, eventdata)
   % This function converts the various indexes back into strings to prepare
   % the segmentations structure for its standard form.
@@ -364,7 +407,7 @@ function [mytracking, opts] = inspect_tracking(mytracking, opts)
                   'Color',  [0.7 0.7 0.7], ...
                   'Colormap', mygray, ...
                   'MenuBar', 'none',  ...
-                  'Name', 'Cell Tracking',  ...
+                  'Name', 'Tracking',  ...
                   'NumberTitle', 'off',  ...
                   'Units', 'normalized', ...
                   'Position', [0 0 1 1], ...
@@ -391,10 +434,19 @@ function [mytracking, opts] = inspect_tracking(mytracking, opts)
     hOK = uicontrol('Parent', hFig, ...
                     'Units', 'normalized',  ...
                     'Callback', @channel_CloseRequestFcn, ...
-                    'Position', [0.79 0.02 0.18 0.05], ...
+                    'Position', [0.70 0.02 0.18 0.05], ...
                     'String', 'OK',  ...
                     'Tag', 'pushbutton11');
     enabled = [enabled hOK];
+
+    % The Cancel button
+    hCancel = uicontrol('Parent', hFig, ...
+                    'Units', 'normalized',  ...
+                    'Callback', @cancel_CloseRequestFcn, ...
+                    'Position', [0.90 0.02 0.08 0.05], ...
+                    'String', 'Cancel',  ...
+                    'Tag', 'pushbutton12');
+    enabled = [enabled hCancel];
 
     % The experiment name and its labels
     hText = uicontrol('Parent', hFig, ...
@@ -441,7 +493,7 @@ function [mytracking, opts] = inspect_tracking(mytracking, opts)
 
     % The panel itsel
     hPanel = uipanel('Parent', hFig, ...
-                     'Title', [channels(i).type '1'],  ...
+                     'Title', [channels(1).type '1'],  ...
                      'Tag', 'uipanel',  ...
                      'Clipping', 'on',  ...
                      'Position', [0.12 0.11 0.87 0.8]);

@@ -1,4 +1,4 @@
-function mystruct = edit_options(mystruct, name)
+function [mystruct, is_updated] = edit_options(mystruct, name)
 % EDIT_OPTIONS displays a GUI enabling the user to interactively
 % modify the content of a structure.
 %
@@ -23,6 +23,7 @@ function mystruct = edit_options(mystruct, name)
 
   % Create the figure corresponding to the structure
   hFig = create_figure(values);
+  is_updated = true;
 
   % Wait for the user to finish and delete the figure
   uiwait(hFig);
@@ -225,6 +226,7 @@ function mystruct = edit_options(mystruct, name)
 
   % Upon cancel, we simply exit without applying any modifications
   function cancel_CloseRequestFcn(hObject, eventdata, handles)
+    is_updated = false;
     uiresume(gcbf)
 
     return;
@@ -268,7 +270,7 @@ function mystruct = edit_options(mystruct, name)
     end
 
     % Edit the substructure
-    value = edit_options(mystruct.(fieldname), fname);
+    [value, is_updated] = edit_options(mystruct.(fieldname), fname);
 
     % Store the new values
     mystruct.(fieldname) = value;
@@ -316,7 +318,7 @@ function mystruct = edit_options(mystruct, name)
       if (~isempty(val))
         switch values{i,3}
           case 'cell'
-            goods = ~cellfun('isempty', val)
+            goods = ~cellfun('isempty', val);
             grow = any(goods, 1);
             gcol = any(goods, 2);
             val = val(grow, gcol);

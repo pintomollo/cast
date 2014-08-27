@@ -15,6 +15,13 @@ function colors = colorize_graph(coords, colors)
 % Simon Blanchoud
 % 07.07.2014
 
+  % Double check that we have some data
+  if (nargin == 0 || isempty(coords))
+    colors = [];
+
+    return;
+  end
+
   % Check if we need to get colors
   if (nargin == 1)
     colors = redbluemap(size(coords, 1));

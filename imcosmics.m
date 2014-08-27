@@ -105,6 +105,17 @@ function [new_img] = imcosmics(img, block_size, thresh)
     dmed = nanmedian(data);
     dmad = 1.4826 * nanmedian(abs(data-dmed));
 
+    % Here we most likely have a problem, so try another approach to estimate the
+    % standard deviation.
+    if (dmad==0)
+      dmad = 1.4826 * nanmean(abs(data-dmed));
+
+      % If nothing else worked, follow [1] to esimate the standard deviation
+      if (dmad == 0)
+        dmad = sqrt(nanmean(data.^2 - dmed^2));
+      end
+    end
+
     % Sort the data, keeping track of the correspondency
     [data, indx] = sort(data);
 

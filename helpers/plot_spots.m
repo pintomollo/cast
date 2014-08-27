@@ -145,11 +145,11 @@ function hgroup = plot_spots(h, spots, color, mark_center)
         % If we ran out of existing circles to modify, creat a new one
         if (count+s > ncircls)
           handles(s) = line('XData', real(pos), 'YData', imag(pos), 'Parent', hgroup, ...
-                            'Color', curr_color);
+                            'Color', curr_color, 'Marker', 'none');
 
         % Otherwise, modify the required data, and store the previous handler
         else
-          set(hcircls(count+s), 'XData', real(pos), 'YData', imag(pos), 'Color', curr_color);
+          set(hcircls(count+s), 'XData', real(pos), 'YData', imag(pos), 'Color', curr_color, 'Marker', 'none');
           handles(s) = hcircls(count+s);
         end
       end

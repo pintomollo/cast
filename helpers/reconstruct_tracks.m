@@ -36,6 +36,9 @@ function paths = reconstruct_tracks(spots, links, low_duplicates)
   % We got a structure, so extract from there
   if (isstruct(spots))
 
+    % Copy the structure
+    mystruct = spots;
+
     % Maybe we got a full structure
     if (isfield(spots, 'experiment'))
 
@@ -51,10 +54,6 @@ function paths = reconstruct_tracks(spots, links, low_duplicates)
 
     % Or it's only the detections part
     else
-
-      % Copy the structure
-      mystruct = spots;
-
       % Get its length
       nframes = length(mystruct);
 
@@ -128,7 +127,7 @@ function paths = reconstruct_tracks(spots, links, low_duplicates)
 
         % Copy our data to all paths pointing on us
         for k = 1:length(indx)
-          paths{indx(k)} = [paths{indx(k)}; [status curr_spots(j,:) i]];
+          paths{indx(k)} = [paths{indx(k)}; [status curr_spots(j,:) i j]];
         end
 
         % If there is a division, we need to stop the two incoming paths
@@ -137,7 +136,7 @@ function paths = reconstruct_tracks(spots, links, low_duplicates)
           indxs(indx, 2) = 0;
 
           % And create a new fresh one
-          paths{end+1} = [status curr_spots(j,:) i];
+          paths{end+1} = [status curr_spots(j,:) i j];
 
           % Get a new index
           indx = length(paths);
@@ -145,7 +144,7 @@ function paths = reconstruct_tracks(spots, links, low_duplicates)
 
       % Otherwise, create a new path
       else
-        paths{end+1} = [status curr_spots(j,:) i];
+        paths{end+1} = [status curr_spots(j,:) i j];
 
         % Get a new index
         indx = length(paths);

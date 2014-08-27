@@ -1,4 +1,4 @@
-function [mytracking, opts] = inspect_segmentation(mytracking, opts)
+function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
 % INSPECT_SEGMENTATION displays a pop-up window for the user to manually inspect the
 % segmentation that will be performed on the provided movie.
 %
@@ -32,8 +32,16 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
       disp(['Error: ' fname ' does not contain a valid mytracking structure']);
 
       return;
+
+    % Extract the loaded data
+    else
+      mytracking = data.mytracking;
+      opts = data.opts;
     end
   end
+
+  % Store the original options
+  orig_opts = opts;
 
   % Prepare some global variables
   channels = mytracking.channels;
@@ -51,6 +59,7 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
   filt_spots = [];
   reconstr = [];
   reconstr_filt = [];
+  is_updated = true;
 
   % Display the figure
   set(hFig,'Visible', 'on');
@@ -63,6 +72,13 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
   mytracking.segmentations = segmentations;
   % And get the experiment name
   mytracking.experiment = get(handles.experiment, 'String');
+  % And reset the other fields
+  if (is_updated)
+    for i=1:nchannels
+      mytracking.segmentations(i).detections = get_struct('detection',0);
+    end
+    mytracking.trackings = get_struct('tracking', 0);
+  end
 
   % Delete the whole figure
   delete(hFig);
@@ -153,7 +169,7 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
                                opts.segmenting.estimate_fit_position);
         otherwise
           spots = [];
-          disp('No segmentation')
+          %disp('No segmentation')
       end
 
       % Filter the detected spots
@@ -267,7 +283,7 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
 
       % Call the editing function
       case 'edit'
-        opts.segmenting = edit_options(opts.segmenting);
+        [opts.segmenting, recompute] = edit_options(opts.segmenting);
 
       % Call the loading function
       case 'load'
@@ -344,6 +360,23 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
     return
   end
 
+  function cancel_CloseRequestFcn(hObject, eventdata)
+  % This function stops the current processing after confirmation
+
+    % Just double check that the user want to quit
+    answer = questdlg('Do you really want to discard all your changes ?');
+    ok = strcmp(answer,'Yes');
+
+    % If everything is OK, release the GUI and quit
+    if (ok)
+      is_updated = false;
+      opts = orig_opts;
+      uiresume(hFig);
+    end
+
+    return
+  end
+
   function channel_CloseRequestFcn(hObject, eventdata)
   % This function converts the various indexes back into strings to prepare
   % the segmentations structure for its standard form.
@@ -403,7 +436,8 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
     nchannels = length(channels);
 
     % Initialize the possible segmentations and their corresponding channels
-    typestring = {'None','detect_spots','lidke_fit', 'Nuclei'};
+    %typestring = {'None','detect_spots','lidke_fit', 'Nuclei'};
+    typestring = {'None','detect_spots'};
     typechannel = {'luminescence','fluorescence'};
 
     % Initialize the structure used for the interface
@@ -471,10 +505,19 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
     hOK = uicontrol('Parent', hFig, ...
                     'Units', 'normalized',  ...
                     'Callback', @channel_CloseRequestFcn, ...
-                    'Position', [0.79 0.02 0.18 0.05], ...
+                    'Position', [0.70 0.02 0.18 0.05], ...
                     'String', 'OK',  ...
                     'Tag', 'pushbutton11');
     enabled = [enabled hOK];
+
+    % The Cancel button
+    hCancel = uicontrol('Parent', hFig, ...
+                    'Units', 'normalized',  ...
+                    'Callback', @cancel_CloseRequestFcn, ...
+                    'Position', [0.90 0.02 0.08 0.05], ...
+                    'String', 'Cancel',  ...
+                    'Tag', 'pushbutton12');
+    enabled = [enabled hCancel];
 
     % The experiment name and its labels
     hText = uicontrol('Parent', hFig, ...
@@ -521,7 +564,7 @@ function [mytracking, opts] = inspect_segmentation(mytracking, opts)
 
     % The panel itsel
     hPanel = uipanel('Parent', hFig, ...
-                     'Title', [channels(i).type '1'],  ...
+                     'Title', [channels(1).type '1'],  ...
                      'Tag', 'uipanel',  ...
                      'Clipping', 'on',  ...
                      'Position', [0.12 0.11 0.87 0.8]);

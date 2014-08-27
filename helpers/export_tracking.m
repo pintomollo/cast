@@ -8,6 +8,12 @@ function export_tracking(mytracking, varargin)
 %   write to. By default, the name contained in MYTRACKING.experiment is used.
 %   If no folder is specified in FNAME, files are written in the 'export' folder.
 %
+%   EXPORT_TRACKING(..., LOW_DUPLICATES) when true, does not repeat the information from
+%   the mother cell in the track of the daughter cell.
+%
+%   EXPORT_TRACKING(..., ALIGNING) defines how the cell tracks are align with one
+%   another. Available alignments are 'time', 'start' and 'end'.
+%
 % Gonczy and Naef labs, EPFL
 % Simon Blanchoud
 % 06.07.2014
@@ -43,7 +49,7 @@ function export_tracking(mytracking, varargin)
   rescale_factor = [1 ([1 1 1] * opts.pixel_size) 1];
 
   % The list of columns to export
-  colname = {'status', '', '', 'sigma_um', 'amplitude_int'};
+  colname = {'status', 'x_coord_um', 'y_coord_um', 'sigma_um', 'amplitude_int'};
   ncols = length(colname);
 
   % A hidden waitbar
@@ -85,8 +91,8 @@ function export_tracking(mytracking, varargin)
       curr_path = paths{j}(end:-1:1,:);
 
       % The indexes to copy the path
-      indx_min = min(curr_path(:,end));
-      indx_max = max(curr_path(:,end));
+      indx_min = min(curr_path(:,end-1));
+      indx_max = max(curr_path(:,end-1));
       nindx = indx_max - indx_min;
 
       % Copy the path

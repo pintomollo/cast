@@ -1,4 +1,4 @@
-function [mytracking, opts] = inspect_recording(fname)
+function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
 % INSPECT_RECORDING displays a pop-up window for the user to manually identify the
 % type of data contained in the different channels of a movie recording.
 %
@@ -18,17 +18,39 @@ function [mytracking, opts] = inspect_recording(fname)
 % 14.05.2014
 
   % Argument checking, need to know if we ask for a recording or not.
-  if (nargin == 0 | isempty(fname))
+  if (nargin == 0 || isempty(fname) || ...
+     (isstruct(fname) && isfield(fname, 'channels') && isempty(fname.channels)))
     fname = convert_movie();
   end
 
   % The structure containing the parameters for the different filters available to
-  % the user.
-  opts = get_struct('options');
+  % the user
+  if (nargin < 2)
+    opts = get_struct('options');
+  end
+
+  % Store the original options
+  orig_opts = opts;
+
+  % Was it a tracking file ?
+  was_tracking = false;
 
   % Create the channels structure if it was not provided.
   if (isstruct(fname))
-    channels = fname;
+    if (isfield(fname, 'experiment'))
+      mytracking = fname;
+      channels = mytracking.channels;
+      was_tracking = true;
+
+      % Retrieve the original file
+      for i=1:length(channels)
+        if (~isempty(channels(i).file))
+          channels(i).fname = channels(i).file;
+        end
+      end
+    else
+      channels = fname;
+    end
   else
     % Put everything in a cell list
     if (ischar(fname))
@@ -51,6 +73,7 @@ function [mytracking, opts] = inspect_recording(fname)
   img = [];
   orig_img = [];
   img_next = [];
+  is_updated = true;
 
   % Display the figure
   set(hFig,'Visible', 'on');
@@ -60,7 +83,9 @@ function [mytracking, opts] = inspect_recording(fname)
   uiwait(hFig);
 
   % Now that the data are correct, create the whole structure
-  mytracking = get_struct('myrecording');
+  if (~was_tracking || is_updated)
+    mytracking = get_struct('myrecording');
+  end
   % Copy the channels
   mytracking.channels = channels;
   % And get the experiment name
@@ -355,6 +380,9 @@ function [mytracking, opts] = inspect_recording(fname)
     drawnow;
     refresh(hFig);
 
+    % By default, recompute
+    recompute = true;
+
     % And get the type of button which called the callback (from its tag)
     type = get(hObject, 'tag');
 
@@ -363,7 +391,7 @@ function [mytracking, opts] = inspect_recording(fname)
 
       % Call the editing function
       case 'edit'
-        opts.filtering = edit_options(opts.filtering);
+        [opts.filtering, recompute] = edit_options(opts.filtering);
 
       % Call the loading function
       case 'load'
@@ -372,11 +400,12 @@ function [mytracking, opts] = inspect_recording(fname)
       % Call the saving function
       case 'save'
         save_parameters(opts);
+        recompute = false;
     end
 
     % Release the GUI and recompute the filters
     set(handles.all_buttons, 'Enable', 'on');
-    update_display(true);
+    update_display(recompute);
 
     return
   end
@@ -440,6 +469,23 @@ function [mytracking, opts] = inspect_recording(fname)
 
     % Update the display accordingly
     update_display(recompute);
+
+    return
+  end
+
+  function cancel_CloseRequestFcn(hObject, eventdata)
+  % This function stops the current processing after confirmation
+
+    % Just double check that the user want to quit
+    answer = questdlg('Do you really want to discard all your changes ?');
+    ok = strcmp(answer,'Yes');
+
+    % If everything is OK, release the GUI and quit
+    if (ok)
+      is_updated = false;
+      opts = orig_opts;
+      uiresume(hFig);
+    end
 
     return
   end
@@ -598,10 +644,19 @@ function [mytracking, opts] = inspect_recording(fname)
     hOK = uicontrol('Parent', hFig, ...
                     'Units', 'normalized',  ...
                     'Callback', @channel_CloseRequestFcn, ...
-                    'Position', [0.79 0.02 0.18 0.05], ...
+                    'Position', [0.70 0.02 0.18 0.05], ...
                     'String', 'OK',  ...
                     'Tag', 'pushbutton11');
     enabled = [enabled hOK];
+
+    % The Cancel button
+    hCancel = uicontrol('Parent', hFig, ...
+                    'Units', 'normalized',  ...
+                    'Callback', @cancel_CloseRequestFcn, ...
+                    'Position', [0.90 0.02 0.08 0.05], ...
+                    'String', 'Cancel',  ...
+                    'Tag', 'pushbutton12');
+    enabled = [enabled hCancel];
 
     % The Add and Remove buttons
     hAdd = uicontrol('Parent', hFig, ...
@@ -609,7 +664,7 @@ function [mytracking, opts] = inspect_recording(fname)
                     'Callback', @add_channel_Callback, ...
                     'Position', [0.01 0.055 0.1 0.04], ...
                     'String', 'Add channel',  ...
-                    'Tag', 'pushbutton12');
+                    'Tag', 'pushbutton13');
     enabled = [enabled hAdd];
 
     hRemove = uicontrol('Parent', hFig, ...
@@ -617,7 +672,7 @@ function [mytracking, opts] = inspect_recording(fname)
                     'Callback', @remove_channel_Callback, ...
                     'Position', [0.01 0.01 0.1 0.04], ...
                     'String', 'Remove channel',  ...
-                    'Tag', 'pushbutton13');
+                    'Tag', 'pushbutton14');
     enabled = [enabled hRemove];
 
     % The experiment name and its labels
@@ -907,6 +962,9 @@ function [mytracking, opts] = inspect_recording(fname)
                      'display', [1 1], ...
                      'prev_channel', -1, ...
                      'current', 1);
+
+    % Link both axes and activate the pan
+    linkaxes(handles.axes);
 
     return;
   end

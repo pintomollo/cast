@@ -28,7 +28,14 @@ function hgroup = plot_paths(h, paths, color)
       color = paths;
       paths = h;
       h = gca;
+    else
+      color = 'y';
     end
+  end
+
+  % Default value
+  if isempty(color)
+    color = 'k';
   end
 
   % For simplicity, we always work with cell arrays

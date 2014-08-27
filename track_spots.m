@@ -1,4 +1,4 @@
-function links = track_spots(spots, funcs, max_move, max_gap, max_ratio, allow_branching_gap, verbosity)
+function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_ratio, allow_branching_gap, verbosity)
 % TRACK_SPOTS tracks spots over time using a global optimization algorithm [1].
 %
 %   LINKS = TRACK_SPOTS(SPOTS, FUNCS) LINKS the sets of SPOTS using the provided
@@ -43,7 +43,9 @@ function links = track_spots(spots, funcs, max_move, max_gap, max_ratio, allow_b
 %   to compute the per pixel / per frame values. OPTS should have the structure
 %   provided by get_struct('options').
 %
-%   LINKS = TRACK_SPOTS(MYTRACKING, ...) tracks the spots segmented in MYTRACKING.
+%   MYTRACKING = TRACK_SPOTS(MYTRACKING, ...) tracks the spots segmented in MYTRACKING.
+%
+%   [MYTRACKING, OPTS] = TRACK_SPOTS(MYTRACKING, OPTS) also returns OPTS.
 %
 % References:
 %   [1] Jaqaman K, Loerke D, Mettlen M, Kuwata H, Grinstein S, et al. Robust
@@ -79,9 +81,11 @@ function links = track_spots(spots, funcs, max_move, max_gap, max_ratio, allow_b
     verbosity = 2;
   end
 
+  % In case we need to return something
+  opts = funcs;
+
   % Check whether we got the options structure
   if (isstruct(funcs))
-    opts = funcs;
 
     % Get the function handlers
     funcs = {opts.spot_tracking.linking_function, ...
@@ -95,6 +99,7 @@ function links = track_spots(spots, funcs, max_move, max_gap, max_ratio, allow_b
             opts.spot_tracking.bridging_max_gap, ...
             opts.spot_tracking.max_intensity_ratio, ...
             opts.spot_tracking.allow_branching_gap, opts.verbosity);
+
     return;
   end
 

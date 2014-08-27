@@ -44,6 +44,7 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
     interpolate = true;
   end
 
+  opts = [];
   if (isnumeric(links))
 
     if (islogical(min_path_length))
@@ -54,10 +55,16 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
     end
 
     min_path_length = links;
+  elseif (isstruct(links))
+    opts = links;
+    min_path_length = opts.tracks_filtering.min_path_length;
+    max_zip_length = opts.tracks_filtering.max_zip_length;
+    interpolate = opts.tracks_filtering.interpolate;
   end
 
   mystruct = [];
   if (isstruct(spots))
+
     mystruct = spots;
 
     nframes = length(mystruct);

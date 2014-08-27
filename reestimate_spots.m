@@ -43,6 +43,11 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
     % Get the current type of segmentation to apply
     if (do_all)
       type = mytracking.segmentations(indx).type;
+
+      % Maybe we do not want to do it...
+      if (~mytracking.trackings(indx).reestimate_spots)
+        continue
+      end
     else
       type = segmentation.type;
     end

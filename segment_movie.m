@@ -1,10 +1,12 @@
-function [mytracking] = segment_movie(mytracking, opts)
+function [mytracking, opts] = segment_movie(mytracking, opts)
 % SEGMENT_MOVIE segments the various channels of an experiment.
 %
 %   [MYTRACKING] = SEGMENT_MOVIE(MYTRACKING, OPTS) segments all the channels present
 %   in MYTRACKING using the options set in the "segmentations" structure, using the
 %   parameter values from OPTS. The resulting detections are stored in "detections"
 %   in the corresponding segmentation field.
+%
+%   [MYTRACKING, OPTS] = SEGMENT_MOVIE(...) also returns the option structure OPTS.
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud
@@ -47,7 +49,7 @@ function [mytracking] = segment_movie(mytracking, opts)
       end
 
       % Prepare the output structure
-      detections = get_struct('detection', [1 nchannels]);
+      detections = get_struct('detection', [1 nframes]);
 
       % Iterate over the whole recording
       for nimg = 1:nframes
