@@ -124,7 +124,7 @@ function mystruct = get_struct(type, nstruct)
 
     % Structure containing the different parameters required for tracking spots
     case 'spot_tracking'
-      mystruct = struct('spot_max_speed', 0.5, ...    % Maximal speed of displacement of a spot (in um/s)
+      mystruct = struct('spot_max_speed', 0.05, ...    % Maximal speed of displacement of a spot (in um/s)
                         'allow_branching_gap', false, ...     % see track_spots.m
                         'bridging_max_gap', 3, ...            % Considered number of frames for the gap closing algorithm (see track_spots.m)
                         'max_intensity_ratio', Inf, ...       % see track_spots.m

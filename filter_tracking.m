@@ -115,6 +115,7 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
         new_links = curr_links(ismember(curr_links(:,1), good_indx), :);
 
         mapping = [1:length(long)].' - cumsum(~long);
+        mapping(~long) = NaN;
         new_links(:,1) = mapping(new_links(:,1));
 
         spots{i} = spots{i}(long, :);
@@ -131,7 +132,7 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
       for j=1:size(curr_links, 1)
         curr_links(j, 2) = diff_indxs{curr_links(j,3)}(curr_links(j,2));
       end
-      links{i} = curr_links;
+      links{i} = curr_links(all(isfinite(curr_links),2), :);
     end
   end
 
