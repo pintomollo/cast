@@ -144,6 +144,8 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
       curr_links = links{i};
       nlinks = size(curr_links, 1);
 
+      new_refs = false(length(index_full), 1);
+
       for j=1:nlinks
         link = curr_links(j,:);
 
@@ -167,10 +169,10 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
               end
             end
 
-            new_refs = false(length(index_full), 1);
-            new_refs(1:length(refs)) = refs;
-
-            index_full = index_full(~new_refs);
+            tmp_refs = false(length(index_full), 1);
+            tmp_refs(1:length(refs)) = refs;
+            tmp_refs(1:length(new_refs)) = (tmp_refs(1:length(new_refs)) | new_refs);
+            new_refs = tmp_refs;
           else
             for k=1:size(splits, 1)
               index_full{end+1} = splits(k,:);
@@ -184,6 +186,9 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
           end
         end
       end
+      tmp_refs = false(length(index_full), 1);
+      tmp_refs(1:length(new_refs)) = new_refs;
+      index_full = index_full(~tmp_refs);
 
       index_map = cellfun(@(x)(x(end,:)), index_full, 'UniformOutput', false);
       index_map = cat(1, NaN(0,4), index_map{:});

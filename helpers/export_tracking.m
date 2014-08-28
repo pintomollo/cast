@@ -30,7 +30,7 @@ function export_tracking(mytracking, varargin)
       opts = varargin{i};
     elseif (islogical(varargin{i}))
       low_duplicates = varargin{i};
-    elseif (ischar(varargin{i}))
+    elseif (ischar(varargin{i}) && ~isempty(varargin{i}))
       txt = varargin{i};
       if (strncmp(txt, 'time', 4) || strncmp(txt, 'start', 5) || strncmp(txt, 'end', 3))
         aligning_type = txt;
@@ -134,7 +134,7 @@ function export_tracking(mytracking, varargin)
   end
 
   % And zip them together
-  zip(fname, fullfile(folder, [fname '*.csv']));
+  zip(fullfile(folder, [fname '.zip']), fullfile(folder, [fname '*.csv']));
 
   % Close the waitbar
   close(hwait);

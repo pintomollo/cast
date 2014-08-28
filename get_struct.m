@@ -37,6 +37,15 @@ function mystruct = get_struct(type, nstruct)
                         'normalize', true, ...      % Normalize the whole stack
                         'type', 'dic');             % Type of channel
 
+    case 'colors'
+      mystruct = struct('colormaps', {{@gray, @redbluemap, @hot, @jet}}, ... % The colors used for the images
+                        'spots', {{}}, ...          % The colors used for the detections
+                        'spots_next', {{}}, ...     % The second colors for the detections
+                        'status', {{}}, ...         % The colors for the status of cells
+                        'links', {{}}, ...          % The colors for the links between cells
+                        'paths', {{}}, ...          % The colors for the paths
+                        'text', {{}});              % The colors for the text in the movies
+
     % Structure to store detections from segmentations
     case 'detection'
       mystruct = struct('carth', NaN(1, 2), ...     % Cartesian position of the detections (Nx2)
@@ -46,7 +55,13 @@ function mystruct = get_struct(type, nstruct)
     case 'exporting'
       mystruct = struct('file_name', '', ...        % The name of the file to create
                         'low_duplicates', true, ... % Do we use low duplicates paths ?
-                        'aligning_type', 'time');   % How do we align the paths ?
+                        'export_data', true, ...    % Do we export a CSV table of the data ?
+                        'data_aligning_type', 'time', ... % How do we align the paths ?
+                        'export_movie', false, ...  % Do we export an AVI movie ?
+                        'movie_show_index', true, ... % Do we display the track indexes in the movie ?
+                        'movie_show_detection', true, ... % Do we display the detected radii in the movie ?
+                        'movie_show_paths', false, ...  % Do we display the connections of the tracking in the movie ?
+                        'movie_show_reconstruction', false); % Do we display the reconstructed image using the detected spots ?
 
     % The few parameters required to filter the image appropriately
     case 'image_filters'
@@ -57,15 +72,15 @@ function mystruct = get_struct(type, nstruct)
 
     % Structure containing the different parameters required for tracking spots
     case 'image_segmentation'
-      mystruct = struct('filter_max_size', 10, ...          % max radius (in um), see filter_spots.m
-                        'filter_min_size', 4, ...        % min radius (in um), see filter_spots.m
-                        'filter_min_intensity', 3, ...     % min intensity (x noise variance), see filter_spots.m
+      mystruct = struct('filter_max_size', 10, ...         % max radius (in um), see filter_spots.m
+                        'filter_min_size', 2, ...          % min radius (in um), see filter_spots.m
+                        'filter_min_intensity', 15, ...    % min intensity (x noise variance), see filter_spots.m
                         'filter_overlap', 0.75, ...        % see filter_spots.m
                         'detrend_meshpoints', 32, ...      % see imdetrend.m
                         'denoise_func', @gaussian_mex, ... % see imdenoise.m
                         'denoise_size', -1,          ...   % see imdenoise.m
                         'denoise_remove_bkg', true, ...    % see imdenoise.m
-                        'atrous_max_size', 25, ...          % see imatrous.m
+                        'atrous_max_size', 10, ...         % see imatrous.m
                         'atrous_thresh', 10, ...           % see imatrous.m
                         'estimate_thresh', 1, ...          % thresh x noise variance, see estimate_spots.m
                         'estimate_niter', 15, ...          % see estimate_spots.m

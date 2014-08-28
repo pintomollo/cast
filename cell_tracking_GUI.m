@@ -541,7 +541,19 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
 
         [props, do_export] = edit_options(props);
         if (do_export)
-          export_tracking(mytracking, props.file_name, props.low_duplicates, props.aligning_type, opts);
+          if (props.export_data)
+            export_tracking(mytracking, props.file_name, props.low_duplicates, ...
+                            props.data_aligning_type, opts);
+          end
+          if (props.export_movie)
+            if (~props.movie_show_index)
+              export_movie(mytracking, props.file_name, opts);
+            else
+              export_movie(mytracking, props.file_name, props.low_duplicates, ...
+                             props.movie_show_detection, props.movie_show_paths, ...
+                             props.movie_show_reconstruction, opts);
+            end
+          end
         end
         recompute = false;
     end
@@ -731,9 +743,11 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
   % This function converts the various indexes back into strings to prepare
   % the segmentations structure for its standard form.
 
-    answer = questdlg('Save the current project ?', 'Save ?');
-    if (strcmp(answer, 'Yes'))
-      uisave({'mytracking','opts'}, [mytracking.experiment '.mat'])
+    if (nchannels > 0)
+      answer = questdlg('Save the current project ?', 'Save ?');
+      if (strcmp(answer, 'Yes'))
+        uisave({'mytracking','opts'}, [mytracking.experiment '.mat'])
+      end
     end
 
     uiresume(hFig);

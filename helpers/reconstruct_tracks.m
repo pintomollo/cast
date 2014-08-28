@@ -1,4 +1,4 @@
-function paths = reconstruct_tracks(spots, links, low_duplicates)
+function [paths, track_num] = reconstruct_tracks(spots, links, low_duplicates)
 % RECONSTRUCT_TRACKS gathers single plane detections into individual tracks.
 %
 %   PATHS = RECONSTRUCT_TRACKS(SPOTS, LINKS) create a cell array PATHS which contains
@@ -14,6 +14,10 @@ function paths = reconstruct_tracks(spots, links, low_duplicates)
 %   PATHS = RECONSTRUCT_TRACKS(..., LOW_DUPLICATES) if true, does not duplicate the
 %   entire history of a path at every division/fusion event but creates a new one
 %   instead.
+%
+%   [PATHS, INDEXES] = RECONSTRUCT_TRACKS(...) returns in addition the INDEXES of the
+%   first track each spot belongs to. INDEXES is a cell vector with as many cells as
+%   there are time points.
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud
@@ -44,10 +48,11 @@ function paths = reconstruct_tracks(spots, links, low_duplicates)
 
       % Prepare the output
       paths = cell(length(mystruct.channels), 1);
+      track_num = paths;
 
       % Loop over all channels and call itself recursively
       for i = 1:length(mystruct.channels)
-        paths{i} = reconstruct_tracks(mystruct.segmentations(i).detections);
+        [paths{i}, track_num{i}] = reconstruct_tracks(mystruct.segmentations(i).detections);
       end
 
       return;
@@ -60,12 +65,14 @@ function paths = reconstruct_tracks(spots, links, low_duplicates)
       % Prepare the required arrays
       spots = cell(nframes, 1);
       links = cell(nframes, 1);
+      track_num = cell(nframes, 1);
 
       % Copy the data to the adecquate format
       for i = 1:nframes
         if (~all(isnan(mystruct(i).carth(:))))
           spots{i} = [mystruct(i).carth mystruct(i).properties];
           links{i} = mystruct(i).cluster;
+          track_num{i} = NaN(size(mystruct(i).carth, 1), 1);
         end
       end
     end
@@ -149,6 +156,9 @@ function paths = reconstruct_tracks(spots, links, low_duplicates)
         % Get a new index
         indx = length(paths);
       end
+
+      % Store the index of the corresponding path
+      track_num{i}(j) = indx(1);
 
       % Finally, update the index table for every path pointing on us
       for l = 1:length(indx)

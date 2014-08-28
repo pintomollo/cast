@@ -47,6 +47,9 @@ function detected = reconstruct_detection(imgs, spots)
     % The current detections
     curr_spots = spots{i};
 
+    % Keep only the valid ones
+    curr_spots = curr_spots(~any(isnan(curr_spots), 2), :);
+
     % Loop over each spot
     for s = 1:size(curr_spots, 1)
 

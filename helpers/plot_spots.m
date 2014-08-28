@@ -163,7 +163,10 @@ function hgroup = plot_spots(h, spots, color, mark_center)
     end
 
     % Bring the current group on top, in that sense, the last ones will be on top !
-    uistack(handles, 'top');
+    goods = ishandle(handles);
+    if (any(goods))
+      uistack(handles(goods), 'top');
+    end
   end
 
   % Set back the status
