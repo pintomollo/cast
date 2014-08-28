@@ -38,6 +38,39 @@ function install_cell_tracking
     end
   end
 
+  % Otherwise, try to insall it !
+  if (exist('bfconvert.bat', 'file') ~= 2)
+    button = questdlg('Should we try to install the LOCI command line tools ?');
+
+    % Ask for the user to confirm this foolness
+    if (strncmpi(button, 'yes', 3))
+      try
+        rmdir('bftools', 's');
+      catch
+        % Nothing...
+      end
+
+      % This looks like a permanent link... up to now at least
+      try
+        unzip('http://loci.wisc.edu/files/software/bftools.zip', 'bftools');
+        cd('bftools');
+        urlwrite('http://loci.wisc.edu/files/software/loci_tools.jar', 'loci_tools.jar');
+        cd ..;
+        here = pwd;
+        addpath(fullfile(here, 'bftools'));
+        savepath;
+      catch
+        errs = lasterror;
+        warning('Tracking:installLOCI', ['Installation failed for the following reason:\n' errs.message]);
+      end
+
+      % Amazing enough !!
+      if (exist('bfconvert.bat', 'file') == 2)
+        msgbox('Installation successfull !');
+      end
+    end
+  end
+
   % Check if the sparse 64bits flag is needed
   if ~isempty(strfind(computer(),'64'))
     mexopts = ' -largeArrayDims';
