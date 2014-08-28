@@ -44,9 +44,9 @@ function mystruct = get_struct(type, nstruct)
                         'properties', []);          % Other properties computed on each detection, depending on the algorithm
 
     case 'exporting'
-      mystruct = struct('file_name', '', ...
-                        'low_duplicates', true, ...
-                        'aligning_type', 'time');
+      mystruct = struct('file_name', '', ...        % The name of the file to create
+                        'low_duplicates', true, ... % Do we use low duplicates paths ?
+                        'aligning_type', 'time');   % How do we align the paths ?
 
     % The few parameters required to filter the image appropriately
     case 'image_filters'
@@ -135,9 +135,9 @@ function mystruct = get_struct(type, nstruct)
 
     case 'tracking'
       mydetection = get_struct('detection',0);
-      mystruct = struct('reestimate_spots', true, ...
-                        'force_cell_behavior', true, ...
-                        'post_processing_funcs', {{}}, ...
+      mystruct = struct('reestimate_spots', true, ...   % Do we reestimate the newly interpolated spots ?
+                        'force_cell_behavior', true, ... % Prevent fusion and appearance of spots
+                        'post_processing_funcs', {{}}, ... % Allow to post-process paths
                         'detections', mydetection); % the structure to store the resulting detections
 
     case 'tracks_filtering'

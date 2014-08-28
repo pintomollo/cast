@@ -19,7 +19,7 @@ function [mystruct, is_updated] = edit_options(mystruct, name)
   end
 
   % Analyze the structure we received
-  values = parse_struct(mystruct);
+  [name, values] = parse_struct(mystruct);
 
   % Create the figure corresponding to the structure
   hFig = create_figure(values);
@@ -127,6 +127,7 @@ function [mystruct, is_updated] = edit_options(mystruct, name)
                         'Position', [20 count*50 + 20 120 30], ...
                         'String', myvals{i,1},  ...
                         'Style', 'text',  ...
+                        'TooltipString', myvals{i,5}, ...
                         'Tag', 'text');
 
       % The different types of controls used, this decision was made
@@ -436,11 +437,11 @@ end
 
 % Create the main table to store the values, their type and the type of uibutton to
 % be displayed
-function values = parse_struct(mystruct)
+function [name, values] = parse_struct(mystruct)
 
   % We get all fields
   fields = fieldnames(mystruct);
-  values = cell(length(fields), 4);
+  values = cell(length(fields), 5);
 
   % And parse them
   for i=1:length(fields)
@@ -496,6 +497,11 @@ function values = parse_struct(mystruct)
         values{i, 3} = class(val);
     end
   end
+
+  % Get the help messages
+  [name, helps] = extract_help_message(mystruct);
+  [goods, indxs] = ismember(values(:,1), helps(:,1));
+  values(goods, 5) = helps(indxs, 2);
 
   return;
 end
