@@ -16,7 +16,9 @@ function save_parameters(opts, fname)
 % 14.05.14
 
   % First check if we need to ask for the target file
-  if (nargin < 2)
+  if (nargin == 0)
+    return;
+  elseif (nargin < 2)
     % If so, check if we can save them in the Config folder
     if (exist('Config', 'dir'))
       conf_dir = which('Config.');

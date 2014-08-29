@@ -18,6 +18,8 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
   if (nargin ~= 2 | isempty(mytracking) | isempty(opts))
     mytracking = get_struct('myrecording');
     opts = get_struct('options');
+  else
+    opts = update_structure(opts, 'options');
   end
 
   % Prepare some global variables
@@ -535,7 +537,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
           % Extract the loaded data
           else
             mytracking = data.mytracking;
-            opts = data.opts;
+            opts = update_structure(data.opts, 'options');
           end
         end
 
