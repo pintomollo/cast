@@ -24,13 +24,16 @@ function colors = colorize_graph(coords, colors)
 
   % Check if we need to get colors
   if (nargin == 1)
-    colors = redbluemap(size(coords, 1));
+    if (iscell(coords))
+      colors = redbluemap(length(coords));
+    else
+      colors = redbluemap(size(coords, 1));
+    end
   end
 
   % Compute the average position for each path
   if (iscell(coords))
     paths = coords;
-    colors = redbluemap(length(paths));
 
     empty_cells = cellfun('isempty', paths);
 

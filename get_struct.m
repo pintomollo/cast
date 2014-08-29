@@ -24,7 +24,7 @@ function mystruct = get_struct(type, nstruct)
 
     % Structure used to parse the original files (reused in mytracking)
     case 'channel'
-      mystruct = struct('color', ones(1,3), ...     % Color of the channel (RGB)
+      mystruct = struct('color', 1, ...             % Color of the channel (index of 'colors')
                         'compression', 'none', ...  % Compression used for the temporary file
                         'cosmics', true, ...        % Remove the cosmic rays in the image (see imcosmics.m)
                         'detrend', false, ...       % Detrend the image (see imdetrend.m)
@@ -37,14 +37,15 @@ function mystruct = get_struct(type, nstruct)
                         'normalize', true, ...      % Normalize the whole stack
                         'type', 'dic');             % Type of channel
 
+    % Structure storing the color codes used in the display
     case 'colors'
-      mystruct = struct('colormaps', {{@gray, @redbluemap, @hot, @jet}}, ... % The colors used for the images
-                        'spots', {{}}, ...          % The colors used for the detections
-                        'spots_next', {{}}, ...     % The second colors for the detections
-                        'status', {{}}, ...         % The colors for the status of cells
-                        'links', {{}}, ...          % The colors for the links between cells
-                        'paths', {{}}, ...          % The colors for the paths
-                        'text', {{}});              % The colors for the text in the movies
+      mystruct = struct('colormaps', {{@gray, @redbluemap, @redgreencmap, @hot, @jet}}, ... % The colors used for the images
+                        'spots', {{'r','k','b','g','k'}}, ...          % The colors used for the detections
+                        'spots_next', {{'b','m','c','c', 'm'}}, ...     % The second colors for the detections
+                        'status', {{'myg','myg','myg','myg','myg'}}, ...         % The colors for the status of cells
+                        'links', {{'y','y','y','y','y'}}, ...          % The colors for the links between cells
+                        'paths', {{@redbluemap, @gray, @gray, @gray, @gray}}, ...          % The colors for the paths
+                        'text', {{'r','k','b','g','k'}});              % The colors for the text in the movies
 
     % Structure to store detections from segmentations
     case 'detection'
@@ -52,6 +53,7 @@ function mystruct = get_struct(type, nstruct)
                         'cluster', [], ...          % Temporal cluster containing the detection paths
                         'properties', []);          % Other properties computed on each detection, depending on the algorithm
 
+    % Structure handling the export options
     case 'exporting'
       mystruct = struct('file_name', '', ...        % The name of the file to create
                         'low_duplicates', true, ... % Do we use low duplicates paths ?
@@ -148,6 +150,7 @@ function mystruct = get_struct(type, nstruct)
                         'splitting_function', @splitting_cost_sparse_mex, ... % For the splitting weight
                         'linking_function', @linking_cost_sparse_mex); ... % And for the frame-to-frame linking 
 
+    % The trackings as stored after segmentation
     case 'tracking'
       mydetection = get_struct('detection',0);
       mystruct = struct('reestimate_spots', true, ...   % Do we reestimate the newly interpolated spots ?
@@ -155,9 +158,11 @@ function mystruct = get_struct(type, nstruct)
                         'post_processing_funcs', {{}}, ... % Allow to post-process paths
                         'detections', mydetection); % the structure to store the resulting detections
 
+    % The options for filtering tracks
     case 'tracks_filtering'
       mystruct = struct('interpolate', true, ...        % see filter_tracking.m
                         'max_zip_length', 3, ...        % see filter_tracking.m
+                        'min_tips_length', 5, ...       % see filter_tracking.m
                         'min_path_length', 10);         % see filter_tracking.m
 
     % If the required type of structure has not been implemented, return an empty one

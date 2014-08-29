@@ -140,10 +140,12 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
       drawnow;
       refresh(hFig);
 
-      links = filter_tracking(trackings(indx).detections, opts.tracks_filtering.min_path_length, opts.tracks_filtering.max_zip_length,opts.tracks_filtering.interpolate);
+      links = filter_tracking(trackings(indx).detections, opts.tracks_filtering.min_tips_length, opts.tracks_filtering.min_path_length, opts.tracks_filtering.max_zip_length,opts.tracks_filtering.interpolate);
 
       paths = reconstruct_tracks(links, true);
       colors = colorize_graph(paths);
+
+      keyboard
     end
 
     spots = cellfun(@(x)(x(x(:,end-1)==nimg,:)), all_paths, 'UniformOutput', false);

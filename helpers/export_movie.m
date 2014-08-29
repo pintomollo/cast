@@ -185,7 +185,7 @@ function export_movie(mytracking, varargin)
         spots(isnan(spots(:,3)),3) = 0;
 
         % Display the text
-        hText = text(spots(:,1), spots(:,2)-2*spots(:,3), num2str(indexes{nimg}), ...
+        hText = text(spots(:,1), spots(:,2)-3*spots(:,3), num2str(indexes{nimg}), ...
                      'HorizontalAlignment', 'center');
       end
 

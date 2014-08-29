@@ -28,6 +28,8 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
   trackings = mytracking.trackings;
   has_segmentation = false;
   autosave = true;
+  colors = get_struct('colors');
+  color_index = 1;
 
   % Dragzoom help message
   imghelp = ['DRAGZOOM interactions (help dragzoom):\n\n', ...
@@ -79,7 +81,6 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
   all_paths = [];
   paths = [];
   all_colors = [];
-  colors = [];
   is_updated = true;
   paths = [];
 
@@ -232,6 +233,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
     % If we have changed channel, we need to update the display of the buttons
     if (indx ~= handles.prev_channel && indx <= nchannels)
       % Because it takes long, display it and block the GUI
+      color_index = channels(indx).color(1);
       set(hFig, 'Name', 'Cell Tracking Platform (Processing...)');
       all_all = [handles.all_buttons, handles.save, handles.pipeline];
       curr_status = get(all_all, 'Enable');
@@ -270,11 +272,11 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
       else
         all_paths = [];
       end
-      all_colors = colorize_graph(all_paths);
 
       set(hFig, 'Name', 'Cell Tracking Platform');
       set(all_all, {'Enable'}, curr_status);
     end
+    all_colors = colorize_graph(all_paths, colors.paths{color_index}(length(all_paths)));
 
     % The slider
     set(handles.text1, 'String', ['Frame #' num2str(nimg(1))]);
@@ -346,7 +348,8 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
           spots1 = [];
         end
         links1 = {[]};
-        colors1 = colorize_graph(links1);
+        colors1 = [];
+        divisions_colors1 = colors.spots{color_index};
 
       % The reconstructed image
       case 3
@@ -362,7 +365,8 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
         else
           links1 = {[]};
         end
-        colors1 = colorize_graph(links1);
+        colors1 = colorize_graph(links1, colors.paths{color_index}(length(links1)));
+        divisions_colors1 = colors.status{color_index};
 
       % The difference between filtered and reconstructed
       case 4
@@ -374,12 +378,14 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
         end
         links1 = all_paths;
         colors1 = all_colors;
+        divisions_colors1 = colors.status{color_index};
 
       % The filtered image
       otherwise
         spots1 = {[]};
         links1 = {[]};
         colors1 = 'k';
+        divisions_colors1 = 'k';
     end
 
     % Determine which image to display in the right panel
@@ -393,7 +399,8 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
           spots2 = [];
         end
         links2 = {[]};
-        colors2 = colorize_graph(links2);
+        colors2 = [];
+        divisions_colors2 = colors.spots_next{color_index};
 
       % The reconstructed image
       case 3
@@ -409,7 +416,8 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
         else
           links2 = {[]};
         end
-        colors2 = colorize_graph(links2);
+        colors2 = colorize_graph(links2, colors.paths{color_index}(length(links2)));
+        divisions_colors2 = colors.status{color_index};
 
       % The difference between filtered and reconstructed
       case 4
@@ -421,17 +429,18 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
         end
         links2 = all_paths;
         colors2 = all_colors;
+        divisions_colors2 = colors.status{color_index};
 
       % The filtered image
       otherwise
         spots2 = {[]};
         links2 = {[]};
         colors2 = 'k';
+        divisions_colors2 = 'k';
     end
 
     % If we have already created the axes and the images, we can simply change their
     % content (i.e. CData)
-    divisions_colors = 'myg';
     if (numel(handles.img) > 1 & all(ishandle(handles.img)))
       set(handles.img(1),'CData', orig_img);
       set(handles.img(2),'CData', img_next);
@@ -439,8 +448,8 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
       plot_paths(handles.data(3), links1, colors1);
       plot_paths(handles.data(4), links2, colors2);
 
-      plot_spots(handles.data(1), spots1, divisions_colors, iscell(spots1));
-      plot_spots(handles.data(2), spots2, divisions_colors, iscell(spots2));
+      plot_spots(handles.data(1), spots1, divisions_colors1, iscell(spots1));
+      plot_spots(handles.data(2), spots2, divisions_colors2, iscell(spots2));
     else
 
       % Otherwise, we create the two images in their respective axes
@@ -460,12 +469,13 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
       handles.data(4) = plot_paths(handles.axes(2), links2, colors2);
 
       % And their detected spots
-      handles.data(1) = plot_spots(handles.axes(1), spots1, divisions_colors, iscell(spots1));
-      handles.data(2) = plot_spots(handles.axes(2), spots2, divisions_colors, iscell(spots2));
+      handles.data(1) = plot_spots(handles.axes(1), spots1, divisions_colors1, iscell(spots1));
+      handles.data(2) = plot_spots(handles.axes(2), spots2, divisions_colors2, iscell(spots2));
 
       % Drag and Zoom library from Evgeny Pr aka iroln
       dragzoom(handles.axes, 'on')
     end
+    colormap(hFig, colors.colormaps{color_index}());
 
     if (recompute)
       % Release the image
@@ -727,6 +737,14 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
       % A change in the channel index
       case 'channels'
         handles.current = get(hObject, 'Value');
+
+      % Call the color gui
+      case 'color'
+        [tmp_index, recompute] = gui_colors(color_index);
+        if (recompute)
+          color_index = tmp_index;
+          mytracking.channels(indx).color = color_index;
+        end
 
       % Otherwise, do nothing. This is used to cancel the deletion requests
       otherwise
@@ -1042,6 +1060,18 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
                          'Value', 1, ...
                          'Tag', 'autosave');
     enabled = [enabled hAutosave];
+
+    % The buttons which allows to change the colormap
+    hColor = uicontrol('Parent', hPanel, ...
+                       'Units', 'normalized',  ...
+                       'Callback', @gui_Callback, ...
+                       'Position', [0.89 0.4 0.08 0.04], ...
+                       'Style', 'pushbutton',  ...
+                       'FontSize', 10, ...
+                       'String', 'Colormap',  ...
+                       'Tag', 'color');
+    enabled = [enabled hColor];
+
 
     % The buttons which allows to edit, load and save parameters
     hEdit = uicontrol('Parent', hPanel, ...

@@ -22,22 +22,6 @@ function install_cell_tracking
   addpath(fullfile(current_dir, 'helpers'));
   savepath;
 
-  % Check if the Bio-formats toolbox is properly installed
-  if (exist('bfconvert.bat', 'file') ~= 2)
-    if (exist('bftools', 'dir'))
-      addpath(fullfile(current_dir, 'bftools'));
-      savepath;
-
-      if (~exist('bfconvert.bat', 'file'))
-        cd ..;
-        error('Tracking:lociMissing', 'The LOCI command line tools are not present, this might be a problem if your recordings are not in TIFF format !\nYou can download them from http://downloads.openmicroscopy.org/latest/bio-formats5/\nThen place the entire folder in the cell-tracking folder.');
-      end
-    else
-      cd ..;
-      error('Tracking:lociMissing', 'The LOCI command line tools are not present, this might be a problem if your recordings are not in TIFF format !\nYou can download them from http://downloads.openmicroscopy.org/latest/bio-formats5/\nThen place the entire folder in the cell-tracking folder.');
-    end
-  end
-
   % Otherwise, try to insall it !
   if (exist('bfconvert.bat', 'file') ~= 2)
     button = questdlg('Should we try to install the LOCI command line tools ?');

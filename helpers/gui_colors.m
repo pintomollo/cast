@@ -1,4 +1,4 @@
-function [mycolormap, is_updated] = gui_colors
+function [mycolormap, is_updated] = gui_colors(indx)
 % GUI_COLORS displays a GUI enabling the user to choose his favorite colormap.
 %
 %   [COLORMAP] = GUI_COLORS displays the GUI and returns the selected COLORMAP.
@@ -7,9 +7,18 @@ function [mycolormap, is_updated] = gui_colors
 % Simon Blanchoud
 % 28.08.14
 
+  % Default value
+  if (nargin == 0)
+    indx = 1;
+  end
+
   % Get the available colors, start with the first one
   colors = get_struct('colors');
-  mycolormap = colors.colormaps{1};
+  if (indx > length(colors.colormaps))
+    indx = 1;
+  end
+  mycolormap = colors.colormaps{indx};
+  ncolors = 128;
 
   % Create the figure corresponding to the structure
   hFig = create_figure(colors.colormaps);
@@ -19,8 +28,13 @@ function [mycolormap, is_updated] = gui_colors
   uiwait(hFig);
   delete(hFig);
 
-  % Recompute the pixel size just in case
-  mystruct = set_pixel_size(mystruct);
+  % Find the index corresponding to the colormap
+  for i=1:length(colors.colormaps)
+    if (strcmp(func2str(mycolormap), func2str(colors.colormaps{i})))
+      mycolormap = i;
+      break;
+    end
+  end
 
   return;
 
@@ -68,6 +82,12 @@ function [mycolormap, is_updated] = gui_colors
                      'Clipping', 'on',  ...
                      'Position', [0.2 0 0.8 1]);
 
+    hRadio = uibuttongroup('Parent', hPanel, ...
+                         'Units', 'normalized',  ...
+                         'SelectionChangeFcn', @radio_Callback, ...
+                         'Position', [0.05 0.05 0.1 0.1], ...
+                         'tag', 'radio');
+
     % To accept changes
     hOK = uicontrol('Parent', hFig, ...
                   'Units', 'normalized',  ...
@@ -86,16 +106,17 @@ function [mycolormap, is_updated] = gui_colors
 
     % Now we work in pixels, easier that way
     set(hPanel, 'Units', 'Pixels');
+    set(hRadio, 'Units', 'Pixels');
 
     % Get the original size of the panel, important to know the size
     % of the visible area.
     psize = get(hPanel, 'Position');
 
-    % 
+    % Initialize the colors
     color_count = 0;
     full_map = NaN(0,3);
 
-    % We cycle through the list of fields and create the appropriate controls.
+    % We cycle through the list of colors and create the appropriate controls.
     % We start from the end of the structure to display it in the correct order.
     count = 0;
     for i=length(list):-1:1
@@ -107,34 +128,43 @@ function [mycolormap, is_updated] = gui_colors
         set(hPanel, 'Position', curr_size+[0 -50 0 50]);
       end
 
-      % The text defining the content of the field
-      hText = uicontrol('Parent', hPanel, ...
-                        'Units', 'pixels',  ...
-                        'Position', [60 count*50 + 20 120 30], ...
-                        'String', func2str(list{i}),  ...
-                        'Style', 'text',  ...
-                        'Tag', 'text');
+      % The button and the text defining the colormap
+      hControl = uicontrol('Parent', hRadio, ...
+                         'Units', 'pixels',  ...
+                         'Position', [30 count*50 + 5 120 30], ...
+                         'Style', 'radiobutton',  ...
+                         'Value', (i==indx), ...
+                         'String', func2str(list{i}),  ...
+                         'Tag', ['radio' num2str(i)]);
 
-      values = list{i}();
+      % Get the actual color values
+      values = list{i}(ncolors);
+
+      % Draw the axes
       hAxes = axes('Parent', hPanel, ...
                         'Units', 'pixels',  ...
                         'Position', [180 count*50 + 30 180 20], ...
                         'Visible', 'off', ...
                         'Tag', 'data');
 
-      ncolors = size(values, 1);
+      % Create the image itself,adding a shift to create the full colormap
       hImg = image([1:ncolors]+color_count, 'Parent', hAxes);
 
+      % Adapt the display
       set(hAxes,'Visible', 'off');
+      set(hRadio, 'Position', [20 20 130 count*50 + 40]);
 
+      % Count the total number of colors
       color_count = color_count + ncolors;
 
+      % Store the full colormap
       full_map = [full_map;values];
 
-      % We need to count how many items we display, and sotre their handlers
+      % We need to count how many items we display
       count = count + 1;
     end
 
+    % Set the full colormap
     colormap(hFig, full_map)
 
     % We might need to resize the figure one last time
@@ -157,6 +187,7 @@ function [mycolormap, is_updated] = gui_colors
                      'fix_offset', psize(2), ...
                      'slider', hSlider);
 
+    % Display the panel
     set(hFig, 'UserData', handles, ...
               'Visible', 'on');
 
@@ -170,8 +201,18 @@ function [mycolormap, is_updated] = gui_colors
 
   % Upon cancel, we simply exit without applying any modifications
   function cancel_CloseRequestFcn(hObject, eventdata, handles)
+
     is_updated = false;
     uiresume(gcbf)
+
+    return;
+  end
+
+  % This function handles the callback of the radio buttons
+  function radio_Callback(hObject, eventdata)
+
+    tmp_tag = get(eventdata.NewValue, 'tag');
+    mycolormap = colors.colormaps{str2double(tmp_tag(6:end))};
 
     return;
   end
@@ -199,32 +240,6 @@ function [mycolormap, is_updated] = gui_colors
     return;
   end
 
-  % Recursively edit a structure
-  function recursive_edit(hObject, eventdata, handles)
-
-    % Hide the current panel
-    set(hFig, 'Visible', 'off');
-    fieldname = get(hObject, 'Tag');
-
-    % Fancy naming for the panel title
-    if (isempty(name))
-      fname = fieldname;
-    else
-      fname = [name '.' fieldname];
-    end
-
-    % Edit the substructure
-    [value, is_updated] = edit_options(mystruct.(fieldname), fname);
-
-    % Store the new values
-    mystruct.(fieldname) = value;
-
-    % Display the old panel
-    set(hFig, 'Visible', 'on');
-
-    return
-  end
-
   % Move using the slider values
   function slider_Callback(hObject, eventdata, handles)
 
@@ -243,208 +258,9 @@ function [mycolormap, is_updated] = gui_colors
   % Store the new values
   function save_CloseRequestFcn(hObject, eventdata, handles)
 
-    handles = get(hFig, 'UserData');
-
-    % Retrieve the different types of values that are displayed
-    for i=1:size(values, 1)
-      switch values{i,4}
-        case 'edit'
-          val = get(handles.controls(i), 'String');
-        case 'checkbox'
-          val = logical(get(handles.controls(i), 'Value'));
-        case 'table'
-          val = get(handles.controls(i), 'Data');
-        otherwise
-          continue;
-      end
-
-      % And convert them back to their original types
-      if (~isempty(val))
-        switch values{i,3}
-          case 'cell'
-            goods = ~cellfun('isempty', val);
-            grow = any(goods, 1);
-            gcol = any(goods, 2);
-            val = val(grow, gcol);
-          case 'num'
-            [tmp, correct] = mystr2double(val);
-
-            % Enforce the data type
-            while (~correct)
-              answer = inputdlg(['''' values{i,1} ''' is not a valid number, do you want to correct it ?'], 'Correct a numerical value', 1, {val});
-              if (isempty(answer))
-                [tmp, correct] = mystr2double(values{i, 2});
-              else
-                [tmp, correct] = mystr2double(answer{1});
-              end
-            end
-
-            val = tmp;
-          case 'func'
-            [tmp, correct] = mystr2func(val);
-
-            % Enforce the data type
-            while (~correct)
-              if (iscell(val))
-                val = char(val(~cellfun('isempty', val)));
-                val = [val repmat(' ', size(val, 1), 1)];
-                val = val.';
-                val = strtrim(val(:).');
-              end
-
-              answer = inputdlg(['''' values{i,1} ''' is not a valid function, do you want to correct it ?'], 'Correct a function handle', 1, {val});
-              if (isempty(answer))
-                [tmp, correct] = mystr2func(values{i, 2});
-              else
-                [tmp, correct] = mystr2func(answer{1});
-              end
-            end
-
-            val = tmp;
-
-            if (length(val)==1)
-              val = val{1};
-            end
-          case 'strel'
-            val = strel('arbitrary', val);
-        end
-      else
-        % The empty values keeping the proper type
-        switch values{i,3}
-          case 'cell'
-            val = {{}};
-          case 'num'
-            val = NaN;
-          case 'func'
-            correct = false;
-            % Enforce the data type
-            while (~correct)
-
-              answer = inputdlg(['''' values{i,1} ''' is not a valid function, do you want to correct it ?'], 'Correct a function handle', 1, {val});
-              if (isempty(answer))
-                [tmp, correct] = mystr2func(values{i, 2});
-              else
-                [tmp, correct] = mystr2func(answer{1});
-              end
-            end
-
-            val = tmp;
-
-            if (length(val)==1)
-              val = val{1};
-            end
-
-          case 'strel'
-            val = strel('arbitrary', []);
-        end
-      end
-
-      mystruct.(values{i,1}) = val;
-    end
-
-    % And resume
+    % Just resume
     uiresume(gcbf)
 
     return
   end
-end
-
-% Convert a string to a function, making some verifications in between
-function [values, correct] = mystr2func(value)
-
-  if (iscell(value))
-    splits = value;
-    splits = splits(~cellfun('isempty', splits));
-  else
-    splits = regexp(value, '\s+', 'split');
-  end
-  values = cellfun(@str2func, splits, 'UniformOutput', false);
-
-  implicit = cellfun(@(x)(x(1) == '@'), splits);
-  explicit = cellfun(@(x)(~isempty(which(x))), splits);
-  correct = all(implicit | explicit);
-
-  return;
-end
-
-% Convert a string to a list of double numbers
-function [values, correct] = mystr2double(value)
-
-  splits = regexp(value, '\s+', 'split');
-  values = str2double(splits);
-  nans = cellfun(@(x)(strncmpi(x, 'nan', 3)), splits);
-  correct = ~any(isnan(values) & ~nans);
-
-  return;
-end
-
-% Create the main table to store the values, their type and the type of uibutton to
-% be displayed
-function [name, values] = parse_struct(mystruct)
-
-  % We get all fields
-  fields = fieldnames(mystruct);
-  values = cell(length(fields), 5);
-
-  % And parse them
-  for i=1:length(fields)
-    field = fields{i};
-    val = mystruct.(field);
-
-    % First store the name and its value
-    values{i, 1} = field;
-    values{i, 2} = val;
-
-    % Now check its type and act accordingly
-    switch class(val)
-
-      case {'double', 'single', 'int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64'}
-        values{i, 3} = 'num';
-        values{i, 4} = 'edit';
-        values{i, 2} = num2str(values{i,2}(:).');
-      case 'char'
-        values{i, 3} = 'char';
-        values{i, 4} = 'edit';
-      case 'cell'
-        if (~isempty(val) & strncmp(class(val{1}), 'function_handle', 15))
-          values{i, 3} = 'func';
-          values{i, 4} = 'table';
-
-          tmp_cell = repmat({''}, size(val)+5);
-          tmp_cell(1:numel(val)) = cellfun(@(x){func2str(x)}, val);
-          values{i, 2} = tmp_cell;
-        else
-          values{i, 3} = 'cell';
-          values{i, 4} = 'table';
-
-          tmp_cell = repmat({''}, size(val)+5);
-          tmp_cell(1:numel(val)) = val;
-          values{i, 2} = tmp_cell;
-        end
-      case 'struct'
-        values{i, 3} = 'struct';
-        values{i, 4} = 'button';
-      case 'logical'
-        values{i, 3} = 'bool';
-        values{i, 4} = 'checkbox';
-        values{i, 2} = double(values{i, 2});
-      case 'function_handle'
-        values{i, 3} = 'func';
-        values{i, 4} = 'edit';
-        values{i, 2} = func2str(values{i, 2});
-      case 'strel'
-        values{i, 3} = 'strel';
-        values{i, 4} = 'table';
-        values{i, 2} = getnhood(values{i, 2});
-      otherwise
-        values{i, 3} = class(val);
-    end
-  end
-
-  % Get the help messages
-  [name, helps] = extract_help_message(mystruct);
-  [goods, indxs] = ismember(values(:,1), helps(:,1));
-  values(goods, 5) = helps(indxs, 2);
-
-  return;
 end

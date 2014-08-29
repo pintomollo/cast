@@ -1,4 +1,4 @@
-function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip_length, interpolate)
+function [spots, links] = filter_tracking(spots, links, min_tips_length, min_path_length, max_zip_length, interpolate)
 % FILTER_TRACKING corrects for potential confusions of the tracking algorithm by
 % removing short tracks, fusing duplicated spots and interpolating missing detections.
 %
@@ -8,18 +8,24 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
 %
 %   [MYTRACKING] = FILTER_TRACKING(MYTRACKING) filters the segmentations of MYTRACKING.
 %
-%   [...] = FILTER_TRACKING(..., MIN_PATH_LENGTH) defines the minimal durations of a
-%   track (in frames) for this track to be kept after filtering (default: 5).
+%   [...] = FILTER_TRACKING(..., MIN_TIPS_LENGTH) defines the minimal durations of a
+%   track (in frames) after or before a gap for this "tip" of the track to be kept
+%   (default: 2).
 %
-%   [...] = FILTER_TRACKING(..., MIN_PATH_LENGTH, MAX_ZIP_LENGTH) defines in addition
-%   the maximum number of frames to be "zipped" (default: 3). A track is defined as an
-%   open "zipper" when a spot splits and these same tracks fuse back together. On short
-%   time scales, this is characteristical of over-detections of the true signal.
+%   [...] = FILTER_TRACKING(..., MIN_TIPS_LENGTH, MIN_PATH_LENGTH) defines the minimal
+%   durations of a track (in frames) for this track to be kept after filtering
+%   (default: 5).
 %
-%   [...] = FILTER_TRACKING(..., MIN_PATH_LENGTH, MAX_ZIP_LENGTH, INTERPOLATE) when
-%   true, interpolates the position of missing detections (default: true). However,
-%   the parameters of the corresponding interpolated spot are NOT interpolated. One
-%   should reestimate them (see estimate_spots.m)
+%   [...] = FILTER_TRACKING(..., MIN_TIPS_LENGTH, MIN_PATH_LENGTH, MAX_ZIP_LENGTH)
+%   defines in addition the maximum number of frames to be "zipped" (default: 3). A
+%   track is defined as an open "zipper" when a spot splits and these same tracks fuse
+%   back together. On short time scales, this is characteristical of over-detections
+%   of the true signal.
+%
+%   [...] = FILTER_TRACKING(..., MIN_TIPS_LENGTH, MIN_PATH_LENGTH, MAX_ZIP_LENGTH, ...
+%           INTERPOLATE) when true, interpolates the position of missing detections
+%   (default: true). However, the parameters of the corresponding interpolated spot are
+%   NOT interpolated. One should reestimate them (see estimate_spots.m)
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud
@@ -30,37 +36,38 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
     error('Tracking:filter_tracking', 'Not enough parameters provided (min=1)');
   elseif (nargin < 2)
     links = {};
+    min_tips_length = 2;
     min_path_length = 5;
     max_zip_length = 3;
     interpolate = true;
   elseif (nargin < 3)
+    min_tips_length = 2;
     min_path_length = 5;
     max_zip_length = 3;
     interpolate = true;
   elseif (nargin < 4)
+    min_path_length = 5;
     max_zip_length = 3;
     interpolate = true;
   elseif (nargin < 5)
+    max_zip_length = 3;
+    interpolate = true;
+  elseif (nargin < 6)
     interpolate = true;
   end
 
   opts = [];
-  if (isnumeric(links))
-
-    if (islogical(min_path_length))
-      interpolate = min_path_length;
-    elseif (islogical(max_zip_length))
-      interpolate = max_zip_length;
-      max_zip_length = min_path_length;
-    end
-
-    min_path_length = links;
-  elseif (isstruct(links))
+  if (isstruct(links))
     opts = links;
+    min_tips_length = opts.tracks_filtering.min_tips_length;
     min_path_length = opts.tracks_filtering.min_path_length;
     max_zip_length = opts.tracks_filtering.max_zip_length;
     interpolate = opts.tracks_filtering.interpolate;
   end
+    min_tips_length
+    min_path_length
+    max_zip_length
+    interpolate
 
   mystruct = [];
   if (isstruct(spots))
@@ -84,6 +91,63 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
     if (~isempty(spots{i}))
       nprops = size(spots{i},2)-2;
       break;
+    end
+  end
+
+  if (min_tips_length > 0)
+
+    path_length = cell(nframes, 1);
+    diff_indxs = cell(nframes, 1);
+
+    for i=1:nframes
+      curr_links = links{i};
+      path_length{i} = zeros(size(spots{i}, 1), 1);
+      for j=1:size(curr_links, 1)
+        dframe = i - curr_links(j,3);
+        if (dframe > 1)
+          path_length{i}(curr_links(j,1)) = Inf;
+        else
+          path_length{i}(curr_links(j,1)) = path_length{curr_links(j,3)}(curr_links(j,2)) + dframe;
+        end
+      end
+    end
+    for i=nframes:-1:1
+      curr_links = links{i};
+
+      curr_length = path_length{i};
+      if (~isempty(curr_links))
+        for j=1:size(curr_links, 1)
+          if (isfinite(curr_length(curr_links(j,1))))
+            path_length{curr_links(j,3)}(curr_links(j,2)) = curr_length(curr_links(j,1));
+          end
+        end
+      end
+
+      long = (curr_length > min_tips_length);
+      good_indx = find(long);
+
+      if any(good_indx)
+        new_links = curr_links(ismember(curr_links(:,1), good_indx), :);
+
+        mapping = [1:length(long)].' - cumsum(~long);
+        mapping(~long) = NaN;
+        new_links(:,1) = mapping(new_links(:,1));
+
+        spots{i} = spots{i}(long, :);
+        links{i} = new_links;
+        diff_indxs{i} = mapping;
+      else
+        spots{i} = NaN(0,nprops+2);
+        links{i} = NaN(0,3);
+        diff_indxs{i} = [];
+      end
+    end
+    for i=1:nframes
+      curr_links = links{i};
+      for j=1:size(curr_links, 1)
+        curr_links(j, 2) = diff_indxs{curr_links(j,3)}(curr_links(j,2));
+      end
+      links{i} = curr_links(all(isfinite(curr_links),2), :);
     end
   end
 
