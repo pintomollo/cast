@@ -32,7 +32,6 @@ function [result] = load_data(fname, indexes)
 
   % Just in case
   if (isempty(indexes))
-    warning('Tracking:LoadData', 'No valid indexes provided.');
     return;
   end
 
