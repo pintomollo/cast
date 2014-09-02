@@ -14,7 +14,7 @@ function cMap = redbluemap(N)
 % 07.07.2014
 
   % As in other colormaps, allows to color existing axes
-  if nargin < 1
+  if (nargin < 1 || isempty(N))
      N = size(get(gcf,'colormap'),1);
   end
 

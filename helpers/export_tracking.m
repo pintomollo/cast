@@ -23,6 +23,7 @@ function export_tracking(mytracking, varargin)
   low_duplicates = false;
   aligning_type = 'time';
   opts = get_struct('options');
+  folder = 'export';
 
   % Loop over the various inputs and assign them depending on their types
   for i=1:length(varargin)
