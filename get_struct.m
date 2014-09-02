@@ -162,7 +162,7 @@ function mystruct = get_struct(type, nstruct)
     case 'tracks_filtering'
       mystruct = struct('interpolate', true, ...        % see filter_tracking.m
                         'max_zip_length', 3, ...        % see filter_tracking.m
-                        'min_tips_length', 5, ...       % see filter_tracking.m
+                        'min_tips_length', 0, ...       % see filter_tracking.m
                         'min_path_length', 10);         % see filter_tracking.m
 
     % If the required type of structure has not been implemented, return an empty one
