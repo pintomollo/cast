@@ -139,12 +139,12 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
 
     if isfinite(nframes)
       slider_step = [1 10]/nframes;
-      slider_max = nframes-1;
+      slider_max = max(nframes, 1.1);
       slider_min = 1;
     else
       slider_step = [1 1];
-      slider_max = 1;
-      slider_min = 0;
+      slider_max = 1.1;
+      slider_min = 1;
     end
 
     if (nchannels > 0)
@@ -494,6 +494,8 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
 
     % Block the GUI
     set(handles.all_buttons, 'Enable', 'off');
+    set(handles.save, 'Enable', 'off');
+    set(handles.pipeline, 'Enable', 'off')
     drawnow;
     refresh(hFig);
 
@@ -550,6 +552,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
       case 'export'
         props = get_struct('exporting');
         props.file_name = mytracking.experiment;
+        mytracking.channels = channels;
 
         [props, do_export] = edit_options(props);
         if (do_export)
@@ -745,7 +748,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
         [tmp_index, recompute] = gui_colors(color_index);
         if (recompute)
           color_index = tmp_index;
-          mytracking.channels(indx).color = color_index;
+          channels(indx).color = color_index;
         end
 
       % Otherwise, do nothing. This is used to cancel the deletion requests
@@ -763,6 +766,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
   % This function converts the various indexes back into strings to prepare
   % the segmentations structure for its standard form.
 
+    mytracking.channels = channels;
     if (nchannels > 0)
       answer = questdlg('Save the current project ?', 'Save ?');
       if (strcmp(answer, 'Yes'))
@@ -1073,7 +1077,6 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
                        'String', 'Colormap',  ...
                        'Tag', 'color');
     enabled = [enabled hColor];
-
 
     % The buttons which allows to edit, load and save parameters
     hEdit = uicontrol('Parent', hPanel, ...

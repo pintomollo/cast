@@ -47,6 +47,8 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
   channels = mytracking.channels;
   nchannels = length(channels);
   segmentations = get_struct('segmentation', [1, nchannels]);
+  colors = get_struct('colors');
+  color_index = 1;
 
   % Create the GUI using segmentations
   [hFig, handles] = create_figure();
@@ -68,6 +70,8 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
   % And wait until the user is done
   uiwait(hFig);
 
+  % Store the channels
+  mytracking.channels = channels;
   % Store the segmentations
   mytracking.segmentations = segmentations;
   % And get the experiment name
@@ -106,6 +110,9 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
 
     % If we have changed channel, we need to update the display of the buttons
     if (indx ~= handles.prev_channel)
+      % Get the colormap for the displayed channel
+      color_index = channels(indx).color;
+
       % The name
       set(handles.uipanel,'Title', [channels(indx).type ' ' num2str(indx)]);
 
@@ -254,6 +261,9 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
       dragzoom(handles.axes, 'on')
     end
 
+    % And set the colormap
+    colormap(hFig, colors.colormaps{color_index}());
+
     if (recompute)
       % Release the image
       set(hFig, 'Name', 'Images Segmentation');
@@ -348,6 +358,14 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
       % A different selection in one of the drop-down lists
       case 'type'
         segmentations(indx).(type) = get(hObject, 'Value');
+
+      % Call the color gui
+      case 'color'
+        [tmp_index, recompute] = gui_colors(color_index);
+        if (recompute)
+          color_index = tmp_index;
+          channels(indx).color = color_index;
+        end
 
       % Otherwise, do nothing. This is used to cancel the deletion requests
       otherwise
@@ -672,6 +690,17 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
                       'Value', 1, ...
                       'Tag', 'type');
     enabled = [enabled hType];
+
+    % The buttons which allows to change the colormap
+    hColor = uicontrol('Parent', hPanel, ...
+                       'Units', 'normalized',  ...
+                       'Callback', @gui_Callback, ...
+                       'Position', [0.89 0.77 0.08 0.04], ...
+                       'Style', 'pushbutton',  ...
+                       'FontSize', 10, ...
+                       'String', 'Colormap',  ...
+                       'Tag', 'color');
+    enabled = [enabled hColor];
 
     % The various filters, along with their labels
     hText = uicontrol('Parent', hPanel, ...

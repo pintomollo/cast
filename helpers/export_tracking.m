@@ -23,7 +23,7 @@ function export_tracking(mytracking, varargin)
   low_duplicates = false;
   aligning_type = 'time';
   opts = get_struct('options');
-  folder = 'export';
+  folder = '';
 
   % Loop over the various inputs and assign them depending on their types
   for i=1:length(varargin)
@@ -135,7 +135,9 @@ function export_tracking(mytracking, varargin)
   end
 
   % And zip them together
-  zip(fullfile(folder, [fname '.zip']), fullfile(folder, [fname '*.csv']));
+  if (~isempty(folder))
+    zip(fullfile(folder, [fname '.zip']), fullfile(folder, [fname '*.csv']));
+  end
 
   % Close the waitbar
   close(hwait);

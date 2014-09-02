@@ -75,6 +75,10 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
   img_next = [];
   is_updated = true;
 
+  % And handle the colormaps as well
+  colors = get_struct('colors');
+  color_index = 1;
+
   % Display the figure
   set(hFig,'Visible', 'on');
   % Update its content
@@ -117,6 +121,10 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
 
     % If we have changed channel, we need to update the display of the buttons
     if (indx ~= handles.prev_channel)
+
+      % Get the colormap for the displayed channel
+      color_index = channels(indx).color;
+
       % The name
       set(handles.uipanel,'Title', ['Channel ' num2str(indx)]);
 
@@ -125,11 +133,6 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
       set(handles.hot_pixels,'Value', channels(indx).hot_pixels);
       set(handles.normalize,'Value', channels(indx).normalize);
       set(handles.cosmics,'Value', channels(indx).cosmics);
-
-      % Here we use a trick to have a colored button using HTML formatting
-      rgb_color = round(channels(indx).color * 255);
-      set(handles.channel_color, 'String', ['<HTML><BODY bgcolor = "rgb(' num2str(rgb_color(1)) ', ' num2str(rgb_color(2)) ', ' num2str(rgb_color(3)) ')">green background</BODY></HTML>'])
-      set(handles.channel_color, 'ForegroundColor', channels(indx).color);
 
       % The type and compression
       set(handles.channel_type, 'Value',  channels(indx).type);
@@ -216,7 +219,11 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
 
       % Difference between current and next frame
       case 3
-        img2 = (orig_img - img_next);
+        if (isempty(img_next))
+          img2 = [];
+        else
+          img2 = (orig_img - img_next);
+        end
 
       % Raw image
       otherwise
@@ -241,6 +248,9 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
       % Drag and Zoom library from Evgeny Pr aka iroln
       dragzoom(handles.axes, 'on')
     end
+
+    % And set the colormap
+    colormap(hFig, colors.colormaps{color_index}());
 
     % Release the image if need be
     if (recompute)
@@ -288,7 +298,7 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
           % Get the number of frames in each of them
           nframes = size_data(new_channel);
 
-          set(handles.slider, 'Max', nframes-1, 'Value', 1);
+          set(handles.slider, 'Max', max(nframes,1.1), 'Value', 1);
 
           % We provide basic default values for all fields
           channels = get_struct('channel');
@@ -330,7 +340,7 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
     if (~isempty(new_channel))
       % Get the number of frames in each of them
       nframes = size_data(new_channel);
-      curr_nframes = get(handles.slider, 'Max')+1;
+      curr_nframes = round(get(handles.slider, 'Max'));
 
       % If they are similar, we can add it to the current structure
       if (nchannels == 0 || nframes == curr_nframes)
@@ -453,14 +463,13 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
         channels(indx).(type) = get(hObject, 'Value');
         recompute = false;
 
-      % The interactive color selection palette, followed by the HTML color trick
+      % Call the color gui
       case 'color'
-        channels(indx).color = uisetcolor(channels(indx).color);
-        rgb_color = round(channels(indx).color * 255);
-
-        set(handles.channel_color, 'ForegroundColor',  channels(indx).color, ...
-                                   'String', ['<HTML><BODY bgcolor = "rgb(' num2str(rgb_color(1)) ', ' num2str(rgb_color(2)) ', ' num2str(rgb_color(3)) ')">green background</BODY></HTML>']);
-        recompute = false;
+        [tmp_index, recompute] = gui_colors(color_index);
+        if (recompute)
+          color_index = tmp_index;
+          channels(indx).color = color_index;
+        end
 
       % Otherwise, do nothing. This is used to cancel the deletion requests
       otherwise
@@ -508,13 +517,11 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
     % We want to check if some channels have identical features
     detrend = logical(zeros(nchannels,1));
     types = logical(zeros(nchannels,ntypes));
-    colors = zeros(nchannels,3);
 
     % Convert the indexes into strings and build a summary of the filters
     for i=1:nchannels
       detrend(i) = channels(i).detrend;
       types(i,channels(i).type) = true;
-      colors(i,:) = channels(i).color;
       tmp_channels(i).type = contents{channels(i).type};
       tmp_channels(i).compression = compressions{channels(i).compression};
     end
@@ -527,12 +534,6 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
       % signal comparison between recordings
       answer = questdlg({'Some channels will be detrended, continue ?','', ...
                          '(This is a quite slow and non-linear process..)'});
-      ok = strcmp(answer,'Yes');
-    end
-    if (ok & size(unique(colors,'rows'),1)~=nchannels)
-
-      % Just in case, for later display
-      answer = questdlg('Multiple channels have the same color, continue ?');
       ok = strcmp(answer,'Yes');
     end
 
@@ -613,7 +614,7 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
 
     % The main figure, cannot be rescaled, closed nor deleted
     hFig = figure('PaperUnits', 'centimeters',  ...
-                  'CloseRequestFcn', @gui_Callback, ...
+                  'CloseRequestFcn', @cancel_CloseRequestFcn, ...
                   'Color',  [0.7 0.7 0.7], ...
                   'Colormap', mygray, ...
                   'MenuBar', 'none',  ...
@@ -710,7 +711,7 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
                     'Position', [0.3 0.03 0.35 0.025], ...
                     'Value', 1, ...
                     'SliderStep', [1 10]/nframes, ...
-                    'Max', nframes-1, ...
+                    'Max', max(nframes, 1.1), ...
                     'Min', 1, ...
                     'Style', 'slider', ...
                     'Tag', 'slider');
@@ -829,20 +830,14 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
                       'Tag', 'type');
     enabled = [enabled hType];
 
-    hText = uicontrol('Parent', hPanel, ...
-                      'Units', 'normalized',  ...
-                      'Position', [0.9 0.79 0.05 0.05], ...
-                      'String', 'Color',  ...
-                      'Style', 'text',  ...
-                      'Tag', 'text18');
-
+    % The buttons which allows to change the colormap
     hColor = uicontrol('Parent', hPanel, ...
                        'Units', 'normalized',  ...
                        'Callback', @gui_Callback, ...
-                       'Position', [0.9 0.765 0.05 0.05], ...
+                       'Position', [0.89 0.77 0.08 0.04], ...
                        'Style', 'pushbutton',  ...
-                       'FontSize', 80, ...
-                       'String', 'Fluorophore color',  ...
+                       'FontSize', 10, ...
+                       'String', 'Colormap',  ...
                        'Tag', 'color');
     enabled = [enabled hColor];
 

@@ -73,6 +73,10 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
   paths = [];
   is_updated = true;
 
+  % And handle the colormaps as well
+  colors = get_struct('colors');
+  color_index = 1;
+
   % Display the figure
   set(hFig,'Visible', 'on');
   % Update its content
@@ -80,6 +84,8 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
   % And wait until the user is done
   uiwait(hFig);
 
+  % Store the segmentations
+  mytracking.channels = channels;
   % Store the segmentations
   mytracking.segmentations = segmentations;
   % And get the experiment name
