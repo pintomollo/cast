@@ -368,7 +368,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
           links1 = {[]};
         end
         colors1 = colorize_graph(links1, colors.paths{color_index}(length(links1)));
-        divisions_colors1 = colors.status{color_index};
+        divisions_colors1 = colors.links{color_index};
 
       % The difference between filtered and reconstructed
       case 4
@@ -419,7 +419,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
           links2 = {[]};
         end
         colors2 = colorize_graph(links2, colors.paths{color_index}(length(links2)));
-        divisions_colors2 = colors.status{color_index};
+        divisions_colors2 = colors.links{color_index};
 
       % The difference between filtered and reconstructed
       case 4

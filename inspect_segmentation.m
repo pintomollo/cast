@@ -233,13 +233,16 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
         img2 = img;
     end
 
+    % Get the colors for the display
+    spots_colors = colors.spots{color_index};
+
     % If we have already created the axes and the images, we can simply change their
     % content (i.e. CData)
     if (numel(handles.img) > 1 & all(ishandle(handles.img)))
       set(handles.img(1),'CData', img1);
       set(handles.img(2),'CData', img2);
 
-      plot_spots(handles.data, curr_spots, 'r');
+      plot_spots(handles.data, curr_spots, spots_colors);
     else
 
       % Otherwise, we create the two images in their respective axes
@@ -255,7 +258,7 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
                  'DataAspectRatio',  [1 1 1]);
 
       % Now add the detected spots
-      handles.data = plot_spots(handles.axes(2), curr_spots, 'r');
+      handles.data = plot_spots(handles.axes(2), curr_spots, spots_colors);
 
       % Drag and Zoom library from Evgeny Pr aka iroln
       dragzoom(handles.axes, 'on')

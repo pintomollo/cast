@@ -41,10 +41,10 @@ function mystruct = get_struct(type, nstruct)
     case 'colors'
       mystruct = struct('colormaps', {{@gray, @redbluemap, @redgreencmap, @hot, @jet}}, ... % The colors used for the images
                         'spots', {{'r','k','b','g','k'}}, ...          % The colors used for the detections
-                        'spots_next', {{'b','m','c','c', 'm'}}, ...     % The second colors for the detections
-                        'status', {{'myg','myg','myg','myg','myg'}}, ...         % The colors for the status of cells
-                        'links', {{'y','y','y','y','y'}}, ...          % The colors for the links between cells
-                        'paths', {{@redbluemap, @gray, @gray, @gray, @gray}}, ...          % The colors for the paths
+                        'spots_next', {{'b','r','k','b', 'w'}}, ...     % The second colors for the detections
+                        'status', {{'myg','mkg','mkg','myg','myg'}}, ...         % The colors for the status of cells
+                        'links', {{'y','k','k','y','y'}}, ...          % The colors for the links between cells
+                        'paths', {{@redbluemap, @redgreencmap, @gray, @redbluemap, @gray}}, ...          % The colors for the paths
                         'text', {{'r','k','b','g','k'}});              % The colors for the text in the movies
 
     % Structure to store detections from segmentations

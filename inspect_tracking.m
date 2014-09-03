@@ -213,17 +213,21 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
         links2 = {[]};
     end
 
+    % Get the colors for the display
+    spots_colors = [colors.spots{color_index}, colors.spots_next{color_index}];
+    links_colors = colors.links{color_index};
+
     % If we have already created the axes and the images, we can simply change their
     % content (i.e. CData)
     if (numel(handles.img) > 1 & all(ishandle(handles.img)))
       set(handles.img(1),'CData', orig_img);
       set(handles.img(2),'CData', img_next);
 
-      plot_spots(handles.data(1), spots1, 'rb');
-      plot_spots(handles.data(2), spots2, 'br');
+      plot_spots(handles.data(1), spots1, spots_colors);
+      plot_spots(handles.data(2), spots2, spots_colors([2 1]));
 
-      plot_paths(handles.data(3), links1, 'y');
-      plot_paths(handles.data(4), links2, 'y');
+      plot_paths(handles.data(3), links1, links_colors);
+      plot_paths(handles.data(4), links2, links_colors);
     else
 
       % Otherwise, we create the two images in their respective axes
@@ -239,12 +243,12 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
                  'DataAspectRatio',  [1 1 1]);
 
       % Now add the detected spots
-      handles.data(1) = plot_spots(handles.axes(1), spots1, 'rb');
-      handles.data(2) = plot_spots(handles.axes(2), spots2, 'br');
+      handles.data(1) = plot_spots(handles.axes(1), spots1, spots_colors);
+      handles.data(2) = plot_spots(handles.axes(2), spots2, spots_colors([2 1]));
 
       % And their links
-      handles.data(3) = plot_paths(handles.axes(1), links1, 'y');
-      handles.data(4) = plot_paths(handles.axes(2), links2, 'y');
+      handles.data(3) = plot_paths(handles.axes(1), links1, links_colors);
+      handles.data(4) = plot_paths(handles.axes(2), links2, links_colors);
 
       % Drag and Zoom library from Evgeny Pr aka iroln
       dragzoom(handles.axes, 'on')

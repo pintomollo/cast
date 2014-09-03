@@ -126,7 +126,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
 
       % The paths
       all_paths = reconstruct_tracks(trackings(indx).detections, true);
-      all_colors = colorize_graph(all_paths);
+      all_colors = colorize_graph(all_paths, colors.paths{color_index}(length(all_paths)));
 
       % And setup the indexes correctly
       handles.prev_channel = indx;
@@ -152,7 +152,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
       links = filter_tracking(trackings(indx).detections, opts.tracks_filtering.min_path_length, opts.tracks_filtering.max_zip_length,opts.tracks_filtering.interpolate);
 
       paths = reconstruct_tracks(links, true);
-      filtered_colors = colorize_graph(paths);
+      filtered_colors = colorize_graph(paths, colors.paths{color_index}(length(paths)));
     end
 
     spots = cellfun(@(x)(x(x(:,end-1)==nimg,:)), all_paths, 'UniformOutput', false);
@@ -193,7 +193,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
         end
         links1 = cellfun(@(x)(x(abs(x(:,end-1)-nimg) < 2,:)), all_paths, 'UniformOutput', false);
         links1 = links1(~cellfun('isempty', links1));
-        colors1 = colorize_graph(links1);
+        colors1 = colorize_graph(links1, colors.paths{color_index}(length(links1)));
 
       % The difference between filtered and reconstructed
       case 3
@@ -226,7 +226,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
         end
         links2 = cellfun(@(x)(x(abs(x(:,end-1)-nimg) < 2,:)), paths, 'UniformOutput', false);
         links2 = links2(~cellfun('isempty', links2));
-        colors2 = colorize_graph(links2);
+        colors2 = colorize_graph(links2, colors.paths{color_index}(length(links2)));
 
       % The difference between filtered and reconstructed
       case 3
@@ -248,7 +248,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
 
     % If we have already created the axes and the images, we can simply change their
     % content (i.e. CData)
-    divisions_colors = 'myg';
+    divisions_colors = colors.status{color_index};
     if (numel(handles.img) > 1 & all(ishandle(handles.img)))
       set(handles.img(1),'CData', orig_img);
       set(handles.img(2),'CData', orig_img);
