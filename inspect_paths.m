@@ -63,7 +63,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
   all_paths = [];
   paths = [];
   all_colors = [];
-  colors = [];
+  filtered_colors = [];
   is_updated = true;
 
   % And handle the colormaps as well
@@ -152,7 +152,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
       links = filter_tracking(trackings(indx).detections, opts.tracks_filtering.min_path_length, opts.tracks_filtering.max_zip_length,opts.tracks_filtering.interpolate);
 
       paths = reconstruct_tracks(links, true);
-      colors = colorize_graph(paths);
+      filtered_colors = colorize_graph(paths);
     end
 
     spots = cellfun(@(x)(x(x(:,end-1)==nimg,:)), all_paths, 'UniformOutput', false);
@@ -237,7 +237,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
           spots2 = {[]};
         end
         links2 = paths;
-        colors2 = colors;
+        colors2 = filtered_colors;
 
       % The filtered image
       otherwise
