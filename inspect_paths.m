@@ -66,6 +66,10 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
   colors = [];
   is_updated = true;
 
+  % And handle the colormaps as well
+  colors = get_struct('colors');
+  color_index = 1;
+
   % Display the figure
   set(hFig,'Visible', 'on');
   % Update its content
@@ -73,6 +77,8 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
   % And wait until the user is done
   uiwait(hFig);
 
+  % Store the segmentations
+  mytracking.channels = channels;
   % Store the segmentations
   mytracking.trackings = trackings;
   % And get the experiment name
@@ -104,6 +110,9 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
 
     % If we have changed channel, we need to update the display of the buttons
     if (indx ~= handles.prev_channel)
+      % Get the colormap for the displayed channel
+      color_index = channels(indx).color;
+
       % The name
       set(handles.uipanel,'Title', [channels(indx).type ' ' num2str(indx)]);
 
@@ -140,12 +149,10 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
       drawnow;
       refresh(hFig);
 
-      links = filter_tracking(trackings(indx).detections, opts.tracks_filtering.min_tips_length, opts.tracks_filtering.min_path_length, opts.tracks_filtering.max_zip_length,opts.tracks_filtering.interpolate);
+      links = filter_tracking(trackings(indx).detections, opts.tracks_filtering.min_path_length, opts.tracks_filtering.max_zip_length,opts.tracks_filtering.interpolate);
 
       paths = reconstruct_tracks(links, true);
       colors = colorize_graph(paths);
-
-      keyboard
     end
 
     spots = cellfun(@(x)(x(x(:,end-1)==nimg,:)), all_paths, 'UniformOutput', false);
@@ -277,6 +284,9 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
       dragzoom(handles.axes, 'on')
     end
 
+    % And set the colormap
+    colormap(hFig, colors.colormaps{color_index}());
+
     if (recompute)
       % Release the image
       set(hFig, 'Name', 'Tracks Filtering');
@@ -367,6 +377,14 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
       % A different selection in one of the drop-down lists
       case 'type'
         trackings(indx).(type) = get(hObject, 'Value');
+
+      % Call the color gui
+      case 'color'
+        [tmp_index, recompute] = gui_colors(color_index);
+        if (recompute)
+          color_index = tmp_index;
+          channels(indx).color = color_index;
+        end
 
       % Otherwise, do nothing. This is used to cancel the deletion requests
       otherwise
@@ -518,7 +536,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
                     'Position', [0.3 0.03 0.35 0.025], ...
                     'Value', 1, ...
                     'SliderStep', [1 10]/nframes, ...
-                    'Max', nframes-1, ...
+                    'Max', max(nframes,1.1), ...
                     'Min', 1, ...
                     'Style', 'slider', ...
                     'Tag', 'slider');
@@ -609,6 +627,17 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
                          'String', 'Filtered paths', ...
                          'Tag', 'radio23');
     enabled = [enabled hControl];
+
+    % The buttons which allows to change the colormap
+    hColor = uicontrol('Parent', hPanel, ...
+                       'Units', 'normalized',  ...
+                       'Callback', @gui_Callback, ...
+                       'Position', [0.89 0.77 0.08 0.04], ...
+                       'Style', 'pushbutton',  ...
+                       'FontSize', 10, ...
+                       'String', 'Colormap',  ...
+                       'Tag', 'color');
+    enabled = [enabled hColor];
 
     % The various options for the user
     hRefine = uicontrol('Parent', hPanel, ...
