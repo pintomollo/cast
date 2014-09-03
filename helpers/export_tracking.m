@@ -134,11 +134,6 @@ function export_tracking(mytracking, varargin)
     end
   end
 
-  % And zip them together
-  if (~isempty(folder))
-    zip(fullfile(folder, [fname '.zip']), fullfile(folder, [fname '*.csv']));
-  end
-
   % Close the waitbar
   close(hwait);
 
