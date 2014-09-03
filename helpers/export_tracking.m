@@ -58,6 +58,13 @@ function export_tracking(mytracking, varargin)
 
   % Now we loop over all channels
   nchannels = length(mytracking.trackings);
+
+  % Switch to segmentations instead, as tehre seems to be data in it
+  if (nchannels==0 && length(mytracking.segmentations)>0)
+    mytracking.trackings= mytracking.segmentations;
+    nchannels = length(mytracking.trackings);
+  end
+
   for i=1:nchannels
 
     % Now check how many frames there are
