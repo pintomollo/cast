@@ -24,6 +24,11 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
     [fname, dirpath] = uigetfile({'*.mat'}, ['Load a MAT file']);
     fname = fullfile(dirpath, fname);
 
+    % Loading was cancelled
+    if (isequal(dirpath, 0))
+      return;
+    end
+
     % Load the matrix and check its content
     data = load(fname);
 
@@ -111,7 +116,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
     % If we have changed channel, we need to update the display of the buttons
     if (indx ~= handles.prev_channel)
       % Get the colormap for the displayed channel
-      color_index = channels(indx).color;
+      color_index = channels(indx).color(1);
 
       % The name
       set(handles.uipanel,'Title', [channels(indx).type ' ' num2str(indx)]);
@@ -122,7 +127,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
 
       % The filters
       set(handles.refine,'Value', trackings(indx).reestimate_spots);
-      set(handles.force,'Value', trackings(indx).force_cell_behavior);
+      %set(handles.force,'Value', trackings(indx).force_cell_behavior);
 
       % The paths
       all_paths = reconstruct_tracks(trackings(indx).detections, true);
@@ -649,6 +654,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
                          'Tag', 'reestimate_spots');
     enabled = [enabled hRefine];
 
+    %{
     hForce = uicontrol('Parent', hPanel, ...
                          'Units', 'normalized',  ...
                          'Callback', @gui_Callback, ...
@@ -657,6 +663,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
                          'Style', 'checkbox',  ...
                          'Tag', 'force_cell_behavior');
     enabled = [enabled hForce];
+    %}
 
     % The buttons which allows to edit, load and save parameters
     hEdit = uicontrol('Parent', hPanel, ...

@@ -81,6 +81,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
   spots = [];
   spots_next = [];
   all_paths = [];
+  all_filtered = [];
   paths = [];
   all_colors = [];
   is_updated = true;
@@ -181,16 +182,8 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
         set(handles.pipeline(3:end), 'Enable', 'off')
       else
         has_tracking = false;
-        for j=1:nchannels
-          for i=1:nframes
-            if (~isempty(segmentations(j).detections(i).cluster))
-              has_tracking = true;
-              break;
-            end
-          end
-          if has_tracking
-            break;
-          end
+        if (~isempty(trackings) && (length(trackings(indx).detections)==nframes))
+          has_tracking = true;
         end
 
         if (~has_tracking)
@@ -253,24 +246,18 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
       handles.prev_frame = [-1 -1];
 
       % The paths
-      if (~isempty(trackings))
+      all_paths = [];
+      if (~isempty(trackings) && (length(trackings(indx).detections)==nframes))
         has_segmentation = true;
-        all_paths = reconstruct_tracks(trackings(indx).detections, true);
-      elseif (~isempty(segmentations) && length(segmentations(indx).detections)==nframes)
-        has_segmentation = true;
-        has_tracking = false;
-        for i=1:nframes
-          if (~isempty(segmentations(indx).detections(i).cluster))
-            has_tracking = true;
-            break;
-          end
-        end
+        has_tracking = true;
 
-        if has_tracking
-          all_paths = reconstruct_tracks(segmentations(indx).detections, true);
-        else
-          all_paths = [];
+        all_paths = reconstruct_tracks(trackings(indx).detections, true);
+
+        if (~isempty(trackings(indx).filtered) && (length(trackings(indx).filtered)==nframes))
+          all_filtered = reconstruct_tracks(trackings(indx).filtered, true);
         end
+      elseif (~isempty(segmentations))
+        has_segmentation = true;
       else
         all_paths = [];
       end
@@ -525,7 +512,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
         [fname, dirpath] = uigetfile({'*.mat'}, ['Load a MAT file']);
 
         % Not cancelled
-        if (~all(fname == 0));
+        if (ischar(fname))
 
           fname = fullfile(dirpath, fname);
 

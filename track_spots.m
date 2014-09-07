@@ -1,4 +1,4 @@
-function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_ratio, allow_branching_gap, verbosity)
+function [links, opts] = track_spots(spots, funcs, max_move, max_gap, min_length, max_ratio, allow_branching_gap, verbosity)
 % TRACK_SPOTS tracks spots over time using a global optimization algorithm [1].
 %
 %   LINKS = TRACK_SPOTS(SPOTS, FUNCS) LINKS the sets of SPOTS using the provided
@@ -29,12 +29,17 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_ratio,
 %   number of frames a spot can be "lost" in a track, while the track gaps over them
 %   (default: 5).
 %
-%   LINKS = TRACK_SPOTS(SPOTS, FUNCS, MAX_MOVEMENT, MAX_GAP_LENGTH, MAX_RATIO) defines
-%   an upper bound to the allowed signal ratios as defined in [1] (default: Inf).
+%   LINKS = TRACK_SPOTS(SPOTS, FUNCS, MAX_MOVEMENT, MAX_GAP_LENGTH, MIN_SECTION_LENGTH)
+%   defines the minimum number of frames a spot has to be tracked over to be kept for
+%   bridging, splitting and merging (default 0).
 %
-%   LINKS = TRACK_SPOTS(SPOTS, FUNCS, MAX_MOVEMENT, MAX_GAP_LENGTH, MAX_RATIO, ...
-%   ALLOW_BRANCHING_GAP) defines if merging and splitting can occur over MAX_GAP_LENGTH
-%   (default: false).
+%   LINKS = TRACK_SPOTS(SPOTS, FUNCS, MAX_MOVEMENT, MAX_GAP_LENGTH, MIN_SECTION_LENGTH, ...
+%   MAX_RATIO) defines an upper bound to the allowed signal ratios as defined in [1]
+%   (default: Inf).
+%
+%   LINKS = TRACK_SPOTS(SPOTS, FUNCS, MAX_MOVEMENT, MAX_GAP_LENGTH, MIN_SECTION_LENGTH, ...
+%   MAX_RATIO, ALLOW_BRANCHING_GAP) defines if merging and splitting can occur over
+%   MAX_GAP_LENGTH (default: false).
 %
 %   LINKS = TRACK_SPOTS(..., VERBOSITY) when VERBOSITY > 1, displays a progress bar.
 %
@@ -62,22 +67,29 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_ratio,
   elseif (nargin < 3)
     max_move = Inf;
     max_gap = 5;
+    min_length = 0;
     max_ratio = Inf;
     allow_branching_gap = false;
     verbosity = 2;
   elseif (nargin < 4)
     max_gap = 5;
+    min_length = 0;
     max_ratio = Inf;
     allow_branching_gap = false;
     verbosity = 2;
   elseif (nargin < 5)
+    min_length = 0;
     max_ratio = Inf;
     allow_branching_gap = false;
     verbosity = 2;
   elseif (nargin < 6)
+    max_ratio = Inf;
     allow_branching_gap = false;
     verbosity = 2;
   elseif (nargin < 7)
+    allow_branching_gap = false;
+    verbosity = 2;
+  elseif (nargin < 8)
     verbosity = 2;
   end
 
@@ -97,6 +109,7 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_ratio,
     links = track_spots(spots, funcs, ...
             opts.time_interval*opts.spot_tracking.spot_max_speed/opts.pixel_size, ...
             opts.spot_tracking.bridging_max_gap, ...
+            opts.spot_tracking.min_section_length, ...
             opts.spot_tracking.max_intensity_ratio, ...
             opts.spot_tracking.allow_branching_gap, opts.verbosity);
 
@@ -124,9 +137,9 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_ratio,
 
       % Loop over all channels and call itself recursively
       for i = 1:length(mystruct.channels)
-        mystruct.segmentations(i).detections = track_spots( ...
+        mystruct.trackings(i).detections = track_spots( ...
                     mystruct.segmentations(i).detections, funcs, max_move, max_gap, ...
-                    max_ratio, allow_branching_gap, verbosity);
+                    min_length, max_ratio, allow_branching_gap, verbosity);
       end
 
       % Save the result and exit
@@ -291,6 +304,11 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_ratio,
     end
 
     return;
+  end
+
+  % Filter the intermediate sections before bridging/merging/splitting
+  if (min_length > 0 && nframes > 2)
+    [spots, links] = filter_tracking(spots, links, min_length, 0, false);
   end
 
   % We need to build several lists for bridging/merging/splitting
@@ -568,6 +586,8 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_ratio,
   % And store the corresponding information in the structure, if need be
   if (~isempty(mystruct))
     for i=1:nframes
+      mystruct(i).carth = spots{i}(:,1:2);
+      mystruct(i).properties = spots{i}(:,3:end);
       mystruct(i).cluster = links{i};
     end
 

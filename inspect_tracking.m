@@ -24,6 +24,11 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
     [fname, dirpath] = uigetfile({'*.mat'}, ['Load a MAT file']);
     fname = fullfile(dirpath, fname);
 
+    % Loading was cancelled
+    if (isequal(dirpath, 0))
+      return;
+    end
+
     % Load the matrix and check its content
     data = load(fname);
 
@@ -47,11 +52,7 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
   channels = mytracking.channels;
   nchannels = length(channels);
   segmentations = mytracking.segmentations;
-
-  % Make sure the expected structure is present
-  if (length(segmentations) ~= nchannels)
-    segmentations = get_struct('segmentation', [1, nchannels]);
-  end
+  trackings = get_struct('tracking', [1 nchannels]);
 
   % We will also need the detections, even if empty !
   for i=1:nchannels
@@ -92,7 +93,9 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
   mytracking.experiment = get(handles.experiment, 'String');
   % And reset the other fields
   if (is_updated)
-    mytracking.trackings = get_struct('tracking', 0);
+    for i=1:nchannels
+      mytracking.trackings(i).filtered = get_struct('detection', [1 nframes]);
+    end
   end
 
   % Delete the whole figure
@@ -123,7 +126,7 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
     if (indx ~= handles.prev_channel)
 
       % Get the colormap for the displayed channel
-      color_index = channels(indx).color;
+      color_index = channels(indx).color(1);
 
       % The name
       set(handles.uipanel,'Title', [channels(indx).type ' ' num2str(indx)]);
@@ -167,7 +170,7 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
       spots = spots(all(~isnan(spots),2),:);
       spots_next = spots_next(all(~isnan(spots_next),2),:);
 
-      links = track_spots({spots, spots_next}, {opts.spot_tracking.linking_function}, (opts.spot_tracking.spot_max_speed/opts.pixel_size)*opts.time_interval, opts.spot_tracking.bridging_max_gap, opts.spot_tracking.max_intensity_ratio, opts.spot_tracking.allow_branching_gap);
+      links = track_spots({spots, spots_next}, {opts.spot_tracking.linking_function}, (opts.spot_tracking.spot_max_speed/opts.pixel_size)*opts.time_interval, opts.spot_tracking.bridging_max_gap, 0, opts.spot_tracking.max_intensity_ratio, opts.spot_tracking.allow_branching_gap);
 
       paths = reconstruct_tracks({spots, spots_next}, links);
 

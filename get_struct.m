@@ -143,6 +143,7 @@ function mystruct = get_struct(type, nstruct)
     case 'spot_tracking'
       mystruct = struct('spot_max_speed', 0.05, ...    % Maximal speed of displacement of a spot (in um/s)
                         'allow_branching_gap', false, ...     % see track_spots.m
+                        'min_section_length', 5, ...          % see filter_tracking.m
                         'bridging_max_gap', 3, ...            % Considered number of frames for the gap closing algorithm (see track_spots.m)
                         'max_intensity_ratio', Inf, ...       % see track_spots.m
                         'bridging_function', @bridging_cost_sparse_mex, ... % Function used to measure the gap-closing weight
@@ -156,13 +157,13 @@ function mystruct = get_struct(type, nstruct)
       mystruct = struct('reestimate_spots', true, ...   % Do we reestimate the newly interpolated spots ?
                         'force_cell_behavior', true, ... % Prevent fusion and appearance of spots
                         'post_processing_funcs', {{}}, ... % Allow to post-process paths
+                        'filtered', mydetection, ... % the structure to store the detections after filtering
                         'detections', mydetection); % the structure to store the resulting detections
 
     % The options for filtering tracks
     case 'tracks_filtering'
       mystruct = struct('interpolate', true, ...        % see filter_tracking.m
                         'max_zip_length', 3, ...        % see filter_tracking.m
-                        'min_tips_length', 0, ...       % see filter_tracking.m
                         'min_path_length', 10);         % see filter_tracking.m
 
     % If the required type of structure has not been implemented, return an empty one

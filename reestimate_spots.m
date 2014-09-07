@@ -75,7 +75,7 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
         end
 
         % Prepare the output structure
-        detections = mytracking.trackings(indx).detections;
+        detections = mytracking.trackings(indx).filtered;
       else
         % And in the case we refine only one plane
         frames = [1];
@@ -149,7 +149,7 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
 
       % Store all detection in the tracking structure
       if (do_all)
-        mytracking.trackings(indx).detections = detections;
+        mytracking.trackings(indx).filtered = detections;
       else
         mytracking = [detections.carth detections.properties];
       end

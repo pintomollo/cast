@@ -24,6 +24,11 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
     [fname, dirpath] = uigetfile({'*.mat'}, ['Load a MAT file']);
     fname = fullfile(dirpath, fname);
 
+    % Loading was cancelled
+    if (isequal(dirpath, 0))
+      return;
+    end
+
     % Load the matrix and check its content
     data = load(fname);
 
@@ -111,7 +116,7 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
     % If we have changed channel, we need to update the display of the buttons
     if (indx ~= handles.prev_channel)
       % Get the colormap for the displayed channel
-      color_index = channels(indx).color;
+      color_index = channels(indx).color(1);
 
       % The name
       set(handles.uipanel,'Title', [channels(indx).type ' ' num2str(indx)]);
