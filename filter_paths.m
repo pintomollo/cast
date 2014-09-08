@@ -19,7 +19,7 @@ function [mytracking, opts] = filter_paths(mytracking, opts)
   for indx = 1:nchannels
 
     % Filter them
-    mytracking.trackings(indx).filtered = filter_tracking(mytracking.trackings(indx).detections, opts.tracks_filtering.min_tips_length, opts.tracks_filtering.min_path_length, opts.tracks_filtering.max_zip_length,opts.tracks_filtering.interpolate);
+    mytracking.trackings(indx).filtered = filter_tracking(mytracking.trackings(indx).detections, opts.tracks_filtering.min_path_length, opts.tracks_filtering.max_zip_length,opts.tracks_filtering.interpolate);
 
   end
 

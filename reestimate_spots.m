@@ -25,6 +25,11 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
      error('Tracking:reestimate_spots', 'Wrong number of inputs, either 2 or 4 accepted');
   end
 
+  % No data provided
+  if (isempty(mytracking))
+    return;
+  end
+
   % A nice status-bar if possible
   if (opts.verbosity > 1 && do_all)
     hwait = waitbar(0,'','Name','Cell Tracking');
@@ -75,7 +80,7 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
         end
 
         % Prepare the output structure
-        detections = mytracking.trackings(indx).filtered;
+        detections = mytracking.trackings(indx).detections;
       else
         % And in the case we refine only one plane
         frames = [1];

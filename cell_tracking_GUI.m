@@ -29,6 +29,8 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
   segmentations = mytracking.segmentations;
   trackings = mytracking.trackings;
   has_segmentation = false;
+  has_tracking = false;
+  has_filtered = false;
   autosave = true;
   colors = get_struct('colors');
   color_index = 1;
@@ -81,9 +83,10 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
   spots = [];
   spots_next = [];
   all_paths = [];
-  all_filtered = [];
-  paths = [];
+  all_filtered = {[]};
+  paths = {[]};
   all_colors = [];
+  all_colors_filtered = [];
   is_updated = true;
   paths = [];
 
@@ -149,7 +152,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
     end
 
     if (nchannels > 0)
-      panel_title = [channels(i).type '1'];
+      panel_title = [channels(1).type '1'];
     else
       panel_title = '';
     end
@@ -169,6 +172,10 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
     handles.prev_channel = -1;
     handles.current = 1;
 
+    has_segmentation = false;
+    has_tracking = false;
+    has_filtered = false;
+
     if (nchannels == 0)
       set(handles.save, 'Enable', 'off');
       set(handles.pipeline(2:end), 'Enable', 'off')
@@ -181,9 +188,18 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
       if (isempty(segmentations))
         set(handles.pipeline(3:end), 'Enable', 'off')
       else
-        has_tracking = false;
-        if (~isempty(trackings) && (length(trackings(indx).detections)==nframes))
+        has_segmentation = true;
+        if (~isempty(trackings) && (length(trackings(1).detections)==nframes))
           has_tracking = true;
+
+          if (isfield(trackings(1), 'filtered') && (length(trackings(1).filtered)==nframes))
+            for i=1:nframes
+              has_filtered = (~isempty(trackings(1).filtered(i).cluster));
+              if has_filtered
+                break;
+              end
+            end
+          end
         end
 
         if (~has_tracking)
@@ -247,25 +263,44 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
 
       % The paths
       all_paths = [];
-      if (~isempty(trackings) && (length(trackings(indx).detections)==nframes))
+
+      % Check what is available in the structure
+      has_segmentation = false;
+      has_tracking = false;
+      has_filtered = false;
+
+      if (~isempty(segmentations))
         has_segmentation = true;
-        has_tracking = true;
+        if (~isempty(trackings) && (length(trackings(indx).detections)==nframes))
+          has_tracking = true;
 
-        all_paths = reconstruct_tracks(trackings(indx).detections, true);
-
-        if (~isempty(trackings(indx).filtered) && (length(trackings(indx).filtered)==nframes))
-          all_filtered = reconstruct_tracks(trackings(indx).filtered, true);
+          if (isfield(trackings(indx), 'filtered') && (length(trackings(indx).filtered)==nframes))
+            for i=1:nframes
+              has_filtered = (~isempty(trackings(indx).filtered(i).cluster));
+              if has_filtered
+                break;
+              end
+            end
+          end
         end
-      elseif (~isempty(segmentations))
-        has_segmentation = true;
+      end
+
+      if ~has_tracking
+        all_paths = {[]};
       else
-        all_paths = [];
+        all_paths = reconstruct_tracks(trackings(indx).detections, true);
+      end
+      if ~has_filtered
+        all_filtered = {[]};
+      else
+        all_filtered = reconstruct_tracks(trackings(indx).filtered, true);
       end
 
       set(hFig, 'Name', 'Cell Tracking Platform');
       set(all_all, {'Enable'}, curr_status);
     end
     all_colors = colorize_graph(all_paths, colors.paths{color_index}(length(all_paths)));
+    all_colors_filtered = colorize_graph(all_filtered, colors.paths{color_index}(length(all_filtered)));
 
     % The slider
     set(handles.text1, 'String', ['Frame #' num2str(nimg(1))]);
@@ -309,30 +344,13 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
       handles.prev_frame = nimg;
     end
 
-    if (~isempty(all_paths))
-      spots = cellfun(@(x)(x(x(:,end-1)==nimg(1),:)), all_paths, 'UniformOutput', false);
-      spots = cat(1,spots{:});
-
-      spots_next = cellfun(@(x)(x(x(:,end-1)==nimg(2),:)), all_paths, 'UniformOutput', false);
-      spots_next = cat(1,spots_next{:});
-    elseif has_segmentation
-      spots = [segmentations(indx).detections(nimg(1)).carth segmentations(indx).detections(nimg(1)).properties];
-      spots_next = [segmentations(indx).detections(nimg(2)).carth segmentations(indx).detections(nimg(2)).properties];
-
-      spots = spots(all(~isnan(spots),2),:);
-      spots_next = spots_next(all(~isnan(spots_next),2),:);
-
-      spots = [zeros(size(spots, 1), 1) spots];
-      spots_next = [zeros(size(spots_next, 1), 1) spots_next];
-    end
-
     % Determine which image to display in the left panel
     switch handles.display(1)
 
       % The reconstructed image
       case 2
-        if (~isempty(spots))
-          spots1 = spots(:,2:end);
+        if has_segmentation
+          spots1 = [segmentations(indx).detections(nimg(1)).carth segmentations(indx).detections(nimg(1)).properties];
         else
           spots1 = [];
         end
@@ -342,16 +360,16 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
 
       % The reconstructed image
       case 3
-        if (~isempty(spots))
+
+        if has_tracking
+          spots = cellfun(@(x)(x(x(:,end-1)==nimg(1),:)), all_paths, 'UniformOutput', false);
+          spots = cat(1,spots{:});
           divs = spots(:,1);
           spots1 = {spots(divs<0,2:end), spots(divs==0,2:end), spots(divs>0,2:end)};
-        else
-          spots1 = {[]};
-        end
-        if (~isempty(all_paths))
           links1 = cellfun(@(x)(x(abs(x(:,end-1)-nimg(1)) < 2,:)), all_paths, 'UniformOutput', false);
           links1 = links1(~cellfun('isempty', links1));
         else
+          spots1 = {[]};
           links1 = {[]};
         end
         colors1 = colorize_graph(links1, colors.paths{color_index}(length(links1)));
@@ -359,14 +377,16 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
 
       % The difference between filtered and reconstructed
       case 4
-        if (~isempty(spots))
+        if has_filtered
+          spots = cellfun(@(x)(x(x(:,end-1)==nimg(1),:)), all_filtered, 'UniformOutput', false);
+          spots = cat(1,spots{:});
           divs = spots(:,1);
           spots1 = {spots(divs<0,2:end), spots(divs==0,2:end), spots(divs>0,2:end)};
         else
           spots1 = {[]};
         end
-        links1 = all_paths;
-        colors1 = all_colors;
+        links1 = all_filtered;
+        colors1 = all_colors_filtered;
         divisions_colors1 = colors.status{color_index};
 
       % The filtered image
@@ -382,10 +402,10 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
 
       % The reconstructed image
       case 2
-        if (~isempty(spots_next))
-          spots2 = spots_next(:,2:end);
+        if has_segmentation
+          spots2 = [segmentations(indx).detections(nimg(2)).carth segmentations(indx).detections(nimg(2)).properties];
         else
-          spots2 = [];
+          spots2 = {[]};
         end
         links2 = {[]};
         colors2 = [];
@@ -393,16 +413,15 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
 
       % The reconstructed image
       case 3
-        if (~isempty(spots_next))
+        if has_tracking
+          spots_next = cellfun(@(x)(x(x(:,end-1)==nimg(2),:)), all_paths, 'UniformOutput', false);
+          spots_next = cat(1,spots_next{:});
           divs = spots_next(:,1);
           spots2 = {spots_next(divs<0,2:end), spots_next(divs==0,2:end), spots_next(divs>0,2:end)};
-        else
-          spots2 = {[]};
-        end
-        if (~isempty(all_paths))
           links2 = cellfun(@(x)(x(abs(x(:,end-1)-nimg(2)) < 2,:)), all_paths, 'UniformOutput', false);
           links2 = links2(~cellfun('isempty', links2));
         else
+          spots2 = {[]};
           links2 = {[]};
         end
         colors2 = colorize_graph(links2, colors.paths{color_index}(length(links2)));
@@ -410,13 +429,15 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
 
       % The difference between filtered and reconstructed
       case 4
-        if (~isempty(spots_next))
+        if has_filtered
+          spots_next = cellfun(@(x)(x(x(:,end-1)==nimg(2),:)), all_filtered, 'UniformOutput', false);
+          spots_next = cat(1,spots_next{:});
           divs = spots_next(:,1);
           spots2 = {spots_next(divs<0,2:end), spots_next(divs==0,2:end), spots_next(divs>0,2:end)};
         else
           spots2 = {[]};
         end
-        links2 = all_paths;
+        links2 = all_filtered;
         colors2 = all_colors;
         divisions_colors2 = colors.status{color_index};
 

@@ -155,10 +155,10 @@ function mystruct = get_struct(type, nstruct)
     case 'tracking'
       mydetection = get_struct('detection',0);
       mystruct = struct('reestimate_spots', true, ...   % Do we reestimate the newly interpolated spots ?
-                        'force_cell_behavior', true, ... % Prevent fusion and appearance of spots
                         'post_processing_funcs', {{}}, ... % Allow to post-process paths
                         'filtered', mydetection, ... % the structure to store the detections after filtering
                         'detections', mydetection); % the structure to store the resulting detections
+                        %'force_cell_behavior', true, ... % Prevent fusion and appearance of spots
 
     % The options for filtering tracks
     case 'tracks_filtering'
