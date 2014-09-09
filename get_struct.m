@@ -57,6 +57,7 @@ function mystruct = get_struct(type, nstruct)
     case 'exporting'
       mystruct = struct('file_name', '', ...        % The name of the file to create
                         'low_duplicates', true, ... % Do we use low duplicates paths ?
+                        'full_cycles_only', false, ... % Keep only tracks that both start and end with a division
                         'export_data', true, ...    % Do we export a CSV table of the data ?
                         'data_aligning_type', 'time', ... % How do we align the paths ?
                         'export_movie', false, ...  % Do we export an AVI movie ?

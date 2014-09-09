@@ -1,66 +1,49 @@
-function export_movie(mytracking, varargin)
+function export_movie(mytracking, props, opts)
 % EXPORT_MOVIE exports an experiment as an AVI movie.
 %
-%   EXPORT_MOVIE(MYTRACKING, OPTS) exports the channels of MYTRACKING using OPTS.
+%   EXPORT_MOVIE(MYTRACKING, OPTS) exports the channels of MYTRACKING using OPTS and
+%   default properties.
 %
-%   EXPORT_MOVIE(MYTRACKING, LOW_DUPLICATE, OPTS) overlaid to the image, the number of
-%   the track obtained with LOW_DUPLICATE corresponding to the cell will be displayed.
-%   Providing LOW_DUPLICATE is required for using the SHOW_* options (see below).
-%
-%   EXPORT_MOVIE(..., FNAME) exorts the movie under the FNAME.
-%
-%   EXPORT_MOVIE(..., SHOW_DETECTIONS) draws on top of the image the detected radius.
-%
-%   EXPORT_MOVIE(..., SHOW_DETECTIONS, SHOW_PATHS) draws in addition the links to the
-%   previous and next position.
-%
-%   EXPORT_MOVIE(..., SHOW_DETECTIONS, SHOW_PATHS, SHOW_RECONSTRUCTION) displays next
-%   to the raw image, the reconstructed image (slow).
+%   EXPORT_MOVIE(MYTRACKING, PROPS, OPTS) exports MYTRACKING configuring its properties
+%   using the correspinding data structure PROPS (get_struct('exporting')).
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 28.08.2014
 
   % Input checking and default values
-  fname = mytracking.experiment;
-  low_duplicates = [];
-  show_detect = [];
-  show_paths = [];
-  show_reconst = [];
-  opts = get_struct('options');
-
-  % Loop over the various inputs and assign them depending on their types
-  for i=1:length(varargin)
-    if (isstruct(varargin{i}))
-      opts = varargin{i};
-    elseif (islogical(varargin{i}))
-      if (isempty(low_duplicates))
-        low_duplicates = varargin{i};
-      elseif (isempty(show_detect))
-        show_detect = varargin{i};
-      elseif (isempty(show_paths))
-        show_paths = varargin{i};
-      elseif (isempty(show_reconst))
-        show_reconst = varargin{i};
-      end
-    elseif (ischar(varargin{i}) && ~isempty(varargin{i}))
-      fname = varargin{i};
+  if (nargin < 1)
+    return;
+  elseif (nargin < 2)
+    props = get_struct('exporting');
+    opts = get_struct('options');
+  elseif (nargin < 3)
+    if (isfield(props, 'file_name'))
+      opts = get_struct('options');
+    else
+      opts = props;
+      props = get_struct('exporting');
     end
   end
 
-  % Do we even need the text ?
-  show_text = (~isempty(low_duplicates));
+  % Assign the properties locally
+  fname = props.file_name;
+  low_duplicates = props.low_duplicates;
+  cycles_only = props.full_cycles_only;
+  show_text = props.movie_show_index;
+  show_detect = props.movie_show_detection;
+  show_paths = props.movie_show_paths;
+  show_reconst = props.movie_show_reconstruction;
 
-  % Replace empty values
-  if (isempty(show_detect))
-    show_detect = false;
+  colors = get_struct('colors');
+
+  % Do we have a filename ?
+  if (isempty(fname))
+    fname = mytracking.experiment;
   end
-  if (isempty(show_paths))
-    show_paths = false;
-  end
-  if (isempty(show_reconst))
-    show_reconst = false;
-  end
+
+  % Force to have low duplicates if we want full cycles
+  low_duplicates = (low_duplicates || cycles_only);
 
   % Check if there is a folder name in the name itself
   [filepath, name, ext] = fileparts(fname);
@@ -106,7 +89,7 @@ function export_movie(mytracking, varargin)
 
     % If we want to display the index, we need to reconstruct the tracks
     if (show_text)
-      [paths, indexes] = reconstruct_tracks(mytracking.trackings(i).detections, opts, low_duplicates);
+      [paths, indexes] = reconstruct_tracks(mytracking.trackings(i).detections, low_duplicates);
     end
 
     % Open the specified AVI file with the maximal quality
@@ -125,6 +108,7 @@ function export_movie(mytracking, varargin)
       % Get the image and the spots
       img = double(load_data(mytracking.channels(i), nimg));
       spots = [mytracking.trackings(i).detections(nimg).carth mytracking.trackings(i).detections(nimg).properties];
+      color_index = mytracking.channels(i).color(1);
 
       % Maybe we need to reconstruct the image
       if (show_reconst)
@@ -146,6 +130,8 @@ function export_movie(mytracking, varargin)
         set(hFig, 'Visible', 'on', 'Position', [1 1 ssize([2 1])]);
         hImg = image(img,'Parent', hAxes, 'CDataMapping', 'scaled');
         set(hAxes,'Visible', 'off', 'CLim', [0 maxuint], 'DataAspectRatio',  [1 1 1]);
+
+        colormap(hFig, colors.colormaps{color_index}());
       end
 
       % Maybe we want to display the paths ?
@@ -155,12 +141,13 @@ function export_movie(mytracking, varargin)
         links = cellfun(@(x)(x(abs(x(:,end-1)-nimg) < 2,:)), paths, ...
                         'UniformOutput', false);
         links = links(~cellfun('isempty', links));
+        lcolors = colorize_graph(links, colors.paths{color_index}(length(links)));
 
         % And display them
         if (ishandle(hPaths))
-          plot_paths(hPaths, links);
+          plot_paths(hPaths, links, lcolors);
         else
-          hPaths = plot_paths(hAxes, links);
+          hPaths = plot_paths(hAxes, links, lcolors);
         end
       end
 
@@ -169,7 +156,7 @@ function export_movie(mytracking, varargin)
         if (ishandle(hSpots))
           plot_spots(hSpots, spots);
         else
-          hSpots = plot_spots(hAxes, spots);
+          hSpots = plot_spots(hAxes, spots, colors.spots{color_index});
         end
       end
 
@@ -185,16 +172,16 @@ function export_movie(mytracking, varargin)
         spots(isnan(spots(:,3)),3) = 0;
 
         % Display the text
-        hText = text(spots(:,1), spots(:,2)-3*spots(:,3), num2str(indexes{nimg}), ...
-                     'HorizontalAlignment', 'center');
+        hText = text(spots(:,1), spots(:,2)-6*spots(:,3), num2str(indexes{nimg}), ...
+                     'HorizontalAlignment', 'center', 'Color', colors.text{color_index});
       end
+
+      % Update the name as a status bar
+      set(hFig, 'Name', [fig_name num2str((nimg+nframes*(i-1))) total_str])
 
       % Get the current frame and store it in the movie
       frame = getframe(hAxes);
       writeVideo(mymovie, frame);
-
-      % Update the name as a status bar
-      set(hFig, 'Name', [fig_name num2str((j+nframes*(i-1))) total_str])
     end
 
     % Close the movie

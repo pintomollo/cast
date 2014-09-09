@@ -42,6 +42,10 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
     nchannels = 1;
   end
 
+  % Build the parameters and filter
+  extrema_size = [opts.segmenting.filter_min_size opts.segmenting.filter_max_size]/...
+             opts.pixel_size;
+
   % Loop over them
   for indx = 1:nchannels
 
@@ -80,7 +84,7 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
         end
 
         % Prepare the output structure
-        detections = mytracking.trackings(indx).detections;
+        detections = mytracking.trackings(indx).filtered;
       else
         % And in the case we refine only one plane
         frames = [1];
@@ -138,6 +142,17 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
                                opts.segmenting.estimate_stop, ...
                                opts.segmenting.estimate_weight, ...
                                opts.segmenting.estimate_fit_position);
+
+          % Filter the detected spots ?
+          if (mytracking.segmentations(indx).filter_spots)
+            % Spots are organised with intensity in column 4 and radii in column 3
+            goods = (spots(:,3)*3 > extrema_size(1) & spots(:,3) < extrema_size(2)...
+                   & ~any(imag(spots), 2));
+
+            % Remove the spots that cannot be reestimated
+            spots = spots(goods,:);
+            to_refine(to_refine) = goods;
+          end
 
           % If we have some detections, store them in the final structure
           if (~isempty(spots))

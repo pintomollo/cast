@@ -44,6 +44,7 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
     interpolate = true;
   end
 
+  % Handle the inputs
   opts = [];
   if (isnumeric(links))
 
@@ -62,6 +63,7 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
     interpolate = opts.tracks_filtering.interpolate;
   end
 
+  % Create the proper structure
   mystruct = [];
   if (isstruct(spots))
 
@@ -79,6 +81,7 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
     end
   end
 
+  % Get the number of properties used by the spots
   nframes = length(spots);
   for i=1:nframes
     if (~isempty(spots{i}))
@@ -87,6 +90,7 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
     end
   end
 
+  % Filter out the paths that are too short
   if (min_path_length > 0)
     path_length = cell(nframes, 1);
     diff_indxs = cell(nframes, 1);
@@ -136,6 +140,7 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
     end
   end
 
+  % "Zip" the splitting-merging events
   if (max_zip_length > 0)
     index_map = NaN(0,4);
     index_full = cell(0,1);
@@ -280,6 +285,7 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
     end
   end
 
+  % Interpolate the missing positions for the spots
   if (interpolate)
     for i=nframes:-1:1
       curr_links = links{i};
@@ -293,13 +299,13 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
           reference = spots{curr_indxs(3)}(curr_indxs(2),:);
 
           ninterp = i - curr_indxs(3);
-          new_pts = bsxfun(@plus, bsxfun(@times, (reference(1:2) - target(1:2)) / ninterp, [1:ninterp-1].'), target(1:2));
+          new_pts = bsxfun(@plus, bsxfun(@times, (reference - target) / ninterp, [1:ninterp-1].'), target);
 
           curr_pos = curr_indxs(1);
           for k=1:ninterp-1
             curr_indx = i-k;
             nprev = size(spots{curr_indx}, 1) + 1;
-            spots{curr_indx} = [spots{curr_indx}; [new_pts(k,:) NaN(1,nprops)]];
+            spots{curr_indx} = [spots{curr_indx}; [new_pts(k,1:end-1) NaN]];
             links{curr_indx+1} = [links{curr_indx+1}; [curr_pos nprev curr_indx]];
             curr_pos = nprev;
           end
@@ -309,6 +315,7 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
     end
   end
 
+  % Fill back the data to the original structure
   if (~isempty(mystruct))
     for i=1:nframes
       mystruct(i).carth = spots{i}(:,1:2);

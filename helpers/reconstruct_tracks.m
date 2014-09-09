@@ -52,7 +52,7 @@ function [paths, track_num] = reconstruct_tracks(spots, links, low_duplicates)
 
       % Loop over all channels and call itself recursively
       for i = 1:length(mystruct.channels)
-        [paths{i}, track_num{i}] = reconstruct_tracks(mystruct.segmentations(i).detections);
+        [paths{i}, track_num{i}] = reconstruct_tracks(mystruct.segmentations(i).detections, low_duplicates);
       end
 
       return;

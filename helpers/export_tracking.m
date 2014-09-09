@@ -1,4 +1,4 @@
-function export_tracking(mytracking, varargin)
+function export_tracking(mytracking, props, opts)
 % EXPORT_TRACKING writes CSV files containing the results of the tracking.
 %
 %   EXPORT_TRACKING(MYTRACKING, OPTS) writes in CSV files the content of MYTRACKING,
@@ -19,27 +19,34 @@ function export_tracking(mytracking, varargin)
 % 06.07.2014
 
   % Input checking and default values
-  fname = mytracking.experiment;
-  low_duplicates = false;
-  aligning_type = 'time';
-  opts = get_struct('options');
-  folder = '';
-
-  % Loop over the various inputs and assign them depending on their types
-  for i=1:length(varargin)
-    if (isstruct(varargin{i}))
-      opts = varargin{i};
-    elseif (islogical(varargin{i}))
-      low_duplicates = varargin{i};
-    elseif (ischar(varargin{i}) && ~isempty(varargin{i}))
-      txt = varargin{i};
-      if (strncmp(txt, 'time', 4) || strncmp(txt, 'start', 5) || strncmp(txt, 'end', 3))
-        aligning_type = txt;
-      else
-        fname = txt;
-      end
+  if (nargin < 1)
+    return;
+  elseif (nargin < 2)
+    props = get_struct('exporting');
+    opts = get_struct('options');
+  elseif (nargin < 3)
+    if (isfield(props, 'file_name'))
+      opts = get_struct('options');
+    else
+      opts = props;
+      props = get_struct('exporting');
     end
   end
+
+  % Assign the properties locally
+  fname = props.file_name;
+  low_duplicates = props.low_duplicates;
+  cycles_only = props.full_cycles_only;
+  aligning_type = props.data_aligning_type;
+  folder = '';
+
+  % Do we have a filename ?
+  if (isempty(fname))
+    fname = mytracking.experiment;
+  end
+
+  % Force to have low duplicates if we want full cycles
+  low_duplicates = (low_duplicates || cycles_only);
 
   % Required for the proper conversion from frames to seconds
   dt = opts.time_interval;
@@ -61,19 +68,37 @@ function export_tracking(mytracking, varargin)
 
   % Switch to segmentations instead, as tehre seems to be data in it
   if (nchannels==0 && length(mytracking.segmentations)>0)
-    mytracking.trackings= mytracking.segmentations;
+    mytracking.trackings = mytracking.segmentations;
     nchannels = length(mytracking.trackings);
   end
 
+  % Loop over all channels
   for i=1:nchannels
 
     % Now check how many frames there are
-    nframes = length(mytracking.trackings(i).detections);
+    nframes = length(mytracking.trackings(i).filtered);
 
     set(hwait, 'Visible', 'off');
 
     % Extract the results of the tracking in this channel
-    paths = reconstruct_tracks(mytracking.trackings(i).detections, low_duplicates);
+    paths = reconstruct_tracks(mytracking.trackings(i).filtered, low_duplicates);
+
+    % If it's empty, switch to the detections
+    if (isempty(paths))
+      disp(['No filtered data to be exported in channel ' num2str(i) ', switching to the detections']);
+
+      % Now check how many frames there are
+      nframes = length(mytracking.trackings(i).detections);
+
+      % Extract the results of the tracking in this channel
+      paths = reconstruct_tracks(mytracking.trackings(i).detections, low_duplicates);
+    end
+
+    % Still nothing, giving up
+    if (isempty(paths))
+      disp(['Nothing to be exported in channel ' num2str(i)]);
+      continue;
+    end
 
     % Update the status bar
     set(hwait, 'Visible', 'on');
@@ -134,10 +159,10 @@ function export_tracking(mytracking, varargin)
       tmp_mat = full_mat(goods,:,:);
 
       % Write the matrix
-      folder = write_csv([fname num2str(i)], colname, path_names, time_stamp(1:size(tmp_mat,1)), tmp_mat);
+      folder = write_csv([fname num2str(i)], colname, path_names, time_stamp(1:size(tmp_mat,1)), tmp_mat, cycles_only);
     else
       % Write the matrix
-      folder = write_csv([fname num2str(i)], colname, path_names, time_stamp, full_mat);
+      folder = write_csv([fname num2str(i)], colname, path_names, time_stamp, full_mat, cycles_only);
     end
   end
 
@@ -148,7 +173,7 @@ function export_tracking(mytracking, varargin)
 end
 
 % This function writes a 3D matrix into single CSV files.
-function folder = write_csv(fname, colnames, col_headers, row_headers, matrix)
+function folder = write_csv(fname, colnames, col_headers, row_headers, matrix, cycles_only)
 
   % Check if there is a folder name in the name itself
   [filepath, name, ext] = fileparts(fname);
@@ -171,6 +196,13 @@ function folder = write_csv(fname, colnames, col_headers, row_headers, matrix)
   colnames = colnames(keep_cols);
 
   matrix = matrix(:,:,keep_cols);
+
+  % Maybe filter out the non-cycles paths
+  if (cycles_only)
+    valids = (sum(matrix(:,:,1)==1, 1)==2);
+    matrix = matrix(:,valids,:);
+    col_headers = col_headers([true valids]);
+  end
 
   % Get the dimensions of the matrix
   [nframes, npaths, ncols] = size(matrix);

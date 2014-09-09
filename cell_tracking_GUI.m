@@ -565,17 +565,10 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
         [props, do_export] = edit_options(props);
         if (do_export)
           if (props.export_data)
-            export_tracking(mytracking, props.file_name, props.low_duplicates, ...
-                            props.data_aligning_type, opts);
+            export_tracking(mytracking, props, opts);
           end
           if (props.export_movie)
-            if (~props.movie_show_index)
-              export_movie(mytracking, props.file_name, opts);
-            else
-              export_movie(mytracking, props.file_name, props.low_duplicates, ...
-                             props.movie_show_detection, props.movie_show_paths, ...
-                             props.movie_show_reconstruction, opts);
-            end
+            export_movie(mytracking, props, opts);
           end
         end
         recompute = false;
@@ -594,7 +587,9 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
   % structure which contains the parameters of the filtering algorithms.
 
     % Block the GUI
-    set(handles.all_buttons, 'Enable', 'off');
+    all_all = [handles.all_buttons, handles.save, handles.pipeline];
+    curr_status = get(all_all, 'Enable');
+    set(all_all, 'Enable', 'off');
     drawnow;
     refresh(hFig);
 
@@ -622,9 +617,11 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
     end
 
     % Release the GUI and recompute the filters
-    set(handles.all_buttons, 'Enable', 'on');
-    setup_environment()
-    update_display(recompute);
+    set(all_all, {'Enable'}, curr_status);
+    if (recompute)
+      setup_environment()
+      update_display(recompute);
+    end
 
     return
   end
