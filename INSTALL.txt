@@ -1,0 +1,30 @@
+% INSTALL.txt
+% A few expanations on how to install the Cell Tracking Plateform
+%
+% Gonczy & Naef labs, EPFL
+% Simon Blanchoud
+% 20.11.2014
+
+Hi !
+
+These set of tools (so-called Cell Tracking Plateform) have been
+developed to provide an intuitive and easy-to-use interactive approach
+for cell tracking and image quantification. These functions have been
+developped and tested using Matlab R2012b on Mac OS X. In addition,
+tests using Windows 7 should provide cross-platform support. These functions
+make use of (at least) the Image Processing Toolbox (v. 8.1).
+
+A number of functions have been implemented in C for speedup (located in ./MEX),
+hence a C/C++ compiler is required (see http://www.mathworks.com/support/compilers/).
+
+For compatibility among microscopy file types, the Bio-Formats conversion toolbox from
+LOCI is also required (http://loci.wisc.edu/software/bio-formats). However, its
+download will be attempted automatically during the installation procedure.
+
+To install the Cell Tracking Plateform, change your Matlab working directory to this
+"cell-tracking" one (either using the command-line "cd", or using the corresponding
+button on Matlab's interface) and run "install_cell_tracking".
+
+For an example on how to use this plateform, please read README.txt.
+
+Happy tracking !
