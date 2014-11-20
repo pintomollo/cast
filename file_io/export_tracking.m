@@ -14,7 +14,7 @@ function export_tracking(mytracking, props, opts)
 %   EXPORT_TRACKING(..., ALIGNING) defines how the cell tracks are align with one
 %   another. Available alignments are 'time', 'start' and 'end'.
 %
-% Gonczy and Naef labs, EPFL
+% Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 06.07.2014
 

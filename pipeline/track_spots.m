@@ -523,12 +523,12 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, min_length
     alt_dist = ones(size(alt_indx))*alt_cost;
 
     % Now build the full array of indexes
-    all_indxii = [all_indxi; ...           % Bridging/Merging/Splitting
-                  alt_indx(1:nends); ...   % No gap, "d" in [1]
-                  alt_indx(1:nstarts)+nends+ninterm; ... % No gap, "b" in [1]
-                  alt_indx(1:ninterm)+nends; ... % No splitting, "d'" in [1]
+    all_indxii = [all_indxi; ...                                 % Bridging/Merging/Splitting
+                  alt_indx(1:nends); ...                         % No gap, "d" in [1]
+                  alt_indx(1:nstarts)+nends+ninterm; ...         % No gap, "b" in [1]
+                  alt_indx(1:ninterm)+nends; ...                 % No splitting, "d'" in [1]
                   alt_indx(1:ninterm)+nends+nstarts+ninterm; ... % No merging, "b'" [1]
-                  all_indxj+nends+ninterm];  % The lower right block, for symmetry
+                  all_indxj+nends+ninterm];                      % The lower right block, for symmetry
 
     % Same for the second coordinate
     all_indxj = [all_indxj; alt_indx(1:nends)+nstarts+ninterm; alt_indx(1:nstarts); ...

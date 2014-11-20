@@ -9,7 +9,7 @@ function cMap = redbluemap(N)
 % References:
 %   [1] Brewer, Cynthia A., 2014. http://www.ColorBrewer.org, accessed date: 07.07.14
 %
-% Gonczy and Naef labs, EPFL
+% Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 07.07.2014
 

@@ -11,7 +11,7 @@ function save_parameters(opts, fname)
 %
 %   Note that SAVE_PARAMETERS alway overwrites the content of an existing file.
 %
-% Naef lab, EPFL
+% Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 14.05.14
 

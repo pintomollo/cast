@@ -6,7 +6,7 @@ function [name, curr_fields] = extract_help_message(mystruct)
 %   [NAME, HELP] = EXTRACT_HELP_MESSAGE(MYSTRUCT) returns the NAME of MYSTRUCT as found
 %   in get_struct.m, and the HELP for all the fields found as a cell array.
 %
-% Gonczy and Naef labs, EPFL
+% Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 28.08.2014
 
@@ -46,7 +46,7 @@ function [name, curr_fields] = extract_help_message(mystruct)
         end
 
         % Otherwise, we store the current name and prepare the new values
-        name = tokens{1}{1};
+        tmp_name = tokens{1}{1};
         curr_fields = tmp_fields;
         skipping = false;
 
@@ -66,6 +66,7 @@ function [name, curr_fields] = extract_help_message(mystruct)
 
           % Otherwise we store it !
           else
+            name = tmp_name;
             curr_fields(end+1,:) = tokens{1};
           end
         end
@@ -78,6 +79,12 @@ function [name, curr_fields] = extract_help_message(mystruct)
 
   % And close the file
   fclose(fid);
+
+  % Add empty help for the missing fields
+  missing = ~ismember(fields, curr_fields(:,1));
+  if (any(missing))
+    curr_fields = [curr_fields; [fields(missing) cellstr(repmat(' ',sum(missing), 1))]];
+  end
 
   return;
 end

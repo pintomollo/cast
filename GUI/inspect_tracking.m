@@ -1,11 +1,11 @@
 function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
 % INSPECT_TRACKING displays a pop-up window for the user to manually inspect the
-% segmentation that will be performed on the provided movie.
+% tracking that will be performed on the provided segmented movie.
 %
 %   [MYTRACKING, OPTS] = INSPECT_TRACKING(MYTRACKING,OPTS) displays the window using
 %   the data contained in MYTRACKING and the parameter values from OPTS. It updates
-%   them accordingly to the user's choice. MYTRACKING should be a 'mytracking'
-%   structure as created by inspect_recording.m
+%   them accordingly to the user's choice. MYTRACKING should be a structure as
+%   defined by get_struct('myrecording')
 %
 %   [...] = INSPECT_TRACKING() prompts the user to select a MYTRACKING containing
 %   Matlab file before opening the GUI.
@@ -26,6 +26,10 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
 
     % Loading was cancelled
     if (isequal(dirpath, 0))
+      mytracking = [];
+      opts = [];
+      is_updated = false;
+
       return;
     end
 
@@ -35,6 +39,9 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
     % Not what we expected
     if (~isfield(data, 'mytracking') || ~isfield(data, 'opts'))
       disp(['Error: ' fname ' does not contain a valid mytracking structure']);
+      mytracking = [];
+      opts = [];
+      is_updated = false;
 
       return;
 
@@ -63,39 +70,9 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
   end
 
   % Dragzoom help message
-  imghelp = ['DRAGZOOM interactions (help dragzoom):\n\n', ...
-  '###Normal mode:###\n', ...
-  'single-click and holding LB : Activation Drag mode\n', ...
-  'single-click and holding RB : Activation Rubber Band for region zooming\n', ...
-  'single-click MB             : Activation ''Extend'' Zoom mode\n', ...
-  'scroll wheel MB             : Activation Zoom mode\n', ...
-  'double-click LB, RB, MB     : Reset to Original View\n\n', ...
-  ' \n', ...
-  '###Magnifier mode:###\n', ...
-  'single-click LB             : Not Used\n', ...
-  'single-click RB             : Not Used\n', ...
-  'single-click MB             : Reset Magnifier to Original View\n', ...
-  'scroll MB                   : Change Magnifier Zoom\n', ...
-  'double-click LB             : Increase Magnifier Size\n', ...
-  'double-click RB             : Decrease Magnifier Size\n', ...
-  ' \n', ...
-  '###Hotkeys in 2D mode:###\n', ...
-  '''+''                         : Zoom plus\n', ...
-  '''-''                         : Zoom minus\n', ...
-  '''0''                         : Set default axes (reset to original view)\n', ...
-  '''uparrow''                   : Up or down (inrerse) drag\n', ...
-  '''downarrow''                 : Down or up (inverse) drag\n', ...
-  '''leftarrow''                 : Left or right (inverse) drag\n', ...
-  '''rightarrow''                : Right or left (inverse) drag\n', ...
-  '''c''                         : On/Off Pointer Symbol ''fullcrosshair''\n', ...
-  '''g''                         : On/Off Axes Grid\n', ...
-  '''x''                         : If pressed and holding, zoom and drag works only for X axis\n', ...
-  '''y''                         : If pressed and holding, zoom and drag works only for Y axis\n', ...
-  '''m''                         : If pressed and holding, Magnifier mode on\n', ...
-  '''l''                         : On/Off Synchronize XY manage of 2-D axes\n', ...
-  '''control+l''                 : On Synchronize X manage of 2-D axes\n', ...
-  '''alt+l''                     : On Synchronize Y manage of 2-D axes\n', ...
-  '''s''                         : On/Off Smooth Plot (Experimental)'];
+  imghelp = regexp(help('dragzoom'), ...
+             '([ ]+Normal mode:.*\S)\s+Mouse actions in 3D','tokens');
+  imghelp = ['DRAGZOOM interactions (help dragzoom):\n\n', imghelp{1}{1}];
 
   % Create the GUI using segmentations
   [hFig, handles] = create_figure();
@@ -120,7 +97,7 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
   % And wait until the user is done
   uiwait(hFig);
 
-  % Store the segmentations
+  % Store the channels
   mytracking.channels = channels;
   % Store the segmentations
   mytracking.segmentations = segmentations;
@@ -163,7 +140,7 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
       % Get the colormap for the displayed channel
       color_index = channels(indx).color(1);
 
-      % The name
+      % Set the name of the current panel
       set(handles.uipanel,'Title', [channels(indx).type ' ' num2str(indx)]);
 
       % And setup the indexes correctly
@@ -171,16 +148,17 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
       handles.prev_frame = -1;
     end
 
+    % Here we perform part of the tracking and update some part of the display
     if (recompute)
+
       % Because it takes long, display it and block the GUI
       set(hFig, 'Name', 'Tracking (Processing...)');
-
-      % The slider
-      set(handles.text, 'String', ['Frame #' num2str(nimg)]);
-
       set(handles.all_buttons, 'Enable', 'off');
       drawnow;
       refresh(hFig);
+
+      % The slider
+      set(handles.text, 'String', ['Frame #' num2str(nimg)]);
 
       % Here we recompute all the filtering of the frame
       noise = [];
@@ -197,16 +175,22 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
         img_next = double(load_data(channels(indx).fname, nimg+1));
       end
 
+      % Get the current spots
       spots = [segmentations(indx).detections(nimg).carth segmentations(indx).detections(nimg).properties];
+
+      % As well as the next ones if possible
       if (~isempty(img_next))
         spots_next = [segmentations(indx).detections(nimg+1).carth segmentations(indx).detections(nimg+1).properties];
       end
 
+      % Keep only the valid ones
       spots = spots(all(~isnan(spots),2),:);
       spots_next = spots_next(all(~isnan(spots_next),2),:);
 
+      % Perform the actual one-step tracking
       links = track_spots({spots, spots_next}, {opts.spot_tracking.linking_function}, (opts.spot_tracking.spot_max_speed/opts.pixel_size)*opts.time_interval, opts.spot_tracking.bridging_max_gap, 0, opts.spot_tracking.max_intensity_ratio, opts.spot_tracking.allow_branching_gap);
 
+      % And reconstruct the corresponding tracks for display purposes
       paths = reconstruct_tracks({spots, spots_next}, links);
 
       % Update the index
@@ -216,17 +200,17 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
     % Determine which image to display in the left panel
     switch handles.display(1)
 
-      % The reconstructed image
+      % The current spots and the links
       case 2
         spots1 = {spots};
         links1 = paths;
 
-      % The difference between filtered and reconstructed
+      % Both current and next spots with their links
       case 3
         spots1 = {spots, spots_next};
         links1 = paths;
 
-      % The filtered image
+      % Only the image
       otherwise
         spots1 = {[]};
         links1 = {[]};
@@ -235,17 +219,17 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
     % Determine which image to display in the right panel
     switch handles.display(2)
 
-      % The reconstructed image
+      % The next spots and the links
       case 2
         spots2 = {spots_next};
         links2 = paths;
 
-      % The difference between filtered and reconstructed
+      % Both current and next spots with their links
       case 3
         spots2 = {spots_next, spots};
         links2 = paths;
 
-      % The filtered image
+      % Only the image
       otherwise
         spots2 = {[]};
         links2 = {[]};
@@ -258,12 +242,15 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
     % If we have already created the axes and the images, we can simply change their
     % content (i.e. CData)
     if (numel(handles.img) > 1 & all(ishandle(handles.img)))
+      % The images
       set(handles.img(1),'CData', orig_img);
       set(handles.img(2),'CData', img_next);
 
+      % The spots
       plot_spots(handles.data(1), spots1, spots_colors);
       plot_spots(handles.data(2), spots2, spots_colors([2 1]));
 
+      % And the tracks on top
       plot_paths(handles.data(3), links1, links_colors);
       plot_paths(handles.data(4), links2, links_colors);
     else
@@ -305,8 +292,8 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
   end
 
   function options_Callback(hObject, eventdata)
-  % This function is responsible for handling the content of the
-  % structure which contains the parameters of the filtering algorithms.
+  % This function is responsible for handling the buttons responsible for the
+  % option structure
 
     % Block the GUI
     set(handles.all_buttons, 'Enable', 'off');
@@ -336,7 +323,7 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
         recompute = false;
     end
 
-    % Release the GUI and recompute the filters
+    % Release the GUI and recompute the display
     set(handles.all_buttons, 'Enable', 'on');
     update_display(recompute);
 
@@ -346,7 +333,7 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
   function gui_Callback(hObject, eventdata)
   % This function handles the callback of most buttons in the GUI !
 
-    % By default we recompute the filter
+    % By default we recompute the display
     recompute = true;
 
     % Get the channel index
@@ -427,8 +414,7 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
   end
 
   function channel_CloseRequestFcn(hObject, eventdata)
-  % This function converts the various indexes back into strings to prepare
-  % the segmentations structure for its standard form.
+  % This function releases the GUI to exit it
 
     uiresume(hFig);
 
@@ -437,7 +423,7 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
 
   function [hFig, handles] = create_figure
   % This function actually creates the GUI, placing all the elements
-  % and linking the calbacks.
+  % and linking the callbacks.
 
     % The number of channels provided
     nchannels = length(channels);
@@ -700,7 +686,7 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
                      'prev_channel', -1, ...
                      'current', 1);
 
-    % Link both axes and activate the pan
+    % Link both axes to keep the same information on both sides
     linkaxes(handles.axes);
 
     return;

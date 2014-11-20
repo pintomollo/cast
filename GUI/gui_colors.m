@@ -3,7 +3,7 @@ function [mycolormap, is_updated] = gui_colors(indx)
 %
 %   [COLORMAP] = GUI_COLORS displays the GUI and returns the selected COLORMAP.
 %
-% Gonczy and Naef labs, EPFL
+% Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 28.08.14
 

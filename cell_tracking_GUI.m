@@ -1,24 +1,28 @@
 function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
-% CELL_TRACKING_GUI displays the main window for the interactive tracking of
-% recordings.
+% CELL_TRACKING_GUI displays the main window of this interactive segmentation and
+% tracking platform in time-lapse recordings.
 %
-%   [MYTRACKING, OPTS] = CELL_TRACKING_GUI(MYTRACKING,OPTS) displays the window using
+%   CELL_TRACKING_GUI() displays an empty GUI for the user to load a recording interactively.
+%
+%   [MYTRACKING, OPTS] = CELL_TRACKING_GUI() returns the results of the analysis in MYTRACKING
+%   and the corresponding options in OPTS. MYTRACKING and OPTS will be structured as defined
+%   get_struct('mytracking') and get_struct('options') respectively.
+%
+%   [MYTRACKING, OPTS] = CELL_TRACKING_GUI(MYTRACKING, OPTS) displays the window using
 %   the data contained in MYTRACKING and the parameter values from OPTS. It updates
-%   them accordingly to the user's choice. MYTRACKING should be a 'mytracking'
-%   structure as produced by get_struct('mytracking')
-%
-%   [...] = CELL_TRACKING_GUI() displays an empty GUI for the user to load a 
-%   recording interactively.
+%   them accordingly to the user's choice.
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 02.07.2014
 
-  % Argument checking, need to know if we ask for a mytracking file or not.
+  % Argument checking, need to know if we create new structures or not
   if (nargin ~= 2 | isempty(mytracking) | isempty(opts))
     mytracking = get_struct('myrecording');
     opts = get_struct('options');
   else
+    % We utilize this function to improve compatibility between versions of this
+    % platform, fusing option structures if need be.
     opts = update_structure(opts, 'options');
   end
 

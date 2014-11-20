@@ -1,7 +1,10 @@
 #include <math.h> // Needed for the ceil() prototype
 #include "gaussian_spots.h"
 
-/// See paper "A Fast, Compact Approximation of the Exponential Function".
+/// Approximation of the exponential function from :
+/// N. N. Schraudolph. A Fast, Compact Approximation of the Exponential Function. 
+/// Neural Computation, 11(4):853–862, 1999.
+
 /// 2x to 9x faster than exp(x)!
 /// Can be off by about +-4% in the range -100 to 100.
 double fast_exp(double y) {

@@ -14,7 +14,7 @@ function hgroup = plot_paths(h, paths, color)
 %
 %   HGROUP = PLOT_PATHS(HAXES, ...) draws the hggroup in the axes defined by HAXES.
 %
-% Gonczy and Naef labs, EPFL
+% Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 07.07.2014
 

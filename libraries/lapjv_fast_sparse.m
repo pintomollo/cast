@@ -19,7 +19,10 @@ function [assignment,cost] = lapjv_fast_sparse(costMat,resolution)
 %
 % See also munkres, Hungarian
 %
-% Modified to work with sparse matrices, Simon Blanchoud at EPFL, 2014
+% Modified to work with sparse matrices:
+% Simon Blanchoud
+% Gonczy & Naef labs, EPFL
+% 2014
 
 % version 1.0 by Yi Cao at Cranfield University on 3rd March 2010
 % version 1.1 by Yi Cao at Cranfield University on 19th July 2010

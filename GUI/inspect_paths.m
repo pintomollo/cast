@@ -4,8 +4,8 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
 %
 %   [MYTRACKING, OPTS] = INSPECT_PATHS(MYTRACKING,OPTS) displays the window using
 %   the data contained in MYTRACKING and the parameter values from OPTS. It updates
-%   them accordingly to the user's choice. MYTRACKING should be a 'mytracking'
-%   structure as created by inspect_recording.m
+%   them accordingly to the user's choice. MYTRACKING should be a structure as
+%   defined by get_struct('myrecording')
 %
 %   [...] = INSPECT_PATHS() prompts the user to select a MYTRACKING containing
 %   Matlab file before opening the GUI.
@@ -26,6 +26,10 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
 
     % Loading was cancelled
     if (isequal(dirpath, 0))
+      mytracking = [];
+      opts = [];
+      is_updated = false;
+
       return;
     end
 
@@ -34,7 +38,10 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
 
     % Not what we expected
     if (~isfield(data, 'mytracking') || ~isfield(data, 'opts'))
-      disp(['Error: ' fname ' does not contain a valid mytracking structure']);
+      disp(['Error: ' fname ' does not contain a valid tracking structure']);
+      mytracking = [];
+      opts = [];
+      is_updated = false;
 
       return;
 
@@ -63,44 +70,14 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
   end
 
   % Dragzoom help message
-  imghelp = ['DRAGZOOM interactions (help dragzoom):\n\n', ...
-  '###Normal mode:###\n', ...
-  'single-click and holding LB : Activation Drag mode\n', ...
-  'single-click and holding RB : Activation Rubber Band for region zooming\n', ...
-  'single-click MB             : Activation ''Extend'' Zoom mode\n', ...
-  'scroll wheel MB             : Activation Zoom mode\n', ...
-  'double-click LB, RB, MB     : Reset to Original View\n\n', ...
-  ' \n', ...
-  '###Magnifier mode:###\n', ...
-  'single-click LB             : Not Used\n', ...
-  'single-click RB             : Not Used\n', ...
-  'single-click MB             : Reset Magnifier to Original View\n', ...
-  'scroll MB                   : Change Magnifier Zoom\n', ...
-  'double-click LB             : Increase Magnifier Size\n', ...
-  'double-click RB             : Decrease Magnifier Size\n', ...
-  ' \n', ...
-  '###Hotkeys in 2D mode:###\n', ...
-  '''+''                         : Zoom plus\n', ...
-  '''-''                         : Zoom minus\n', ...
-  '''0''                         : Set default axes (reset to original view)\n', ...
-  '''uparrow''                   : Up or down (inrerse) drag\n', ...
-  '''downarrow''                 : Down or up (inverse) drag\n', ...
-  '''leftarrow''                 : Left or right (inverse) drag\n', ...
-  '''rightarrow''                : Right or left (inverse) drag\n', ...
-  '''c''                         : On/Off Pointer Symbol ''fullcrosshair''\n', ...
-  '''g''                         : On/Off Axes Grid\n', ...
-  '''x''                         : If pressed and holding, zoom and drag works only for X axis\n', ...
-  '''y''                         : If pressed and holding, zoom and drag works only for Y axis\n', ...
-  '''m''                         : If pressed and holding, Magnifier mode on\n', ...
-  '''l''                         : On/Off Synchronize XY manage of 2-D axes\n', ...
-  '''control+l''                 : On Synchronize X manage of 2-D axes\n', ...
-  '''alt+l''                     : On Synchronize Y manage of 2-D axes\n', ...
-  '''s''                         : On/Off Smooth Plot (Experimental)'];
+  imghelp = regexp(help('dragzoom'), ...
+             '([ ]+Normal mode:.*\S)\s+Mouse actions in 3D','tokens');
+  imghelp = ['DRAGZOOM interactions (help dragzoom):\n\n', imghelp{1}{1}];
 
-  % Create the GUI using segmentations
+  % Create the GUI
   [hFig, handles] = create_figure();
 
-  % Allocate the various images. This allows them to be "persistent" between
+  % Allocate various variables. This allows them to be "persistent" between
   % different calls to the callback functions.
   orig_img = [];
   all_paths = [];
@@ -120,9 +97,9 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
   % And wait until the user is done
   uiwait(hFig);
 
-  % Store the segmentations
+  % Store the channels
   mytracking.channels = channels;
-  % Store the segmentations
+  % Store the trackings
   mytracking.trackings = trackings;
   % And get the experiment name
   mytracking.experiment = get(handles.experiment, 'String');
@@ -153,12 +130,14 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
 
     % If we have changed channel, we need to update the display of the buttons
     if (indx ~= handles.prev_channel)
+
       % Get the colormap for the displayed channel
       color_index = channels(indx).color(1);
 
-      % The name
+      % Set the name of the current panel
       set(handles.uipanel,'Title', [channels(indx).type ' ' num2str(indx)]);
 
+      % And put the GUI in blocked mode
       set(hFig, 'Name', 'Tracks Filtering (Processing...)');
       set(handles.all_buttons, 'Enable', 'off');
       recompute = true;
@@ -184,27 +163,33 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
       orig_img = double(load_data(channels(indx).fname, nimg));
     end
 
+    % Here we filter the tracks
     if (recompute)
+
       % Because it takes long, display it and block the GUI
       set(hFig, 'Name', 'Tracks Filtering (Processing...)');
-
       set(handles.all_buttons, 'Enable', 'off');
       drawnow;
       refresh(hFig);
 
+      % Perform the actual filtering of the paths
       links = filter_tracking(trackings(indx).detections, opts.tracks_filtering.min_path_length, opts.tracks_filtering.max_zip_length,opts.tracks_filtering.interpolate);
-
       paths = reconstruct_tracks(links, true);
       filtered_colors = colorize_graph(paths, colors.paths{color_index}(length(paths)));
     end
 
+    % Extract from the paths the current spots
     spots = cellfun(@(x)(x(x(:,end-1)==nimg,:)), all_paths, 'UniformOutput', false);
     spots = cat(1,spots{:});
 
+    % And the filtered ones as well
     spots_filt = cellfun(@(x)(x(x(:,end-1)==nimg,:)), paths, 'UniformOutput', false);
     spots_filt = cat(1,spots_filt{:});
 
+    % Do we need to reestimate the spots ?
     if (trackings(indx).reestimate_spots)
+
+      % Fancy display
       if (~recompute)
         set(hFig, 'Name', 'Tracks Filtering (Processing...)');
         set(handles.all_buttons, 'Enable', 'off');
@@ -212,6 +197,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
         refresh(hFig);
       end
 
+      % Perform the actual estimation
       spots_filt = reestimate_spots(spots_filt, orig_img, segmentations(indx), opts);
 
       if (~recompute)
@@ -223,7 +209,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
     % Update the index
     handles.prev_frame = nimg;
 
-    % Determine which image to display in the left panel
+    % Determine which type of image to display in the left panel
     switch handles.display(1)
 
       % The reconstructed image
@@ -256,10 +242,10 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
         colors1 = 'k';
     end
 
-    % Determine which image to display in the right panel
+    % Determine which type of image to display in the right panel
     switch handles.display(2)
 
-      % The reconstructed image
+      % Only the links pointing towards the current frame
       case 2
         if (~isempty(spots_filt))
           divs = spots_filt(:,1);
@@ -267,11 +253,13 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
         else
           spots2 = {[]};
         end
+
+        % Keep only the links pointing at the current frame
         links2 = cellfun(@(x)(x(abs(x(:,end-1)-nimg) < 2,:)), paths, 'UniformOutput', false);
         links2 = links2(~cellfun('isempty', links2));
         colors2 = colorize_graph(links2, colors.paths{color_index}(length(links2)));
 
-      % The difference between filtered and reconstructed
+      % All the full tracks
       case 3
         if (~isempty(spots_filt))
           divs = spots_filt(:,1);
@@ -282,23 +270,28 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
         links2 = paths;
         colors2 = filtered_colors;
 
-      % The filtered image
+      % No paths at all
       otherwise
         spots2 = {[]};
         links2 = {[]};
         colors2 = 'k';
     end
 
+    % Get the colors for the display
+    divisions_colors = colors.status{color_index};
+
     % If we have already created the axes and the images, we can simply change their
     % content (i.e. CData)
-    divisions_colors = colors.status{color_index};
     if (numel(handles.img) > 1 & all(ishandle(handles.img)))
+      % The images
       set(handles.img(1),'CData', orig_img);
       set(handles.img(2),'CData', orig_img);
 
+      % The paths
       plot_paths(handles.data(3), links1, colors1);
       plot_paths(handles.data(4), links2, colors2);
 
+      % And the spots on top
       plot_spots(handles.data(1), spots1, divisions_colors, true);
       plot_spots(handles.data(2), spots2, divisions_colors, true);
     else
@@ -340,8 +333,8 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
   end
 
   function options_Callback(hObject, eventdata)
-  % This function is responsible for handling the content of the
-  % structure which contains the parameters of the filtering algorithms.
+  % This function is responsible for handling the buttons responsible for the
+  % option structure
 
     % Block the GUI
     set(handles.all_buttons, 'Enable', 'off');
@@ -371,7 +364,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
         recompute = false;
     end
 
-    % Release the GUI and recompute the filters
+    % Release the GUI and recompute the display
     set(handles.all_buttons, 'Enable', 'on');
     update_display(recompute);
 
@@ -381,7 +374,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
   function gui_Callback(hObject, eventdata)
   % This function handles the callback of most buttons in the GUI !
 
-    % By default we recompute the filter
+    % By default we recompute the display
     recompute = true;
 
     % Get the channel index
@@ -406,7 +399,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
         recompute = false;
 
       % The radio buttons have the index of their respective choice encoded
-      % in their tag (e.g. radioXY). However, because all the iamges are stored
+      % in their tag (e.g. radioXY). However, because all the images are stored
       % we do not need to recompute anything !
       case 'radio'
         tmp_tag = get(eventdata.NewValue, 'tag');
@@ -458,8 +451,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
   end
 
   function channel_CloseRequestFcn(hObject, eventdata)
-  % This function converts the various indexes back into strings to prepare
-  % the segmentations structure for its standard form.
+  % This function releases the GUI to exit it
 
     uiresume(hFig);
 
@@ -468,7 +460,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
 
   function [hFig, handles] = create_figure
   % This function actually creates the GUI, placing all the elements
-  % and linking the calbacks.
+  % and linking the callbacks.
 
     % The number of channels provided
     nchannels = length(channels);
@@ -588,7 +580,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
 
     %%%%%%% Now the main panel
 
-    % The panel itsel
+    % The panel itself
     hPanel = uipanel('Parent', hFig, ...
                      'Title', [channels(1).type '1'],  ...
                      'Tag', 'uipanel',  ...
@@ -683,7 +675,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
                        'Tag', 'color');
     enabled = [enabled hColor];
 
-    % The various options for the user
+    % The various options for the filtering of the paths
     hRefine = uicontrol('Parent', hPanel, ...
                          'Units', 'normalized',  ...
                          'Callback', @gui_Callback, ...
@@ -753,7 +745,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
                      'prev_channel', -1, ...
                      'current', 1);
 
-    % Link both axes and activate the pan
+    % Link both axes to keep the same information on both sides
     linkaxes(handles.axes);
 
     return;

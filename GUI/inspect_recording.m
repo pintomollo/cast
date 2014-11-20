@@ -6,6 +6,7 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
 %   contained in CHANNELS, updates it accordingly to the user's choice and returns
 %   the adequate structure for later analysis MYTRACKING. CHANNELS can either
 %   be a string, a cell list of strings or a 'channel' structure (see get_struct.m).
+%   MYTRACKING is a structure as defined by get_struct('myrecording').
 %
 %   [...] = INSPECT_RECORDING() prompts the user to select a recording and converts
 %   it before opening the GUI.
@@ -66,7 +67,7 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
       fname = {fname};
     end
 
-    % Parse the list and copy its content into channels
+    % Parse the list and copy its content into the channels structure
     nchannels = length(fname);
     channels = get_struct('channel', [nchannels 1]);
     for i=1:nchannels
@@ -75,44 +76,14 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
   end
 
   % Dragzoom help message
-  imghelp = ['DRAGZOOM interactions (help dragzoom):\n\n', ...
-  '###Normal mode:###\n', ...
-  'single-click and holding LB : Activation Drag mode\n', ...
-  'single-click and holding RB : Activation Rubber Band for region zooming\n', ...
-  'single-click MB             : Activation ''Extend'' Zoom mode\n', ...
-  'scroll wheel MB             : Activation Zoom mode\n', ...
-  'double-click LB, RB, MB     : Reset to Original View\n\n', ...
-  ' \n', ...
-  '###Magnifier mode:###\n', ...
-  'single-click LB             : Not Used\n', ...
-  'single-click RB             : Not Used\n', ...
-  'single-click MB             : Reset Magnifier to Original View\n', ...
-  'scroll MB                   : Change Magnifier Zoom\n', ...
-  'double-click LB             : Increase Magnifier Size\n', ...
-  'double-click RB             : Decrease Magnifier Size\n', ...
-  ' \n', ...
-  '###Hotkeys in 2D mode:###\n', ...
-  '''+''                         : Zoom plus\n', ...
-  '''-''                         : Zoom minus\n', ...
-  '''0''                         : Set default axes (reset to original view)\n', ...
-  '''uparrow''                   : Up or down (inrerse) drag\n', ...
-  '''downarrow''                 : Down or up (inverse) drag\n', ...
-  '''leftarrow''                 : Left or right (inverse) drag\n', ...
-  '''rightarrow''                : Right or left (inverse) drag\n', ...
-  '''c''                         : On/Off Pointer Symbol ''fullcrosshair''\n', ...
-  '''g''                         : On/Off Axes Grid\n', ...
-  '''x''                         : If pressed and holding, zoom and drag works only for X axis\n', ...
-  '''y''                         : If pressed and holding, zoom and drag works only for Y axis\n', ...
-  '''m''                         : If pressed and holding, Magnifier mode on\n', ...
-  '''l''                         : On/Off Synchronize XY manage of 2-D axes\n', ...
-  '''control+l''                 : On Synchronize X manage of 2-D axes\n', ...
-  '''alt+l''                     : On Synchronize Y manage of 2-D axes\n', ...
-  '''s''                         : On/Off Smooth Plot (Experimental)'];
+  imghelp = regexp(help('dragzoom'), ...
+             '([ ]+Normal mode:.*\S)\s+Mouse actions in 3D','tokens');
+  imghelp = ['DRAGZOOM interactions (help dragzoom):\n\n', imghelp{1}{1}];
 
-  % Create the GUI using channels
+  % Create the GUI
   [hFig, handles] = create_figure();
 
-  % Allocate the various images. This allows them to be "persistent" between
+  % Allocate various variables. This allows them to be "persistent" between
   % different calls to the callback functions.
   img = [];
   orig_img = [];
@@ -169,7 +140,7 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
       % Get the colormap for the displayed channel
       color_index = channels(indx).color;
 
-      % The name
+      % Set the name of the current panel
       set(handles.uipanel,'Title', ['Channel ' num2str(indx)]);
 
       % The filters
@@ -207,6 +178,7 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
         orig_img = double(load_data(channels(indx).fname, nimg));
         img_next = double(load_data(channels(indx).fname, nimg+1));
       end
+
       % Update the index
       handles.prev_frame = nimg;
 
@@ -257,11 +229,11 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
     % Determine which image to display in the right panel
     switch handles.display(2)
 
-      % Next frame
+      % The next frame
       case 2
         img2 = img_next;
 
-      % Difference between current and next frame
+      % The difference between current and next frame
       case 3
         if (isempty(img_next))
           img2 = [];
@@ -269,7 +241,7 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
           img2 = (orig_img - img_next);
         end
 
-      % Raw image
+      % The raw image
       otherwise
         img2 = orig_img;
     end
@@ -282,8 +254,12 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
     else
 
       % Otherwise, we create the two images in their respective axes
-      handles.img = image(img1,'Parent', handles.axes(1),'CDataMapping', 'scaled');
-      handles.img(2) = image(img2,'Parent', handles.axes(2),'CDataMapping', 'scaled');
+      handles.img = image(orig_img,'Parent', handles.axes(1),...
+                        'CDataMapping', 'scaled',...
+                        'Tag', 'image');
+      handles.img(2) = image(orig_img,'Parent', handles.axes(2), ...
+                        'CDataMapping', 'scaled',...
+                        'Tag', 'image');
 
       % Hide the axes and prevent a distortion of the image due to stretching
       set(handles.axes,'Visible', 'off',  ...
@@ -296,8 +272,8 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
     % And set the colormap
     colormap(hFig, colors.colormaps{color_index}());
 
-    % Release the image if need be
     if (recompute)
+      % Release the image
       set(hFig, 'Name', 'Channel Identification');
       set(handles.all_buttons, 'Enable', 'on');
     end
@@ -323,10 +299,10 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
       channels(indx) = [];
       handles.current = 1;
 
-      % If it was the last one, we need to handle this
+      % If it was the only one, we need to handle this
       if (length(channels) == 0)
 
-        % Set up the indexes
+        % Set up the indexes as empty
         handles.current = 0;
         handles.prev_channel = -1;
 
@@ -335,13 +311,16 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
         set(handles.img, 'CData', []);
         set(handles.list, 'String', '');
 
-        % And call the movie conversion function
+        % And call the movie conversion function to load a new one
         new_channel = convert_movie();
 
+        % Did we get something back ?
         if (~isempty(new_channel))
+
           % Get the number of frames in each of them
           nframes = size_data(new_channel);
 
+          % Handle single frame
           set(handles.slider, 'Max', max(nframes,1.1), 'Value', 1);
 
           % We provide basic default values for all fields
@@ -373,15 +352,18 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
   function add_channel_Callback(hObject, eventdata)
   % This function adds a new channel to the current recording
 
+    % Remember how many there were
     nchannels = length(channels);
 
     % As this is long, block the GUI
     set(handles.all_buttons, 'Enable', 'off');
 
-    % And call the movie conversion function
+    % And call the movie conversion function to get a new channel
     new_channel = convert_movie();
 
+    % Did we get anything ?
     if (~isempty(new_channel))
+
       % Get the number of frames in each of them
       nframes = size_data(new_channel);
       curr_nframes = round(get(handles.slider, 'Max'));
@@ -426,19 +408,19 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
   end
 
   function options_Callback(hObject, eventdata)
-  % This function is responsible for handling the content of the
-  % structure which contains the parameters of the filtering algorithms.
+  % This function is responsible for handling the buttons responsible for the
+  % option structure
 
     % Block the GUI
     set(handles.all_buttons, 'Enable', 'off');
     drawnow;
     refresh(hFig);
 
-    % By default, recompute
-    recompute = true;
-
     % And get the type of button which called the callback (from its tag)
     type = get(hObject, 'tag');
+
+    % By default, recompute
+    recompute = true;
 
     % Handle all three buttons differently
     switch type
@@ -457,7 +439,7 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
         recompute = false;
     end
 
-    % Release the GUI and recompute the filters
+    % Release the GUI and recompute the display
     set(handles.all_buttons, 'Enable', 'on');
     update_display(recompute);
 
@@ -467,7 +449,7 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
   function gui_Callback(hObject, eventdata)
   % This function handles the callback of most buttons in the GUI !
 
-    % By default we recompute the filter
+    % By default we recompute the display
     recompute = true;
 
     % Get the channel index
@@ -491,7 +473,7 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
         handles.frame = round(get(hObject, 'Value'));
 
       % The radio buttons have the index of their respective choice encoded
-      % in their tag (e.g. radioXY). However, because all the iamges are stored
+      % in their tag (e.g. radioXY). However, because all the images are stored
       % we do not need to recompute anything !
       case 'radio'
         tmp_tag = get(eventdata.NewValue, 'tag');
@@ -545,7 +527,8 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
 
   function channel_CloseRequestFcn(hObject, eventdata)
   % This function converts the various indexes back into strings to prepare
-  % the channels structure for its standard form.
+  % the channels structure for its standard form before releasing the GUI
+  % to exit it
 
     % Create a copy of channels in case we need to cancel
     tmp_channels = channels;
@@ -592,7 +575,7 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
 
   function [hFig, handles] = create_figure
   % This function actually creates the GUI, placing all the elements
-  % and linking the calbacks.
+  % and linking the callbacks.
 
     % The number of channels provided
     nchannels = length(channels);
@@ -643,7 +626,7 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
     % Get the number of frames
     nframes = size_data(channels(1).fname);
 
-    % Create a name for the experiment
+    % Create a name for the experiment based on the filename
     exp_name = channels(1).fname;
     [junk, exp_name, junk] = fileparts(exp_name);
     [junk, exp_name, junk] = fileparts(exp_name);
@@ -1003,7 +986,7 @@ function [mytracking, opts, is_updated] = inspect_recording(fname, opts)
                      'prev_channel', -1, ...
                      'current', 1);
 
-    % Link both axes and activate the pan
+    % Link both axes to keep the same information on both sides
     linkaxes(handles.axes);
 
     return;

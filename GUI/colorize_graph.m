@@ -11,7 +11,7 @@ function colors = colorize_graph(coords, colors)
 %   GCOLORS = COLORIZE_GRAPH(PATHS, ...) computes the average position of the various
 %   PATHS to compute their distance to neighbors.
 %
-% Gonczy and Naef labs, EPFL
+% Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 07.07.2014
 

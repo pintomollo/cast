@@ -1,12 +1,12 @@
 function [mytracking, opts] = filter_paths(mytracking, opts)
 % FILTER_PATHS filters the paths previously build by tracking the detections in the
-% various channels of the experiment.
+% various channels of the experiment, reestimating theire parameters if need be.
 %
 %   [MYTRACKING] = FILTER_PATHS(MYTRACKING, OPTS) filters the paths present in the
 %   "trackings" field of MYTRACKING, using the options set in the "tracks_filtering"
 %   structure.
 %
-%   [MYTRACKING, OPTS] = SEGMENT_MOVIE(...) also returns the option structure OPTS.
+%   [MYTRACKING, OPTS] = FILTER_PATHS(...) also returns the option structure OPTS.
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud

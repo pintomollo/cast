@@ -10,7 +10,7 @@ function detected = reconstruct_detection(imgs, spots)
 %   detected SPOTS_GROUPS, organized in a cell array for the same size as the number of
 %   planes in IMGS.
 %
-%   To work properly, this function calls library/GaussMask2D.m
+%   To work properly, this function requires library/GaussMask2D.m
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud

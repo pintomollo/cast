@@ -131,6 +131,7 @@ function export_movie(mytracking, props, opts)
         hImg = image(img,'Parent', hAxes, 'CDataMapping', 'scaled');
         set(hAxes,'Visible', 'off', 'CLim', [0 maxuint], 'DataAspectRatio',  [1 1 1]);
 
+        % Use the defined colormap
         colormap(hFig, colors.colormaps{color_index}());
       end
 

@@ -4,8 +4,8 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
 %
 %   [MYTRACKING, OPTS] = INSPECT_SEGMENTATION(MYTRACKING,OPTS) displays the window
 %   using the data contained in MYTRACKING and the parameter values from OPTS. It
-%   updates them accordingly to the user's choice. MYTRACKING should be a 'mytracking'
-%   structure as created by inspect_movie.m
+%   them accordingly to the user's choice. MYTRACKING should be a structure as
+%   defined by get_struct('myrecording')
 %
 %   [...] = INSPECT_SEGMENTATION() prompts the user to select a MYTRACKING containing
 %   Matlab file before opening the GUI.
@@ -26,6 +26,10 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
 
     % Loading was cancelled
     if (isequal(dirpath, 0))
+      mytracking = [];
+      opts = [];
+      is_updated = false;
+
       return;
     end
 
@@ -34,7 +38,10 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
 
     % Not what we expected
     if (~isfield(data, 'mytracking') || ~isfield(data, 'opts'))
-      disp(['Error: ' fname ' does not contain a valid mytracking structure']);
+      disp(['Error: ' fname ' does not contain a valid tracking structure']);
+      mytracking = [];
+      opts = [];
+      is_updated = false;
 
       return;
 
@@ -52,48 +59,16 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
   channels = mytracking.channels;
   nchannels = length(channels);
   segmentations = get_struct('segmentation', [1, nchannels]);
-  colors = get_struct('colors');
-  color_index = 1;
 
   % Dragzoom help message
-  imghelp = ['DRAGZOOM interactions (help dragzoom):\n\n', ...
-  '###Normal mode:###\n', ...
-  'single-click and holding LB : Activation Drag mode\n', ...
-  'single-click and holding RB : Activation Rubber Band for region zooming\n', ...
-  'single-click MB             : Activation ''Extend'' Zoom mode\n', ...
-  'scroll wheel MB             : Activation Zoom mode\n', ...
-  'double-click LB, RB, MB     : Reset to Original View\n\n', ...
-  ' \n', ...
-  '###Magnifier mode:###\n', ...
-  'single-click LB             : Not Used\n', ...
-  'single-click RB             : Not Used\n', ...
-  'single-click MB             : Reset Magnifier to Original View\n', ...
-  'scroll MB                   : Change Magnifier Zoom\n', ...
-  'double-click LB             : Increase Magnifier Size\n', ...
-  'double-click RB             : Decrease Magnifier Size\n', ...
-  ' \n', ...
-  '###Hotkeys in 2D mode:###\n', ...
-  '''+''                         : Zoom plus\n', ...
-  '''-''                         : Zoom minus\n', ...
-  '''0''                         : Set default axes (reset to original view)\n', ...
-  '''uparrow''                   : Up or down (inrerse) drag\n', ...
-  '''downarrow''                 : Down or up (inverse) drag\n', ...
-  '''leftarrow''                 : Left or right (inverse) drag\n', ...
-  '''rightarrow''                : Right or left (inverse) drag\n', ...
-  '''c''                         : On/Off Pointer Symbol ''fullcrosshair''\n', ...
-  '''g''                         : On/Off Axes Grid\n', ...
-  '''x''                         : If pressed and holding, zoom and drag works only for X axis\n', ...
-  '''y''                         : If pressed and holding, zoom and drag works only for Y axis\n', ...
-  '''m''                         : If pressed and holding, Magnifier mode on\n', ...
-  '''l''                         : On/Off Synchronize XY manage of 2-D axes\n', ...
-  '''control+l''                 : On Synchronize X manage of 2-D axes\n', ...
-  '''alt+l''                     : On Synchronize Y manage of 2-D axes\n', ...
-  '''s''                         : On/Off Smooth Plot (Experimental)'];
+  imghelp = regexp(help('dragzoom'), ...
+             '([ ]+Normal mode:.*\S)\s+Mouse actions in 3D','tokens');
+  imghelp = ['DRAGZOOM interactions (help dragzoom):\n\n', imghelp{1}{1}];
 
   % Create the GUI using segmentations
   [hFig, handles] = create_figure();
 
-  % Allocate the various images. This allows them to be "persistent" between
+  % Allocate the various variables. This allows them to be "persistent" between
   % different calls to the callback functions.
   img = [];
   orig_img = [];
@@ -102,6 +77,10 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
   reconstr = [];
   reconstr_filt = [];
   is_updated = true;
+
+  % And handle the colormaps as well
+  colors = get_struct('colors');
+  color_index = 1;
 
   % Display the figure
   set(hFig,'Visible', 'on');
@@ -150,10 +129,11 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
 
     % If we have changed channel, we need to update the display of the buttons
     if (indx ~= handles.prev_channel)
+
       % Get the colormap for the displayed channel
       color_index = channels(indx).color(1);
 
-      % The name
+      % Set the name of the current panel
       set(handles.uipanel,'Title', [channels(indx).type ' ' num2str(indx)]);
 
       % The filters
@@ -169,27 +149,29 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
       handles.prev_frame = -1;
     end
 
+    % Here we actually segment the image (and update some important displays)
     if (recompute)
+
       % Because it takes long, display it and block the GUI
       set(hFig, 'Name', 'Images Segmentation (Processing...)');
       set(handles.all_buttons, 'Enable', 'off');
       drawnow;
       refresh(hFig);
 
-      % The frame index
+      % Update the frame index
       set(handles.text, 'String', ['Frame #' num2str(nimg)]);
 
-      % Here we recompute all the filtering of the frame
+      % Delete any previous value for the noise level
       noise = [];
 
       % Load the new image
       orig_img = double(load_data(channels(indx).fname, nimg));
 
+      % Copy it to the working variable
+      img = orig_img;
+
       % Update the index
       handles.prev_frame = nimg;
-
-      % Copy to the working variable
-      img = orig_img;
 
       % Detrend the image ?
       if (segmentations(indx).detrend)
@@ -219,7 +201,7 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
           %disp('No segmentation')
       end
 
-      % Filter the detected spots
+      % Filter the detected spots using the extram values provided
       if (isempty(noise))
         noise = estimate_noise(img);
       end
@@ -228,6 +210,7 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
       filt_spots = filter_spots(spots, extrema, opts.segmenting.filter_min_intensity*noise(2), ...
                                 opts.segmenting.filter_overlap);
 
+      % And reconstrcut the image using the previous detection
       reconstr = reconstruct_detection(orig_img, real(spots));
       reconstr_filt = reconstruct_detection(orig_img, filt_spots);
     end
@@ -244,11 +227,11 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
     % Determine which image to display in the left panel
     switch handles.display(1)
 
-      % The reconstructed image
+      % The original image
       case 2
         img1 = orig_img;
 
-      % The difference between filtered and reconstructed
+      % The difference between the filtered and the original images
       case 3
         img1 = orig_img - img;
 
@@ -264,7 +247,7 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
       case 2
         img2 = curr_rec;
 
-      % The difference between filtered and reconstructed
+      % The difference between the filtered and the reconstructed images
       case 3
         img2 = img - curr_rec;
 
@@ -282,6 +265,7 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
       set(handles.img(1),'CData', img1);
       set(handles.img(2),'CData', img2);
 
+      % And update the spots
       plot_spots(handles.data, curr_spots, spots_colors);
     else
 
@@ -317,8 +301,8 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
   end
 
   function options_Callback(hObject, eventdata)
-  % This function is responsible for handling the content of the
-  % structure which contains the parameters of the filtering algorithms.
+  % This function is responsible for handling the buttons responsible for the
+  % option structure
 
     % Block the GUI
     set(handles.all_buttons, 'Enable', 'off');
@@ -348,7 +332,7 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
         recompute = false;
     end
 
-    % Release the GUI and recompute the filters
+    % Release the GUI and recompute the display
     set(handles.all_buttons, 'Enable', 'on');
     update_display(recompute);
 
@@ -387,7 +371,7 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
         handles.frame = round(get(hObject, 'Value'));
 
       % The radio buttons have the index of their respective choice encoded
-      % in their tag (e.g. radioXY). However, because all the iamges are stored
+      % in their tag (e.g. radioXY). However, because all the images are stored
       % we do not need to recompute anything !
       case 'radio'
         tmp_tag = get(eventdata.NewValue, 'tag');
@@ -440,7 +424,8 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
 
   function channel_CloseRequestFcn(hObject, eventdata)
   % This function converts the various indexes back into strings to prepare
-  % the segmentations structure for its standard form.
+  % the segmentations structure for its standard form before releasing the
+  % GUI to exit it.
 
     % Create a copy of segmentations in case we need to cancel
     tmp_segmentations = segmentations;
@@ -497,7 +482,6 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
     nchannels = length(channels);
 
     % Initialize the possible segmentations and their corresponding channels
-    %typestring = {'None','detect_spots','lidke_fit', 'Nuclei'};
     typestring = {'None','detect_spots'};
     typechannel = {'luminescence','fluorescence'};
 
@@ -836,7 +820,7 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
                      'prev_channel', -1, ...
                      'current', 1);
 
-    % Link both axes and activate the pan
+    % Link both axes to keep the same information on both sides
     linkaxes(handles.axes);
 
     return;

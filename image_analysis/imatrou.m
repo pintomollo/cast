@@ -53,7 +53,7 @@ function [projection, atrous] = imatrou(img, size_max, coef)
 
   if (coef > 0)
     % Loop over the different sizes of kernel
-    for i=1:nplanes
+    for i = 1:nplanes
 
       % Create the kernel of the correct size
       atrou_kernel = insert_holes(kernel, i);
@@ -85,7 +85,7 @@ function [projection, atrous] = imatrou(img, size_max, coef)
   end
 
   % Loop over the different sizes of kernel
-  for i=1:nplanes
+  for i = 1:nplanes
 
     % Create the kernel of the correct size
     atrou_kernel = insert_holes(kernel, i);
@@ -118,8 +118,8 @@ function [projection, atrous] = imatrou(img, size_max, coef)
   return;
 end
 
-function atrou_kernel = insert_holes(kernel, i)
 % This function creates the kernel of level i
+function atrou_kernel = insert_holes(kernel, i)
 
   % Initially we keep the original kernel
   if (i <= 1)
@@ -127,7 +127,7 @@ function atrou_kernel = insert_holes(kernel, i)
 
     return;
   end
-  
+
   % Count the number of elements ("taps") of the kernel
   ntaps = length(kernel);
 

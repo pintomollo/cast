@@ -1,11 +1,11 @@
-function  abs_path = absolutepath( rel_path, act_path )
+function  abs_path = absolutepath( rel_path, act_path, throwErrorIfFileNotExist )
 %ABSOLUTEPATH  returns the absolute path relative to a given startpath.
 %   The startpath is optional, if omitted the current dir is used instead.
 %   Both argument must be strings.
 %
 %   Syntax:
 %      abs_path = ABSOLUTEPATH( rel_path, start_path )
-%   
+%
 %   Parameters:
 %      rel_path           - Relative path
 %      start_path         - Start for relative path  (optional, default = current dir)
@@ -21,69 +21,37 @@ function  abs_path = absolutepath( rel_path, act_path )
 
 %   Jochen Lenz
 
-if (numel(rel_path) > 1 & ((ispc & rel_path(2) == ':') | (~ispc & rel_path(1) == filesep)))
-  %warning(['Path ' rel_path ' is already absolute']);
-  abs_path = rel_path;
+%   Jonathan karr 12/17/2010
+%   - making compatible with linux
+%   - commented out lower cases
+%   - switching findstr to strfind
+%   - fixing mlint warnings
+%   Jonathan karr 1/11/2011
+%   - Per Abel Brown's comments adding optional error checking for absolute path of directories that don't exist
+%   Jonathan karr 1/12/2011
+%   - fixing bugs and writing test
 
-  return;
-end
+%   Simon Blanchoud 11/20/2014
+%   - Modified to accept already absolute paths
 
 % 2nd parameter is optional:
-if  nargin < 2
-   act_path = cd;
+if nargin < 3
+    throwErrorIfFileNotExist = true;
+    if  nargin < 2
+        act_path = pwd;
+    end
 end
 
-% Predefine return string:
-abs_path = '';
-
-% Make sure strings end by a filesep character:
-if  length(act_path) == 0   |   ~isequal(act_path(end),filesep)
-   act_path = [act_path filesep];
-end
-if  length(rel_path) == 0   |   ~isequal(rel_path(end),filesep)
-   rel_path = [rel_path filesep];
+%build absolute path
+file = java.io.File(rel_path);
+if (file.isAbsolute())
+    abs_path = rel_path;
+else
+    file = java.io.File([act_path filesep rel_path]);
+    abs_path = char(file.getCanonicalPath());
 end
 
-% Convert to all lowercase:
-[act_path] = fileparts(act_path);
-[rel_path] = fileparts(rel_path);
-
-% Create a cell-array containing the directory levels:
-act_path_cell = pathparts(act_path);
-rel_path_cell = pathparts(rel_path);
-abs_path_cell = act_path_cell;
-
-% Combine both paths level by level:
-while  length(rel_path_cell) > 0
-   if  isequal( rel_path_cell{1} , '.' )
-      rel_path_cell(  1) = [];
-   elseif  isequal( rel_path_cell{1} , '..' )
-      abs_path_cell(end) = [];
-      rel_path_cell(  1) = [];
-   else
-      abs_path_cell{end+1} = rel_path_cell{1};
-      rel_path_cell(1)     = [];
-   end
+%check that file exists
+if throwErrorIfFileNotExist && ~exist(abs_path, 'file')
+    throw(MException('absolutepath:fileNotExist', 'The path %s or file %s doesn''t exist', abs_path, abs_path(1:end-1)));
 end
-
-% Put cell array into string:
-for  i = 1 : length(abs_path_cell) - 1
-   abs_path = [abs_path abs_path_cell{i} filesep];
-end
-abs_path = [abs_path abs_path_cell{end}];
-
-return
-
-% -------------------------------------------------
-
-function  path_cell = pathparts(path_str)
-
-path_str = [filesep path_str filesep];
-path_cell = {};
-
-sep_pos = findstr( path_str, filesep );
-for i = 1 : length(sep_pos)-1
-   path_cell{i} = path_str( sep_pos(i)+1 : sep_pos(i+1)-1 );
-end
-
-return

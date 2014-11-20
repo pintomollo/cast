@@ -1,6 +1,7 @@
 function [mystruct, is_updated] = edit_options(mystruct, name)
 % EDIT_OPTIONS displays a GUI enabling the user to interactively
-% modify the content of a structure.
+% modify the content of a structure provinding tooltip help from
+% the comments of the corresponding section of get_struct.m.
 %
 %   [MODIFIED] = EDIT_OPTIONS(ORIGINAL) displays the content of
 %   ORIGINAL to allow modifying it. Pressing the "Cancel" button
@@ -9,7 +10,7 @@ function [mystruct, is_updated] = edit_options(mystruct, name)
 %   [...] = EDIT_OPTIONS(ORIGINAL, NAME) displays NAME in the title
 %   bar. Used primarly during esition of sub-structures.
 %
-% Gonczy and Naef labs, EPFL
+% Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 09.05.14
 
@@ -239,9 +240,8 @@ function [mystruct, is_updated] = edit_options(mystruct, name)
     % Move a bit faster
     move = 2*scroll_struct.VerticalScrollCount * scroll_struct.VerticalScrollAmount;
 
-    handles = get(hFig, 'UserData');
-
     % Update the slider value
+    handles = get(hFig, 'UserData');
     offsets = get(handles.slider, {'Value', 'Min', 'Max'});
     new_offset = offsets{1} - move;
     new_offset = max(new_offset, offsets{2});

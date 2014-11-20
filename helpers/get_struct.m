@@ -10,7 +10,7 @@ function mystruct = get_struct(type, nstruct)
 %
 %   MYSTRUCT = GET_STRUCT(TYPE) returns one structure (SIZE = 1).
 %
-% Gonczy and Naef labs, EPFL
+% Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 13.05.2014
 
@@ -39,13 +39,13 @@ function mystruct = get_struct(type, nstruct)
 
     % Structure storing the color codes used in the display
     case 'colors'
-      mystruct = struct('colormaps', {{@gray, @redbluemap, @redgreencmap, @hot, @jet}}, ... % The colors used for the images
-                        'spots', {{'r','k','b','g','k'}}, ...          % The colors used for the detections
-                        'spots_next', {{'b','r','k','b', 'w'}}, ...     % The second colors for the detections
-                        'status', {{'myg','mkg','mkg','myg','myg'}}, ...         % The colors for the status of cells
-                        'links', {{'y','k','k','y','y'}}, ...          % The colors for the links between cells
-                        'paths', {{@redbluemap, @redgreencmap, @gray, @redbluemap, @gray}}, ...          % The colors for the paths
-                        'text', {{'r','k','b','g','k'}});              % The colors for the text in the movies
+      mystruct = struct('colormaps', {{@gray, @redbluemap, @redgreencmap, @hot, @jet}}, ...     % The colors used for the images
+                        'spots', {{'r','k','b','g','k'}}, ...                                   % The colors used for the detections
+                        'spots_next', {{'b','r','k','b', 'w'}}, ...                             % The second colors for the detections
+                        'status', {{'myg','mkg','mkg','myg','myg'}}, ...                        % The colors for the status of cells
+                        'links', {{'y','k','k','y','y'}}, ...                                   % The colors for the links between cells
+                        'paths', {{@redbluemap, @redgreencmap, @gray, @redbluemap, @gray}}, ... % The colors for the paths
+                        'text', {{'r','k','b','g','k'}});                                       % The colors for the text in the movies
 
     % Structure to store detections from segmentations
     case 'detection'
@@ -55,41 +55,41 @@ function mystruct = get_struct(type, nstruct)
 
     % Structure handling the export options
     case 'exporting'
-      mystruct = struct('file_name', '', ...        % The name of the file to create
-                        'low_duplicates', true, ... % Do we use low duplicates paths ?
-                        'full_cycles_only', false, ... % Keep only tracks that both start and end with a division
-                        'export_data', true, ...    % Do we export a CSV table of the data ?
-                        'data_aligning_type', 'time', ... % How do we align the paths ?
-                        'export_movie', false, ...  % Do we export an AVI movie ?
-                        'movie_show_index', true, ... % Do we display the track indexes in the movie ?
-                        'movie_show_detection', true, ... % Do we display the detected radii in the movie ?
-                        'movie_show_paths', false, ...  % Do we display the connections of the tracking in the movie ?
-                        'movie_show_reconstruction', false); % Do we display the reconstructed image using the detected spots ?
+      mystruct = struct('file_name', '', ...                % The name of the file to create
+                        'low_duplicates', true, ...         % Do we use low duplicates paths ?
+                        'full_cycles_only', false, ...      % Keep only tracks that both start and end with a division
+                        'export_data', true, ...            % Do we export a CSV table of the data ?
+                        'data_aligning_type', 'time', ...   % How do we align the paths ?
+                        'export_movie', false, ...          % Do we export an AVI movie ?
+                        'movie_show_index', true, ...       % Do we display the track indexes in the movie ?
+                        'movie_show_detection', true, ...   % Do we display the detected radii in the movie ?
+                        'movie_show_paths', false, ...      % Do we display the connections of the tracking in the movie ?
+                        'movie_show_reconstruction', false);% Do we display the reconstructed image using the detected spots ?
 
     % The few parameters required to filter the image appropriately
     case 'image_filters'
-      mystruct = struct('hot_pixels_threshold', 15, ...     % see imhotpixels.m
-                        'cosmic_rays_threshold', 15, ...    % see imcosmics.m
-                        'cosmic_rays_window_size', 10, ...  % see imcosmics.m
-                        'detrend_meshpoints', 32);          % see imdetrend.m
+      mystruct = struct('hot_pixels_threshold', 15, ...     % The threshold used to detect hot pixels using MEAN(pixels) +/- THRESH*STD(pixels)
+                        'cosmic_rays_threshold', 15, ...    % The threshold used to detect cosmic rays as being separated from lower values by a gap larger than THRESH*MAD
+                        'cosmic_rays_window_size', 10, ...  % The size of the overlapping tiles the algorithm works with
+                        'detrend_meshpoints', 32);          % The number of positions over the image used for detrending
 
     % Structure containing the different parameters required for tracking spots
     case 'image_segmentation'
-      mystruct = struct('filter_max_size', 10, ...         % max radius (in um), see filter_spots.m
-                        'filter_min_size', 2, ...          % min radius (in um), see filter_spots.m
-                        'filter_min_intensity', 15, ...    % min intensity (x noise variance), see filter_spots.m
-                        'filter_overlap', 0.75, ...        % see filter_spots.m
-                        'detrend_meshpoints', 32, ...      % see imdetrend.m
-                        'denoise_func', @gaussian_mex, ... % see imdenoise.m
-                        'denoise_size', -1,          ...   % see imdenoise.m
-                        'denoise_remove_bkg', true, ...    % see imdenoise.m
-                        'atrous_max_size', 10, ...         % see imatrous.m
-                        'atrous_thresh', 10, ...           % see imatrous.m
-                        'estimate_thresh', 1, ...          % thresh x noise variance, see estimate_spots.m
-                        'estimate_niter', 15, ...          % see estimate_spots.m
-                        'estimate_stop', 1e-2, ...         % see estimate_spots.m
-                        'estimate_weight', 0.1, ...        % see estimate_spots.m
-                        'estimate_fit_position', false);   % see estimate_spots.m
+      mystruct = struct('filter_max_size', 10, ...         % Maximal radius (in um), see filter_spots.m
+                        'filter_min_size', 2, ...          % Minimal radius (in um), see filter_spots.m
+                        'filter_min_intensity', 15, ...    % Minimal intensity (multiplied by the variance of the noise), see filter_spots.m
+                        'filter_overlap', 0.75, ...        % Minimal overlap (in percents) for spots to be fused together
+                        'detrend_meshpoints', 32, ...      % The number of positions over the image used for detrending
+                        'denoise_func', @gaussian_mex, ... % Function used to denoise the image (see imdenoise.m)
+                        'denoise_size', -1,          ...   % Parameter used by the denoising function (-1: default value)
+                        'denoise_remove_bkg', true, ...    % Removes the background uniform value (estimated using estimate_noise.m) ?
+                        'atrous_max_size', 10, ...         % Maximal size of the spots to detect (in um), see imatrous.m
+                        'atrous_thresh', 10, ...           % Threshold used to detect a valid spot as brighter than THRESH*MAD
+                        'estimate_thresh', 1, ...          % Utilizes only the pixels brighter than this threshold (times noise variance) to estimate the spots
+                        'estimate_niter', 15, ...          % Maximal number in the estimation procedure, see estimate_spots.m
+                        'estimate_stop', 1e-2, ...         % Stopping criterion for the estimation procedure, see estimate_spots.m
+                        'estimate_weight', 0.1, ...        % Convergence weight for the estiamtion procedure, see estimate_spots.m
+                        'estimate_fit_position', false);   % Fit also the subpixel position of the spot (typically less stable) ?
 
 
     % Structure used to handle the metadata provided by the microscope
@@ -108,10 +108,10 @@ function mystruct = get_struct(type, nstruct)
       mychannel = get_struct('channel', 0);
       mysegment = get_struct('segmentation', 0);
       mytracks = get_struct('tracking', 0);
-      mystruct = struct('channels', mychannel, ...  % Channels of the recording
+      mystruct = struct('channels', mychannel, ...      % Channels of the recording
                         'segmentations', mysegment, ... % Segmentation data
-                        'trackings', mytracks, ...   % Tracking data
-                        'experiment', '');          % Name of the experiment
+                        'trackings', mytracks, ...      % Tracking data
+                        'experiment', '');              % Name of the experiment
 
     % Global structure of options/parameters for an analysis
     case 'options'
@@ -119,53 +119,55 @@ function mystruct = get_struct(type, nstruct)
       mysegm = get_struct('image_segmentation');
       mytrac = get_struct('spot_tracking');
       mytrkf = get_struct('tracks_filtering');
-      mystruct = struct('config_files', {{}}, ...   % The various configuration files loaded
-                        'binning', 1, ...           % Pixel binning used during acquisition
-                        'ccd_pixel_size', 16, ... % X-Y size of the pixels in µm (of the CCD camera, without magnification)
-                        'magnification', 20, ...    % Magnification of the objective of the microscope
-                        'spot_tracking', mytrac, ...% Parameters for tracking the spots
-                        'filtering', myfilt, ...    % Parameters for filtering the recordings
+      mystruct = struct('config_files', {{}}, ...       % The various configuration files loaded
+                        'binning', 1, ...               % Pixel binning used during acquisition
+                        'ccd_pixel_size', 16, ...       % X-Y size of the pixels in um (of the CCD camera, without magnification)
+                        'magnification', 20, ...        % Magnification of the objective of the microscope
+                        'spot_tracking', mytrac, ...    % Parameters for tracking the spots
+                        'filtering', myfilt, ...        % Parameters for filtering the recordings
                         'tracks_filtering', mytrkf, ... % Parameters for filtering the tracks
-                        'pixel_size', -1, ...       % X-Y size of the pixels in um (computed as ccd_pixel_size / magnification)
-                        'segmenting', mysegm, ...   % Parameters for segmenting the recordings
-                        'time_interval', 300, ...   % Time interval between frames (in seconds)
-                        'verbosity', 2);            % Verbosity level of the analysis
+                        'pixel_size', -1, ...           % X-Y size of the pixels in um (computed as ccd_pixel_size / magnification)
+                        'segmenting', mysegm, ...       % Parameters for segmenting the recordings
+                        'time_interval', 300, ...       % Time interval between frames (in seconds)
+                        'verbosity', 2);                % Verbosity level of the analysis
 
     % Structure used to segment a channel
     case 'segmentation'
       mydetection = get_struct('detection',0);
-      mystruct = struct('denoise', true, ...        % Denoise the segmentation (see imdenoise) ?
-                        'detrend', false, ...       % Detrend the segmentation (see imdetrend.m)
-                        'filter_spots', true, ...   % Filter the spots (see filter_spots.m)
-                        'detections', mydetection, ... % the structure to store the resulting detections
-                        'type', {{}});                 % the type of segmentation
+      mystruct = struct('denoise', true, ...           % Denoise the segmentation (see imdenoise) ?
+                        'detrend', false, ...          % Detrend the segmentation (see imdetrend.m) ?
+                        'filter_spots', true, ...      % Filter the spots (see filter_spots.m) ?
+                        'detections', mydetection, ... % The structure used to store the resulting detections
+                        'type', {{}});                 % The type of segmentation
 
     % Structure containing the different parameters required for tracking spots
     case 'spot_tracking'
-      mystruct = struct('spot_max_speed', 0.05, ...    % Maximal speed of displacement of a spot (in um/s)
-                        'allow_branching_gap', false, ...     % see track_spots.m
-                        'min_section_length', 5, ...          % see filter_tracking.m
+      mystruct = struct('spot_max_speed', 0.05, ...           % Maximal speed of displacement of a spot (in um/s)
+                        'allow_branching_gap', false, ...     % Allows merging/splitting to occur at the same time as gap closing ?
+                        'min_section_length', 5, ...          % The minimum number of contiguous frames a path "section" should last to be kept for merging/spliting/gap closing
                         'bridging_max_gap', 3, ...            % Considered number of frames for the gap closing algorithm (see track_spots.m)
-                        'max_intensity_ratio', Inf, ...       % see track_spots.m
-                        'bridging_function', @bridging_cost_sparse_mex, ... % Function used to measure the gap-closing weight
-                        'joining_function', @joining_cost_sparse_mex, ... % Same but for the joinging weight
-                        'splitting_function', @splitting_cost_sparse_mex, ... % For the splitting weight
-                        'linking_function', @linking_cost_sparse_mex); ... % And for the frame-to-frame linking 
+                        'max_intensity_ratio', Inf, ...       % Defines an upper bound to the allowed signal ratios (see track_spots.m)
+                        'bridging_function', @bridging_cost_sparse_mex, ...   % Function used to measure the gap-closing weight
+                        'joining_function', @joining_cost_sparse_mex, ...     % Function used to measure the joinging weight
+                        'splitting_function', @splitting_cost_sparse_mex, ... % Function used to measure the splitting weight
+                        'linking_function', @linking_cost_sparse_mex); ...    % Function used to measure the frame-to-frame linking
 
     % The trackings as stored after segmentation
     case 'tracking'
       mydetection = get_struct('detection',0);
-      mystruct = struct('reestimate_spots', true, ...   % Do we reestimate the newly interpolated spots ?
-                        'post_processing_funcs', {{}}, ... % Allow to post-process paths
-                        'filtered', mydetection, ... % the structure to store the detections after filtering
-                        'detections', mydetection); % the structure to store the resulting detections
-                        %'force_cell_behavior', true, ... % Prevent fusion and appearance of spots
+      mystruct = struct('reestimate_spots', true, ...      % Do we reestimate the newly interpolated spots ?
+                        'filtered', mydetection, ...       % The structure used to store the detections after filtering
+                        'detections', mydetection);        % The structure used to store the resulting detections
+
+                        % Functions that are not implemented yet :
+                        %'force_cell_behavior', true, ...   % Prevent fusion and appearance of spots
+                        %'post_processing_funcs', {{}}, ... % Allow to post-process paths
 
     % The options for filtering tracks
     case 'tracks_filtering'
-      mystruct = struct('interpolate', true, ...        % see filter_tracking.m
-                        'max_zip_length', 3, ...        % see filter_tracking.m
-                        'min_path_length', 10);         % see filter_tracking.m
+      mystruct = struct('interpolate', true, ...        % Interpolate the position of cells to fill gaps ?
+                        'max_zip_length', 3, ...        % A "zip" is defined as a cell splitting and merging back together. This defines the maximum number of frames this separation can last to be closed
+                        'min_path_length', 10);         % The minimum number of frames a path should last to be kept
 
     % If the required type of structure has not been implemented, return an empty one
     otherwise

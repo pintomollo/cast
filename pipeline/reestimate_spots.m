@@ -5,10 +5,10 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
 %   [MYTRACKING] = REESTIMATE_SPOTS(MYTRACKING, OPTS) refines all the channels
 %   present in MYTRACKING, when needed, using the options set in the "trackings"
 %   structure, using the parameter values from OPTS. The resulting detections are
-%   stored back in "detections" in the corresponding segmentation field.
+%   then stored in "filtered" in the corresponding segmentation field.
 %
-%   [SEGMENTATION] = REESTIMATE_SPOTS(SPOTS, IMG, SEGMENTATION, OPTS) performs the TYPE
-%   re-estimation in IMG, for the given SPOTS as for SEGMENTATION.
+%   [SEGMENTATION] = REESTIMATE_SPOTS(SPOTS, IMG, SEGMENTATION, OPTS) performs the
+%   re-estimation in IMG, for the given SPOTS as detailed in SEGMENTATION.
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud

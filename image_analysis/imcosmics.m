@@ -21,7 +21,7 @@ function [new_img] = imcosmics(img, block_size, thresh)
 %   [1] Pych, W. A Fast Algorithm for Cosmic-Ray Removal from Single Images.
 %       Publications of the Astronomical Society of the Pacific 816 (2004).
 %
-% Gonczy and Naef labs, EPFL
+% Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 15.05.2014
 
@@ -45,7 +45,7 @@ function [new_img] = imcosmics(img, block_size, thresh)
 
     % Allocate the output and iterate
     new_img = img;
-    for i=1:nplanes
+    for i = 1:nplanes
       new_img(:,:,i) = imcosmics(img(:,:,i), block_size, thresh);
     end
 

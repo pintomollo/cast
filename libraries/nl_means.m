@@ -1,5 +1,5 @@
 function [M1] = nl_means(M, T, k, max_dist, do_median, ndims)
-% NL_MEANS denoises an image using non-local Means [1].
+% NL_MEANS denoises an image using Non-Local Means [1].
 %
 %   [M] = NL_MEANS(M) denoises M using the default values of the NL_MEANS algorithm.
 %
@@ -14,7 +14,7 @@ function [M1] = nl_means(M, T, k, max_dist, do_median, ndims)
 % [1] Buades A, Coll B, Morel JM, "On image denoising methods". SIAM Multiscale Model
 %     Simul 4 (2005) 490-530.
 %
-% This code is a simplified version of the toolbox from Gabirel Peyre (2006):
+% This code is a simplified version of the toolbox from Gabriel Peyre (2006):
 % http://www.mathworks.com/matlabcentral/fileexchange/13619-toolbox-non-local-means
 % All Copyrights to him
 %

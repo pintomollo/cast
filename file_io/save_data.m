@@ -1,5 +1,6 @@
 function done = save_data(fname, imgs)
-% SAVE_DATA stores images into the provided filename as stack TIFF files.
+% SAVE_DATA stores images into the provided filename as stack TIFF files using
+% imwrite.
 %
 %   DONE = SAVE_DATA(FNAME, IMG) stores IMG in FNAME as a stack TIFF file. If FNAME
 %   does not exist, it creates it. If it does, IMG is appended at the end of it.

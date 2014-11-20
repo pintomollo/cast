@@ -43,7 +43,7 @@ function img = imhotpixels(orig_img, varargin)
 
   % If anything has to be done
   if (any(bad_pixels(:)))
-  
+
     % Apply the required strategy to compute the new value of the hot pixels
     switch (method)
 
@@ -117,6 +117,6 @@ function [thresh, method, params, filter] = parse_input(varargin)
   if (~iscell(params))
     params = {params};
   end
-  
+
   return;
 end

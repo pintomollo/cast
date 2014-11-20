@@ -64,7 +64,7 @@ function [img, noise] = imdenoise(img, rm_bkg, func, varargin)
   noise = estimate_noise(img);
 
   % Loop over the stack size
-  for i=1:size(img,3)
+  for i = 1:size(img,3)
 
     % Few educated guesses
     switch func2str(func)

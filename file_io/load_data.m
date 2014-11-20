@@ -7,7 +7,7 @@ function [result] = load_data(fname, indexes)
 %
 %   IMGS = LOAD_DATA(STRUCT, INDXS) utilizes the field 'fname' in STRUCT as FNAME.
 %
-% Naef lab, EPFL
+% Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 15.05.2014
 

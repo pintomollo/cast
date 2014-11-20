@@ -17,15 +17,13 @@ function params = set_pixel_size(params, pixel_size)
 %   In case the value of the parameter you want to set depends on the size of the pixel
 %   (in um), you can substitute its value by the expression that computes it. In this
 %   expression, you can then use the variable 'pixel_size' which will contain the
-%   appropriate value. Simply put the whole expression in a string terminated by the 
+%   appropriate value. Simply put the whole expression in a string terminated by the
 %   usual ';' character. This function will then evaluate this expression using the
 %   value of 'pixel_size' and store the result into the same field.
 %
 %   Multiple lines can be stored in a single field separated by ';'. This technique
-%   allows to define your own temporary variables. In this case you will need to 
+%   allows to define your own temporary variables. In this case you will need to
 %   explicit the assignment as in any normal expression using '='.
-%
-%   See "get_struct.m" for some examples of use.
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud
