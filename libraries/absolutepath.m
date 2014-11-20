@@ -33,10 +33,11 @@ function  abs_path = absolutepath( rel_path, act_path, throwErrorIfFileNotExist 
 
 %   Simon Blanchoud 11/20/2014
 %   - Modified to accept already absolute paths
+%   - Allowed non-existing absolute paths
 
 % 2nd parameter is optional:
 if nargin < 3
-    throwErrorIfFileNotExist = true;
+    throwErrorIfFileNotExist = false;
     if  nargin < 2
         act_path = pwd;
     end

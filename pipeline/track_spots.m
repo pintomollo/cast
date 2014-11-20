@@ -174,7 +174,7 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, min_length
 
   % Make sure we at elast got this handler !
   frame_linking_weight = weighting_funcs{1};
-  if (isempty(frame_linking_weight))
+  if (isempty(frame_linking_weight) || isempty(frame_linking_weight(1, 1, 1, 1)))
     error('Tracking:track_spots', 'No valid frame to frame weighting function provided');
   end
 
@@ -327,9 +327,9 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, min_length
   splitting_weight = weighting_funcs{4};
 
   % And check if we need to skip some functionalities
-  tracking_options = ~[(isempty(closing_weight) || max_gap==1), ...
-                       isempty(joining_weight), ...
-                       isempty(splitting_weight)] & (nframes > 2);
+  tracking_options = ~[isempty(closing_weight) || max_gap==1 || isempty(closing_weight(1, 1, 1, 1, 1)), ...
+                       isempty(joining_weight) || isempty(joining_weight(1, 1, 1, 1)), ...
+                       isempty(splitting_weight) || isempty(splitting_weight(1, 1, 1, 1))] & (nframes > 2);
 
   % Decide whether we need to build a list of intermediate spots
   get_interm = any(tracking_options(2:3));
@@ -461,7 +461,7 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, min_length
       [merge_weight, alt_merge_weight] = joining_weight(ends, interm, max_move, branching_gap, max_ratio, avg_movement, spots, links);
     else
       merge_weight = sparse(nends, ninterm);
-      alt_merge_weight = sparse(ninterm);
+      alt_merge_weight = -ones(ninterm, 1);
     end
 
     if (do_display)
@@ -473,7 +473,7 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, min_length
       [split_weight, alt_split_weight] = splitting_weight(starts, interm, max_move, branching_gap, max_ratio, avg_movement, spots, links);
     else
       split_weight = sparse(ninterm, nstarts);
-      alt_split_weight = sparse(ninterm);
+      alt_split_weight = -ones(ninterm, 1);
     end
 
     if (do_display)
@@ -531,13 +531,20 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, min_length
                   all_indxj+nends+ninterm];                      % The lower right block, for symmetry
 
     % Same for the second coordinate
-    all_indxj = [all_indxj; alt_indx(1:nends)+nstarts+ninterm; alt_indx(1:nstarts); ...
+    all_indxj = [all_indxj; ...
+                 alt_indx(1:nends)+nstarts+ninterm; ...
+                 alt_indx(1:nstarts); ...
                  alt_indx(1:ninterm)+nstarts+ninterm+nends; ...
-                 alt_indx(1:ninterm)+nstarts; all_indxi+nstarts+ninterm];
+                 alt_indx(1:ninterm)+nstarts; ...
+                 all_indxi+nstarts+ninterm];
 
     % And the corresponding values
-    all_vals = [all_vals; alt_dist(1:nends); alt_dist(1:nstarts); alt_split_weight; ...
-                alt_merge_weight; ones(size(all_vals))*min_dist];
+    all_vals = [all_vals; ...
+                alt_dist(1:nends); ...
+                alt_dist(1:nstarts); ...
+                alt_split_weight; ...
+                alt_merge_weight; ...
+                ones(size(all_vals))*min_dist];
 
     % Finally, build the whole sparse matrix
     dist = sparse(all_indxii, all_indxj, all_vals, nstarts + nends + 2*ninterm, ...

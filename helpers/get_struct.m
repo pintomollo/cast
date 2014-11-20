@@ -59,7 +59,7 @@ function mystruct = get_struct(type, nstruct)
                         'low_duplicates', true, ...         % Do we use low duplicates paths ?
                         'full_cycles_only', false, ...      % Keep only tracks that both start and end with a division
                         'export_data', true, ...            % Do we export a CSV table of the data ?
-                        'data_aligning_type', 'time', ...   % How do we align the paths ?
+                        'data_aligning_type', 'time', ...   % How do we align the paths ? (time/start/end)
                         'export_movie', false, ...          % Do we export an AVI movie ?
                         'movie_show_index', true, ...       % Do we display the track indexes in the movie ?
                         'movie_show_detection', true, ...   % Do we display the detected radii in the movie ?

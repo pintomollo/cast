@@ -59,7 +59,6 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
   channels = mytracking.channels;
   nchannels = length(channels);
   segmentations = mytracking.segmentations;
-  trackings = get_struct('tracking', [1 nchannels]);
 
   % We will also need the detections, even if empty !
   for i=1:nchannels
@@ -105,9 +104,7 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
   mytracking.experiment = get(handles.experiment, 'String');
   % And reset the other fields
   if (is_updated)
-    for i=1:nchannels
-      mytracking.trackings(i).filtered = get_struct('detection', [1 nframes]);
-    end
+    mytracking.trackings = get_struct('tracking', [1 nchannels]);
   end
 
   % Delete the whole figure

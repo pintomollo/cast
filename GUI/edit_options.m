@@ -373,24 +373,7 @@ function [mystruct, is_updated] = edit_options(mystruct, name)
           case 'num'
             val = NaN;
           case 'func'
-            correct = false;
-            % Enforce the data type
-            while (~correct)
-
-              answer = inputdlg(['''' values{i,1} ''' is not a valid function, do you want to correct it ?'], 'Correct a function handle', 1, {val});
-              if (isempty(answer))
-                [tmp, correct] = mystr2func(values{i, 2});
-              else
-                [tmp, correct] = mystr2func(answer{1});
-              end
-            end
-
-            val = tmp;
-
-            if (length(val)==1)
-              val = val{1};
-            end
-
+            val = @(varargin)([]);
           case 'strel'
             val = strel('arbitrary', []);
         end
@@ -415,6 +398,7 @@ function [values, correct] = mystr2func(value)
   else
     splits = regexp(value, '\s+', 'split');
   end
+
   values = cellfun(@str2func, splits, 'UniformOutput', false);
 
   implicit = cellfun(@(x)(x(1) == '@'), splits);

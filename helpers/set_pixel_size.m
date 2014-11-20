@@ -4,8 +4,8 @@ function params = set_pixel_size(params, pixel_size)
 % other values in the parameter structure which values depend on "pixel_size"
 % (see get_struct.m).
 % 
-%   OPTS = SET_PIXEL_SIZE(OPTS) computes pixel_size using the fields 'ccd_pixel_size'
-%   and 'magnification' of a generic parameter structure OPTS (e.g. get_struct('options')).
+%   OPTS = SET_PIXEL_SIZE(OPTS) computes pixel_size using the fields 'ccd_pixel_size',
+%   'magnification' and 'binning' of the parameter structure OPTS (get_struct('options')).
 %   Using this value, it then computes the actual value of the dynamic fields of OPTS.
 %
 %   OPTS = SET_PIXEL_SIZE(OPTS, PIXEL_SIZE) uses the provided value for pixel_size

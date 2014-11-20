@@ -648,12 +648,12 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
     % Handle all three buttons differently
     switch type
 
-      % Call the editing function
+      % Create a new, empty experiment
       case 'new'
         mytracking = get_struct('myrecording');
         opts = get_struct('options');
 
-      % Call the loading function
+      % Call the data processing GUI and process the channels accordingly
       case 'process'
         set(hFig, 'Visible', 'off')
         [mytracking, opts, reload] = inspect_recording(mytracking, opts);
@@ -666,7 +666,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
         end
         set(hFig, 'Visible', 'on')
 
-      % Call the saving function
+      % Call the segmenting GUI, and segment accordingly
       case 'segment'
         set(hFig, 'Visible', 'off')
         [mytracking, opts, reload] = inspect_segmentation(mytracking, opts);
@@ -678,7 +678,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
         end
         set(hFig, 'Visible', 'on')
 
-      % Call the saving function
+      % Call the scell tracking GUI, and track accordingly
       case 'track'
         set(hFig, 'Visible', 'off')
         [mytracking, opts, reload] = inspect_tracking(mytracking, opts);
@@ -690,7 +690,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
         end
         set(hFig, 'Visible', 'on')
 
-      % Call the saving function
+      % Call the path filtering GUI, and filter accordingly
       case 'paths'
         set(hFig, 'Visible', 'off')
         [mytracking, opts, reload] = inspect_paths(mytracking, opts);
@@ -889,18 +889,14 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
                       'Style', 'text',  ...
                       'Tag', 'text1');
 
-    slider_step = [1 1];
-    slider_max = 1;
-    slider_min = 0;
-
     hFrame1 = uicontrol('Parent', hFig, ...
                     'Units', 'normalized',  ...
                     'Callback', @gui_Callback, ...
                     'Position', [0.19 0.03 0.28 0.025], ...
                     'Value', 1, ...
-                    'SliderStep', slider_step, ...
-                    'Max', slider_max, ...
-                    'Min', slider_min, ...
+                    'SliderStep', [1 10]/nframes, ...
+                    'Max', max(nframes, 1.1), ...
+                    'Min', 1, ...
                     'Style', 'slider', ...
                     'Tag', 'slider1');
     enabled = [enabled hFrame1];
@@ -919,9 +915,9 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
                     'Callback', @gui_Callback, ...
                     'Position', [0.58 0.03 0.28 0.025], ...
                     'Value', 1, ...
-                    'SliderStep', slider_step, ...
-                    'Max', slider_max, ...
-                    'Min', slider_min, ...
+                    'SliderStep', [1 10]/nframes, ...
+                    'Max', max(nframes, 1.1), ...
+                    'Min', 1, ...
                     'Style', 'slider', ...
                     'Tag', 'slider2');
     enabled = [enabled hFrame2];

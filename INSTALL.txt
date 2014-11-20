@@ -19,7 +19,9 @@ hence a C/C++ compiler is required (see http://www.mathworks.com/support/compile
 
 For compatibility among microscopy file types, the Bio-Formats conversion toolbox from
 LOCI is also required (http://loci.wisc.edu/software/bio-formats). However, its
-download will be attempted automatically during the installation procedure.
+download will be attempted automatically during the installation procedure. In case of
+failure, one should place the Bio-Formats command-line tools (bftools.zip), along with
+the LOCI library tools (loci_tools.jar) in a folder "cell-tracking/bftools".
 
 To install the Cell Tracking Plateform, change your Matlab working directory to this
 "cell-tracking" one (either using the command-line "cd", or using the corresponding
