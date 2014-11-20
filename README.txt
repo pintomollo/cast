@@ -211,3 +211,23 @@ licence.txt for details.
 % 7. Adding new features
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+  - If you want to add some features to this plateform, the code is fully commented
+    and should be quite self-explanatory !
+
+  - In particular, to add another segmenting function, you should:
+    - Add the new function in cell-tracking/pipeline.
+    - Add the corresponding choice in cell-tracking/pipeline/segment_movie.m
+      (both in the first switch and in the following processing code).
+    - Add the corresponding segmentation to the reestimation step
+      (cell-tracking/pipeline/reestimate_spots.m).
+    - Add the new segmenting function to the segentation GUI 
+      (cell-tracking/GUI/inspect_segmentation.m):
+      - in the segmentation switch (l. 191)
+      - in the drop-down list (l. 485)
+
+  - Only make sure that the input/ouput variables type and formats stay the same !
+
+  - Good luck and have fun segmenting !
+
+Cheers,
+Simon
