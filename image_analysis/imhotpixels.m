@@ -29,6 +29,7 @@ function img = imhotpixels(orig_img, varargin)
 
   % Get the pixels as a vector
   pixels = double(orig_img(:));
+
   % Compute their mean and standard deviation
   [mean_value, stddev] = mymean(pixels);
 

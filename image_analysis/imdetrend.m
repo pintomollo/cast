@@ -1,8 +1,8 @@
 function [img, p] = imdetrend(orig_img, npts)
-% IMDETREND removes a 2D cubic trend in and image as produced by uneven illumination.
+% IMDETREND removes a 2D quadratic trend in and image as produced by uneven illumination.
 %
 %   [IMG] = IMDETREND(IMG) removes the trend in IMG which is computed by smoothing
-%   IMG and performing a 2D cubic least-square fit onto the outter pixels of the
+%   IMG and performing a 2D quadratic least-square fit onto the outter pixels of the
 %   resulting image. Only the outter most fourth of the image is used for the fit as
 %   the central part if often occupied by bright elements of interest.
 %
