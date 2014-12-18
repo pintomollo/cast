@@ -97,12 +97,14 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
   % And wait until the user is done
   uiwait(hFig);
 
-  % Store the channels
-  mytracking.channels = channels;
-  % Store the trackings
-  mytracking.trackings = trackings;
-  % And get the experiment name
-  mytracking.experiment = get(handles.experiment, 'String');
+  if (is_updated)
+    % Store the channels
+    mytracking.channels = channels;
+    % Store the trackings
+    mytracking.trackings = trackings;
+    % And get the experiment name
+    mytracking.experiment = get(handles.experiment, 'String');
+  end
 
   % Delete the whole figure
   delete(hFig);
@@ -361,6 +363,32 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
       % Call the saving function
       case 'save'
         save_parameters(opts);
+        recompute = false;
+
+      % Save a snapshot
+      case 'snapshot'
+
+        % Fancy output
+        disp('[Select a SVG filename]');
+
+        % Prompting the user for the filename
+        [fname, dirpath] = uiputfile({'*.svg', 'SVG vectorized image'}, ['Select a filename for your snapshot'], 'export/snapshot.svg');
+
+        % Not cancelled
+        if (ischar(fname))
+
+          % This might take a while
+          curr_name = get(hFig, 'Name');
+          set(hFig, 'Name', [curr_name ' (Saving snapshot...)']);
+
+          % Get the full name and save the snapshot !
+          fname = fullfile(dirpath, fname);
+          plot2svg(fname, hFig);
+
+          % And release !
+          set(hFig, 'Name', curr_name);
+        end
+
         recompute = false;
     end
 
@@ -695,6 +723,15 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
                          'Tag', 'force_cell_behavior');
     enabled = [enabled hForce];
     %}
+
+    % The Snapshot button
+    hSnapshot = uicontrol('Parent', hFig, ...
+                    'Units', 'normalized',  ...
+                    'Callback', @options_Callback, ...
+                    'Position', [0.01 0.93 0.05 0.05], ...
+                    'String', 'Snapshot',  ...
+                    'Tag', 'snapshot');
+    enabled = [enabled hSnapshot];
 
     % The buttons which allows to edit, load and save parameters
     hEdit = uicontrol('Parent', hPanel, ...
