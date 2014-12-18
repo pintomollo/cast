@@ -231,6 +231,13 @@ function [gauss_params] = estimate_spots(imgs, estim_pos, wsize, thresh, niter, 
       % And the results vector
       res = [sum(se2ls); sum(x.*se2ls); sum(y.*se2ls); sum(z.*se2ls)];
 
+      % Avoid badly scaled matrix
+      rs = rcond(mat);
+      if (abs(det(mat)) < 1e-5 || isnan(rs) || abs(rs) < 1e-3)
+        coeffs = [-Inf -1 -1 Inf];
+        break;
+      end
+
       % Do the actual regression
       coeffs = mat \ res;
 
@@ -305,6 +312,13 @@ function [gauss_params] = estimate_spots(imgs, estim_pos, wsize, thresh, niter, 
 
       % Results
       res = [sum(se2ls); sum(z.*se2ls)];
+
+      % Avoid badly scaled matrix
+      rs = rcond(mat);
+      if (abs(det(mat)) < 1e-5 || isnan(rs) || abs(rs) < 1e-3)
+        coeffs = [-Inf Inf];
+        break;
+      end
 
       % Regression
       coeffs = mat \ res;

@@ -27,7 +27,7 @@ function cMap = redbluemap(N)
 
   % Indexes for the new number of colors
   new_pos = [0:N-1];
-  new_pos = new_pos/new_pos(end);
+  new_pos = new_pos/max(new_pos(end), 1);
 
   % Direct interpolation in each RGB coordinate
   cMap = interp1(pos(:), refMap, new_pos(:));

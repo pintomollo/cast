@@ -66,81 +66,93 @@ function colors = colorize_graph(coords, colors)
   % Compute their mutual distance
   dist = (bsxfun(@minus, xcoord, xcoord.').^2 + bsxfun(@minus, ycoord, ycoord.').^2);
 
-  % Simplify the all-to-all distance, using Delaunay triangulation
-  trig = delaunay(xcoord, ycoord);
+  icolors = [];
+  % Try to simplify the all-to-all distance, using Delaunay triangulation
+  if (length(xcoord) > 2)
+    try
+      trig = delaunay(xcoord, ycoord);
 
-  % Get the respective matrix coordinates to retrieve the corresponding distances
-  icoord = trig;
-  jcoord = trig(:,[2:end 1]);
+      % Get the respective matrix coordinates to retrieve the corresponding distances
+      icoord = trig;
+      jcoord = trig(:,[2:end 1]);
 
-  icoord = icoord(:);
-  jcoord = jcoord(:);
+      icoord = icoord(:);
+      jcoord = jcoord(:);
 
-  % Sort the distances
-  subs = sub2ind(size(dist), icoord, jcoord);
-  edge_dists = dist(subs);
-  [junk, indx] = sort(edge_dists);
+      % Sort the distances
+      subs = sub2ind(size(dist), icoord, jcoord);
+      edge_dists = dist(subs);
+      [junk, indx] = sort(edge_dists);
 
-  % Reorder the indexes
-  icoord = icoord(indx);
-  jcoord = jcoord(indx);
+      % Reorder the indexes
+      icoord = icoord(indx);
+      jcoord = jcoord(indx);
 
-  % Get the number of colors and the two indexes used to choose a new color
-  ncolors = size(colors, 1);
-  sindx = 1;
-  eindx = floor(ncolors/2)+1;
+      % Get the number of colors and the two indexes used to choose a new color
+      ncolors = size(colors, 1);
+      sindx = 1;
+      eindx = floor(ncolors/2)+1;
 
-  % Initialize the index array for colors
-  icolors = NaN(size(xcoord));
+      % Initialize the index array for colors
+      icolors = NaN(size(xcoord));
 
-  % Loop over all edges
-  for i=1:length(icoord)
+      % Loop over all edges
+      for i=1:length(icoord)
 
-    % Anything left to do ?
-    todo = isnan(icolors);
-    invert = false;
+        % Anything left to do ?
+        todo = isnan(icolors);
+        invert = false;
 
-    % Assign the current vertex ?
-    if (todo(icoord(i)))
+        % Assign the current vertex ?
+        if (todo(icoord(i)))
 
-      % Just check if it is closer to the other index
-      subdists = dist(icoord(i), todo);
-      [v, indx] = min(subdists);
+          % Just check if it is closer to the other index
+          subdists = dist(icoord(i), todo);
+          [v, indx] = min(subdists);
 
-      % If there has been chosen colors, find the closest one
-      if (~isempty(indx))
-        tmpc = icolors(todo);
-        tmpc = tmpc(indx);
+          % If there has been chosen colors, find the closest one
+          if (~isempty(indx))
+            tmpc = icolors(todo);
+            tmpc = tmpc(indx);
 
-        % Maybe we better choose the other index
-        invert = (abs(tmpc - sindx) < abs(tmpc - eindx));
+            % Maybe we better choose the other index
+            invert = (abs(tmpc - sindx) < abs(tmpc - eindx));
+          end
+
+          % Assign a color from one of the two index, and update them
+          if (invert)
+            icolors(icoord(i)) = eindx;
+            eindx = mod(eindx, ncolors)+1;
+          else
+            icolors(icoord(i)) = sindx;
+            sindx = mod(sindx, ncolors)+1;
+          end
+        end
+
+        % If we need to find a color, choose it from one of the two indexes
+        if (todo(jcoord(i)))
+          if (invert)
+            icolors(jcoord(i)) = sindx;
+            sindx = mod(sindx, ncolors)+1;
+          else
+            icolors(jcoord(i)) = eindx;
+            eindx = mod(eindx, ncolors)+1;
+          end
+        end
+
+        % All were chosen
+        if (~any(todo))
+          break;
+        end
       end
-
-      % Assign a color from one of the two index, and update them
-      if (invert)
-        icolors(icoord(i)) = eindx;
-        eindx = mod(eindx, ncolors)+1;
-      else
-        icolors(icoord(i)) = sindx;
-        sindx = mod(sindx, ncolors)+1;
-      end
+    catch
+      % Nothing
     end
+  end
 
-    % If we need to find a color, choose it from one of the two indexes
-    if (todo(jcoord(i)))
-      if (invert)
-        icolors(jcoord(i)) = sindx;
-        sindx = mod(sindx, ncolors)+1;
-      else
-        icolors(jcoord(i)) = eindx;
-        eindx = mod(eindx, ncolors)+1;
-      end
-    end
-
-    % All were chosen
-    if (~any(todo))
-      break;
-    end
+  % Something went wrong...
+  if (isempty(icolors))
+    icolors = randperm(sum(~empty_cells)).';
   end
 
   % Reorder colors and return it
