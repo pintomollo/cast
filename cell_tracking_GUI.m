@@ -117,7 +117,9 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
   return;
 
   function setup_environment()
+  % This function steups all the variables and GUI elements required for it to work
 
+    % Some default global variables
     channels = mytracking.channels;
     nchannels = length(channels);
     segmentations = mytracking.segmentations;
@@ -147,6 +149,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
       exp_name = 'Load a recording here -->';
     end
 
+    % Set the parameters for the sliders
     if isfinite(nframes)
       slider_step = [1 10]/nframes;
       slider_max = max(nframes, 1.1);
@@ -157,47 +160,59 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
       slider_min = 1;
     end
 
+    % The title of the current panel
     if (nchannels > 0)
       panel_title = [channels(1).type '1'];
     else
       panel_title = '';
     end
 
+    % Update the lists and experiment name
     set(handles.list, 'String', liststring);
     set(handles.experiment, 'String', exp_name);
 
+    % Apply the values to the sliders
     set(handles.slider1, 'SliderStep', slider_step, 'Max', slider_max, 'Min', slider_min, 'Value', 1);
     set(handles.slider2, 'SliderStep', slider_step, 'Max', slider_max, 'Min', slider_min, 'Value', 1);
     set(handles.text1, 'String', 'Frame #1');
     set(handles.text2, 'String', 'Frame #1');
 
+    % And the title
     set(handles.uipanel, 'Title', panel_title);
 
+    % Initialize the ounters and "pointers" used by the GUI
     handles.prev_frame = [-1 -1];
     handles.frame = [1 1];
     handles.prev_channel = -1;
     handles.current = 1;
 
+    % Now check which steps have already been done in this recording
     has_segmentation = false;
     has_tracking = false;
     has_filtered = false;
 
+    % Well, without data, nothing is possible
     if (nchannels == 0)
       set(handles.save, 'Enable', 'off');
       set(handles.pipeline(2:end), 'Enable', 'off')
       set(handles.pipeline(1), 'String', 'Load Recording')
     else
+      % Now that's a start !
       set(handles.save, 'Enable', 'on');
       set(handles.pipeline, 'Enable', 'on');
       set(handles.pipeline(1), 'String', 'Process Recording')
 
+      % But without detections, nothing goes further
       if (isempty(segmentations))
         set(handles.pipeline(3:end), 'Enable', 'off')
       else
+
+        % Now do we have the trackings as well ?
         has_segmentation = true;
         if (~isempty(trackings) && (length(trackings(1).detections)==nframes))
           has_tracking = true;
 
+          % Make sure we even have filtered them...
           if (isfield(trackings(1), 'filtered') && (length(trackings(1).filtered)==nframes))
             for i=1:nframes
               has_filtered = (~isempty(trackings(1).filtered(i).cluster));
@@ -578,32 +593,6 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
           end
         end
         recompute = false;
-
-      % Save a snapshot
-      case 'snapshot'
-
-        % Fancy output
-        disp('[Select a SVG filename]');
-
-        % Prompting the user for the filename
-        [fname, dirpath] = uiputfile({'*.svg', 'SVG vectorized image'}, ['Select a filename for your snapshot'], 'export/snapshot.svg');
-
-        % Not cancelled
-        if (ischar(fname))
-
-          % This might take a while
-          curr_name = get(hFig, 'Name');
-          set(hFig, 'Name', [curr_name ' (Saving snapshot...)']);
-
-          % Get the full name and save the snapshot !
-          fname = fullfile(dirpath, fname);
-          plot2svg(fname, hFig);
-
-          % And release !
-          set(hFig, 'Name', curr_name);
-        end
-
-        recompute = false;
     end
 
     % Release the GUI and recompute the filters
@@ -647,6 +636,32 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
       % Call the saving function
       case 'save'
         save_parameters(opts);
+        recompute = false;
+
+      % Save a snapshot
+      case 'snapshot'
+
+        % Fancy output
+        disp('[Select a SVG filename]');
+
+        % Prompting the user for the filename
+        [fname, dirpath] = uiputfile({'*.svg', 'SVG vectorized image'}, ['Select a filename for your snapshot'], 'export/snapshot.svg');
+
+        % Not cancelled
+        if (ischar(fname))
+
+          % This might take a while
+          curr_name = get(hFig, 'Name');
+          set(hFig, 'Name', [curr_name ' (Saving snapshot...)']);
+
+          % Get the full name and save the snapshot !
+          fname = fullfile(dirpath, fname);
+          plot2svg(fname, hFig);
+
+          % And release !
+          set(hFig, 'Name', curr_name);
+        end
+
         recompute = false;
     end
 
@@ -889,15 +904,6 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
                       'Tag', 'experiment');
     enabled = [enabled hName];
 
-    % The Snapshot button
-    hSnapshot = uicontrol('Parent', hFig, ...
-                    'Units', 'normalized',  ...
-                    'Callback', @experiment_Callback, ...
-                    'Position', [0.01 0.93 0.05 0.05], ...
-                    'String', 'Snapshot',  ...
-                    'Tag', 'snapshot');
-    enabled = [enabled hSnapshot];
-
     % The Load/Save buttons
     hLoadExp = uicontrol('Parent', hFig, ...
                     'Units', 'normalized',  ...
@@ -1123,6 +1129,15 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
                        'String', 'Colormap',  ...
                        'Tag', 'color');
     enabled = [enabled hColor];
+
+    % The Snapshot button
+    hSnapshot = uicontrol('Parent', hFig, ...
+                    'Units', 'normalized',  ...
+                    'Callback', @options_Callback, ...
+                    'Position', [0.01 0.93 0.05 0.05], ...
+                    'String', 'Snapshot',  ...
+                    'Tag', 'snapshot');
+    enabled = [enabled hSnapshot];
 
     % The buttons which allows to edit, load and save parameters
     hEdit = uicontrol('Parent', hPanel, ...
