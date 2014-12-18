@@ -93,7 +93,7 @@ function hgroup = plot_paths(h, paths, color)
 
       % If we ran out of lines, create a new one
       if (count > nlines)
-        line('XData', curr_paths(:,2), 'YData', curr_paths(:,3), 'Parent', hgroup, 'Color', curr_color, 'Marker', '*');
+        line('XData', curr_paths(:,2), 'YData', curr_paths(:,3), 'Parent', hgroup, 'Color', curr_color, 'Marker', 'o');
 
       % Otherwise, utilise an existing one
       else
