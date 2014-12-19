@@ -649,6 +649,10 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
         save_parameters(opts);
         recompute = false;
 
+      % Clean the TmpData folder
+      case 'clean'
+        clean_tmp_files();
+
       % Save a snapshot
       case 'snapshot'
 
@@ -1149,6 +1153,15 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
                     'String', 'Snapshot',  ...
                     'Tag', 'snapshot');
     enabled = [enabled hSnapshot];
+
+    % The Cleaning button
+    hClean = uicontrol('Parent', hFig, ...
+                    'Units', 'normalized',  ...
+                    'Callback', @options_Callback, ...
+                    'Position', [0.01 0.03 0.075 0.035], ...
+                    'String', 'Clean TmpData',  ...
+                    'Tag', 'clean');
+    enabled = [enabled hClean];
 
     % The buttons which allows to edit, load and save parameters
     hEdit = uicontrol('Parent', hPanel, ...

@@ -152,13 +152,22 @@ function [newfile] = bftools_convert(fname)
   file_pattern = regexp(metadata, 'File pattern = ([^\n]*)\n', 'tokens');
 
   % In case of multiple files, regroup them into one single file
+  merge_cmd = '-stitch ';
   if (~isempty(file_pattern))
     orig_pattern = file_pattern{1};
     file_pattern = regexprep(orig_pattern, '<\d+-\d+>', '');
 
     % In case we did not delete the pattern, it means there was nothing to merge !
-    if (length(orig_pattern) == length(file_pattern))
+    if (length(orig_pattern{1}) == length(file_pattern{1}))
       file_pattern = '';
+    else
+
+      % Otherwise, make sure they should be merged !!
+      answer = questdlg(['There are several files with the naming pattern: ''' orig_pattern{1} '''. Should we merge them together ?'], 'Merging multiple files ?');
+      if (~strcmp(answer,'Yes'))
+        merge_cmd = '';
+        file_pattern = '';
+      end
     end
   end
 
@@ -230,10 +239,10 @@ function [newfile] = bftools_convert(fname)
   % Call directly the command line tool to do the job
   if (ispc)
     cmd_newname = ['"' newname '"'];
-    [res, infos] = system(['bfconvert.bat -stitch -separate ' cmd_name ' ' cmd_newname]);
+    [res, infos] = system(['bfconvert.bat ' merge_cmd '-separate ' cmd_name ' ' cmd_newname]);
   else
     cmd_newname = strrep(newname,' ','\ ');
-    [res, infos] = system(['./bfconvert -stitch -separate ' cmd_name ' ' cmd_newname]);
+    [res, infos] = system(['./bfconvert ' merge_cmd '-separate ' cmd_name ' ' cmd_newname]);
   end
 
   % Delete the window if need be
