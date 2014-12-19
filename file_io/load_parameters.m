@@ -186,6 +186,12 @@ function opts = load_parameters(opts, fnames)
     else
       opts.config_files = [opts.config_files(:); fnames(:)];
     end
+
+    % And remove duplicates as well as empty calls
+    files = opts.config_files(~cellfun('isempty', opts.config_files));
+    [values, indx, junk] = unique(files);
+    indx = sort(indx);
+    opts.config_files = files(indx);
   end
 
   % Recompute the pixel size just in case
