@@ -257,6 +257,8 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
 
         plot_spots(handles.data(1), []);
         plot_spots(handles.data(2), []);
+
+        set(handles.scale, 'XData', [], 'YData', []);
       end
 
       return;
@@ -471,7 +473,8 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
     end
 
     % If we have already created the axes and the images, we can simply change their
-    % content (i.e. CData)
+    % content (i.e. CData, XData, ...)
+    [size_y, size_x] = size(orig_img);
     if (numel(handles.img) > 1 & all(ishandle(handles.img)))
       set(handles.img(1),'CData', orig_img);
       set(handles.img(2),'CData', img_next);
@@ -481,6 +484,8 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
 
       plot_spots(handles.data(1), spots1, divisions_colors1, iscell(spots1));
       plot_spots(handles.data(2), spots2, divisions_colors2, iscell(spots2));
+
+      set(handles.scale, 'XData', size_x*[0.05 0.05]+[0 10/opts.pixel_size], 'YData', size_y*[0.95 0.95]);
     else
 
       % Otherwise, we create the two images in their respective axes
@@ -504,7 +509,6 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
       handles.data(2) = plot_spots(handles.axes(2), spots2, divisions_colors2, iscell(spots2));
 
       % And the necessary scale bar
-      [size_y, size_x] = size(orig_img);
       handles.scale = line('XData', size_x*[0.05 0.05]+[0 10/opts.pixel_size], 'YData', size_y*[0.95 0.95], 'Parent', handles.axes(1), 'Color', 'w', 'LineWidth', 4);
 
       % Drag and Zoom library from Evgeny Pr aka iroln
@@ -635,7 +639,10 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
 
       % Call the loading function
       case 'load'
+        tmp_list = opts.config_files;
+        opts.config_files = {};
         opts = load_parameters(opts);
+        opts.config_files = [tmp_list(:); opts.config_files(:)];
 
       % Call the saving function
       case 'save'
@@ -832,7 +839,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
       end
     end
 
-    if (~strncmp(answer, 'Cancel', 6))
+    if (nchannels == 0 || ~strncmp(answer, 'Cancel', 6))
       uiresume(hFig);
     end
 

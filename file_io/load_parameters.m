@@ -19,7 +19,7 @@ function opts = load_parameters(opts, fnames)
 
     % If it contains this field, then it's opts
     if (isfield(opts, 'config_files'))
-      fnames = opts.config_files;
+      fnames = opts.config_files(:);
       opts.config_files = {};
 
     % If it's a string, then it's fname
@@ -184,7 +184,7 @@ function opts = load_parameters(opts, fnames)
     elseif (ischar(opts.config_files))
       opts.config_files = [{opts.config_files}; fnames(:)];
     else
-      opts.config_files = [opts.config_files; fnames(:)];
+      opts.config_files = [opts.config_files(:); fnames(:)];
     end
   end
 

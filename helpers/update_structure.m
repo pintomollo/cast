@@ -16,8 +16,12 @@ function mystruct = update_structure(mystruct, struct_type)
   mystruct = get_struct(struct_type, size(mystruct));
   mystruct = load_parameters(mystruct, tmp_fname);
 
-  % Finally, we remove this mention in the configuration files history
-  mystruct.config_files = mystruct.config_files(1:end-1);
+  % Finally, we remove this mention in the configuration files history, as well as
+  % duplicates and empty calls
+  files = mystruct.config_files(~cellfun('isempty', mystruct.config_files(1:end-1)));
+  [values, indx, junk] = unique(files);
+  indx = sort(indx);
+  mystruct.config_files = files(indx);
 
   % And delete the temporary file
   delete(tmp_fname);

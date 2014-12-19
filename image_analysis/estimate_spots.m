@@ -128,13 +128,18 @@ function [gauss_params] = estimate_spots(imgs, estim_pos, wsize, thresh, niter, 
       if (any(goods))
         % Fit either a centered or a full symmetric 2d gaussian
         if (fit_full)
-          curr_params(i,:) = regress_2d_gaussian(window(goods), niter, weight, stop);
+          curr_params(i,:) = regress_2d_gaussian(window(goods), niter, ...
+                                                            weight, stop);
         else
-          curr_params(i,:) = regress_2d_centered_gaussian(window(goods), niter, ...
-                                                          weight, stop);
+          curr_params(i,:) = regress_2d_centered_gaussian(window(goods), ...
+                                                            niter, weight, stop);
         end
       end
     end
+
+    % We obviously cannot estimate data outside of our current window
+    outside = any(abs(curr_params(:,1:2) / wsize) > 1, 2);
+    curr_params(outside, :) = NaN;
 
     % Correct the position
     curr_params(:,1:2) = curr_params(:,1:2) + curr_pos(:,1:2);
@@ -252,6 +257,9 @@ function [gauss_params] = estimate_spots(imgs, estim_pos, wsize, thresh, niter, 
         else
           coeffs = coeffs*(1-weight) + prev_coeffs*weight;
         end
+      else
+        % Force them to be close to the center
+        coeffs(2:3) = coeffs(2:3)*(1-weight);
       end
 
       % Store the coefficients for the next iteration

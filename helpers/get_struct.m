@@ -89,7 +89,7 @@ function mystruct = get_struct(type, nstruct)
                         'estimate_niter', 15, ...          % Maximal number in the estimation procedure, see estimate_spots.m
                         'estimate_stop', 1e-2, ...         % Stopping criterion for the estimation procedure, see estimate_spots.m
                         'estimate_weight', 0.1, ...        % Convergence weight for the estiamtion procedure, see estimate_spots.m
-                        'estimate_fit_position', true);    % Fit also the subpixel position of the spot ?
+                        'estimate_fit_position', false);   % Fit also the subpixel position of the spot (slower) ?
 
 
     % Structure used to handle the metadata provided by the microscope
