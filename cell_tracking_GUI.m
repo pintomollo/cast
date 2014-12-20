@@ -530,9 +530,9 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
   % structure which contains the parameters of the filtering algorithms.
 
     % Block the GUI
-    set(handles.all_buttons, 'Enable', 'off');
-    set(handles.save, 'Enable', 'off');
-    set(handles.pipeline, 'Enable', 'off')
+    all_all = [handles.all_buttons, handles.save, handles.pipeline];
+    curr_status = get(all_all, 'Enable');
+    set(all_all, 'Enable', 'off');
     drawnow;
     refresh(hFig);
 
@@ -604,7 +604,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
     end
 
     % Release the GUI and recompute the filters
-    set(handles.all_buttons, 'Enable', 'on');
+    set(all_all, {'Enable'}, curr_status);
     if (recompute)
       setup_environment()
       update_display(recompute);

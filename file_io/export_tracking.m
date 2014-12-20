@@ -124,20 +124,18 @@ function export_tracking(mytracking, props, opts)
       curr_path = paths{j}(end:-1:1,:);
 
       % The indexes to copy the path
-      indx_min = min(curr_path(:,end-1));
-      indx_max = max(curr_path(:,end-1));
-      nindx = indx_max - indx_min;
+      indxs = curr_path(:,end-1);
 
       % Copy the path
       switch aligning_type
         case 'time'
-          full_mat(indx_min:indx_max,j,:) = bsxfun(@times, curr_path(:,1:ncols), ...
+          full_mat(indxs,j,:) = bsxfun(@times, curr_path(:,1:ncols), ...
                                                    rescale_factor);
         case 'start'
-          full_mat(1:nindx+1,j,:) = bsxfun(@times, curr_path(:,1:ncols), ...
+          full_mat(indxs-min(indxs)+1,j,:) = bsxfun(@times, curr_path(:,1:ncols), ...
                                                    rescale_factor);
         case 'end'
-          full_mat(end-nindx:end,j,:) = bsxfun(@times, curr_path(:,1:ncols), ...
+          full_mat(end-(max(indxs)-indxs),j,:) = bsxfun(@times, curr_path(:,1:ncols), ...
                                                    rescale_factor);
         otherwise
           close(hwait);
@@ -156,7 +154,7 @@ function export_tracking(mytracking, props, opts)
 
       % Get the sub-matrx
       goods = ~all(isnan(full_mat(:,:,1)),2);
-      tmp_mat = full_mat(goods,:,:);
+      tmp_mat = full_mat(find(goods, 1, 'first'):find(goods, 1, 'last'),:,:);
 
       % Write the matrix
       folder = write_csv([fname num2str(i)], colname, path_names, time_stamp(1:size(tmp_mat,1)), tmp_mat, cycles_only);
