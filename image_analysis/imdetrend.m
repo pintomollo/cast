@@ -1,5 +1,5 @@
 function [img, p] = imdetrend(orig_img, npts)
-% IMDETREND removes a 2D quadratic trend in and image as produced by uneven illumination.
+% IMDETREND removes a 2D quadratic trend in an image as produced by uneven illumination.
 %
 %   [IMG] = IMDETREND(IMG) removes the trend in IMG which is computed by smoothing
 %   IMG and performing a 2D quadratic least-square fit onto the outter pixels of the
@@ -21,7 +21,7 @@ function [img, p] = imdetrend(orig_img, npts)
   if (nargin == 1)
     npts = 32;
   end
-  
+
   % Duplicate the sampling to get one value for each dimension
   if (numel(npts) == 1)
     npts = [npts npts];
@@ -63,7 +63,7 @@ function [img, p] = imdetrend(orig_img, npts)
   bkg = p(1) * X.^2 + p(2) * Y.*X + Y.^2 * p(3) + X * p(4) + Y * p(5) + p(6);
 
   % Finally, substract the trend to the image
-  img = imsubtract(double(orig_img), bkg);
+  img = double(orig_img) - bkg + mean(bkg(:));
 
   % Set the type of the image back to its original one
   img = cast(img, class(orig_img));

@@ -327,7 +327,7 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, min_length
   splitting_weight = weighting_funcs{4};
 
   % And check if we need to skip some functionalities
-  tracking_options = ~[isempty(closing_weight) || max_gap==1 || isempty(closing_weight(1, 1, 1, 1, 1)), ...
+  tracking_options = ~[isempty(closing_weight) || max_gap<2 || isempty(closing_weight(1, 1, 1, 1, 1)), ...
                        isempty(joining_weight) || isempty(joining_weight(1, 1, 1, 1)), ...
                        isempty(splitting_weight) || isempty(splitting_weight(1, 1, 1, 1))] & (nframes > 2);
 
@@ -447,7 +447,7 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, min_length
 
     % Compute the bridging costs
     if (tracking_options(1))
-      mutual_dist = closing_weight(ends, starts, max_move, max_gap, max_ratio);
+      mutual_dist = closing_weight(ends, starts, max_move/max_gap, max_gap, max_ratio);
     else
       mutual_dist = sparse(nends, nstarts);
     end

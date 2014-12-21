@@ -42,7 +42,7 @@ function mystruct = get_struct(type, nstruct)
       mystruct = struct('colormaps', {{@gray, @redbluemap, @redgreencmap, @hot, @jet}}, ...     % The colors used for the images
                         'spots', {{'r','k','b','g','k'}}, ...                                   % The colors used for the detections
                         'spots_next', {{'b','r','k','b', 'w'}}, ...                             % The second colors for the detections
-                        'status', {{'myg','mkg','mkg','myg','myg'}}, ...                        % The colors for the status of cells
+                        'status', {{'myg','mky','mkg','mbg','myg'}}, ...                        % The colors for the status of cells
                         'links', {{'y','k','k','y','y'}}, ...                                   % The colors for the links between cells
                         'paths', {{@redbluemap, @redgreencmap, @gray, @redbluemap, @gray}}, ... % The colors for the paths
                         'text', {{'r','k','b','g','k'}});                                       % The colors for the text in the movies
