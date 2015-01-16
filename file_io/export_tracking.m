@@ -38,6 +38,7 @@ function export_tracking(mytracking, props, opts)
   low_duplicates = props.low_duplicates;
   cycles_only = props.full_cycles_only;
   aligning_type = props.data_aligning_type;
+  include_noise = props.export_noise;
   folder = '';
 
   % Do we have a filename ?
@@ -66,7 +67,7 @@ function export_tracking(mytracking, props, opts)
   % Now we loop over all channels
   nchannels = length(mytracking.trackings);
 
-  % Switch to segmentations instead, as tehre seems to be data in it
+  % Switch to segmentations instead, as there seems to be data in it
   if (nchannels==0 && length(mytracking.segmentations)>0)
     mytracking.trackings = mytracking.segmentations;
     nchannels = length(mytracking.trackings);
@@ -82,6 +83,7 @@ function export_tracking(mytracking, props, opts)
 
     % Extract the results of the tracking in this channel
     paths = reconstruct_tracks(mytracking.trackings(i).filtered, low_duplicates);
+    noises = gather_noises(mytracking.trackings(i).filtered);
 
     % If it's empty, switch to the detections
     if (isempty(paths))
@@ -92,6 +94,7 @@ function export_tracking(mytracking, props, opts)
 
       % Extract the results of the tracking in this channel
       paths = reconstruct_tracks(mytracking.trackings(i).detections, low_duplicates);
+      noises = gather_noises(mytracking.trackings(i).detections);
     end
 
     % Still nothing, giving up
@@ -155,12 +158,13 @@ function export_tracking(mytracking, props, opts)
       % Get the sub-matrx
       goods = ~all(isnan(full_mat(:,:,1)),2);
       tmp_mat = full_mat(find(goods, 1, 'first'):find(goods, 1, 'last'),:,:);
+      noises = noises(find(goods, 1, 'first'):find(goods, 1, 'last'),:);
 
       % Write the matrix
-      folder = write_csv([fname num2str(i)], colname, path_names, time_stamp(1:size(tmp_mat,1)), tmp_mat, cycles_only);
+      folder = write_csv([fname num2str(i)], colname, path_names, time_stamp(1:size(tmp_mat,1)), tmp_mat, cycles_only, noises, include_noise);
     else
       % Write the matrix
-      folder = write_csv([fname num2str(i)], colname, path_names, time_stamp, full_mat, cycles_only);
+      folder = write_csv([fname num2str(i)], colname, path_names, time_stamp, full_mat, cycles_only, noises, include_noise);
     end
   end
 
@@ -170,8 +174,21 @@ function export_tracking(mytracking, props, opts)
   return;
 end
 
+% Get all the noises together
+function noises = gather_noises(detections)
+
+  nframes = length(detections);
+  noises = NaN(nframes, 4);
+
+  for i = 1:nframes
+    noises(i, :) = detections(i).noise;
+  end
+
+  return;
+end
+
 % This function writes a 3D matrix into single CSV files.
-function folder = write_csv(fname, colnames, col_headers, row_headers, matrix, cycles_only)
+function folder = write_csv(fname, colnames, col_headers, row_headers, matrix, cycles_only, noises, include_noise)
 
   % Check if there is a folder name in the name itself
   [filepath, name, ext] = fileparts(fname);
@@ -195,6 +212,9 @@ function folder = write_csv(fname, colnames, col_headers, row_headers, matrix, c
 
   matrix = matrix(:,:,keep_cols);
 
+  % The noise names if need be
+  noise_names = {'background', 'standard_deviation', 'poisson', 'quadratic'};
+
   % Maybe filter out the non-cycles paths
   if (cycles_only)
     valids = (sum(matrix(:,:,1)==1, 1)==2);
@@ -215,6 +235,13 @@ function folder = write_csv(fname, colnames, col_headers, row_headers, matrix, c
     full_mat(:,i:ncols:end) = matrix(:,:,i);
     full_headers(1+i:ncols:end) = col_headers(2:end);
     full_cols(1+i:ncols:end) = colnames(i);
+  end
+
+  % Include the noise data in the output if need be
+  if (include_noise)
+    full_mat = [noises full_mat];
+    full_headers = [full_headers(1) noise_names full_headers(2:end)];
+    full_cols = [full_cols(1) repmat(1, 4, {'Noise'}) full_cols(2:end)];
   end
 
   % Open the specified CSV file

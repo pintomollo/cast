@@ -83,11 +83,13 @@ function [mytracking, opts] = segment_movie(mytracking, opts)
                              opts.segmenting.estimate_weight, ...
                              opts.segmenting.estimate_fit_position);
 
+        % Get the noise parameters
+        if (isempty(noise))
+          noise = estimate_noise(img);
+        end
+
         % Filter the detected spots ?
         if (mytracking.segmentations(indx).filter_spots)
-          if (isempty(noise))
-            noise = estimate_noise(img);
-          end
 
           % Build the parameters and filter
           extrema = [opts.segmenting.filter_min_size opts.segmenting.filter_max_size]/...
@@ -101,6 +103,7 @@ function [mytracking, opts] = segment_movie(mytracking, opts)
           detections(nimg).carth = spots(:,1:2);
           detections(nimg).properties = spots(:,3:end);
         end
+        detections(nimg).noise = noise;
 
         % Update the progress bar
         if (opts.verbosity > 1)

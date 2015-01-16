@@ -103,7 +103,7 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
           spots = detections(nimg).carth(to_refine,:);
 
           % Replaces the "a-trous" score
-          spots = [spots NaN(size(spots, 1), 1)];
+          orig_spots = [spots NaN(size(spots, 1), 1)];
 
           % We may need data about the noise
           noise = [];
@@ -136,7 +136,7 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
           end
 
           % Estimate the gaussian parameters for each spot
-          spots = estimate_spots(img, spots, opts.segmenting.filter_max_size/(2*opts.pixel_size), ...
+          spots = estimate_spots(img, orig_spots, opts.segmenting.filter_max_size/(2*opts.pixel_size), ...
                                opts.segmenting.estimate_thresh, ...
                                opts.segmenting.estimate_niter, ...
                                opts.segmenting.estimate_stop, ...
@@ -144,15 +144,29 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
                                opts.segmenting.estimate_fit_position);
 
           % Filter the detected spots ?
+          goods = true(size(spots, 1), 1);
           if (mytracking.segmentations(indx).filter_spots)
             % Spots are organised with intensity in column 4 and radii in column 3
             goods = (spots(:,3)*3 > extrema_size(1) & spots(:,3) < extrema_size(2)...
                    & ~any(imag(spots), 2));
 
-            % Remove the spots that cannot be reestimated
-            spots = spots(goods,:);
-            to_refine(to_refine) = goods;
+            % Do we need to enforce signal estimation ?
+            if (opts.segmenting.force_estimation && any(~goods))
+
+              % Estimate the amplitude for each spot
+              spots(~goods,:) = estimate_spots(img, orig_spots(~goods,:), ...
+                                   opts.segmenting.filter_max_size/(2*opts.pixel_size), ...
+                                   []);
+
+              % Final check !
+              goods = (spots(:,3)*3 > extrema_size(1) & spots(:,3) < extrema_size(2)...
+                     & ~any(imag(spots), 2));
+            end
           end
+
+          % Remove the spots that cannot be reestimated
+          spots = spots(goods,:);
+          to_refine(to_refine) = goods;
 
           % If we have some detections, store them in the final structure
           if (~isempty(spots))

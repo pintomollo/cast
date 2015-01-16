@@ -63,12 +63,19 @@ function [gauss_params] = estimate_spots(imgs, estim_pos, wsize, thresh, niter, 
   end
 
   % Maybe fit_full was provided at some other place...
-  if (islogical(thresh))
+  if (islogical(thresh) || isempty(thresh))
     fit_full = thresh;
     thresh = 0;
-  elseif (islogical(niter))
+  elseif (islogical(niter) || isempty(niter))
     fit_full = niter;
     niter = 15;
+  end
+
+  % An empty fit_full  has a special meaning !
+  fit_intens = false;
+  if (isempty(fit_full))
+    fit_full = false;
+    fit_intens = true;
   end
 
   % Perform at least one iteration
@@ -126,13 +133,15 @@ function [gauss_params] = estimate_spots(imgs, estim_pos, wsize, thresh, niter, 
 
       % Avoid empty windows
       if (any(goods))
-        % Fit either a centered or a full symmetric 2d gaussian
+        % Fit either a centered or a full symmetric 2d gaussian (or just the amplitude)
         if (fit_full)
           curr_params(i,:) = regress_2d_gaussian(window(goods), niter, ...
                                                             weight, stop);
-        else
+        elseif (~fit_intens)
           curr_params(i,:) = regress_2d_centered_gaussian(window(goods), ...
                                                             niter, weight, stop);
+        else
+          curr_params(i,:) = regress_2d_amplitudes(window(goods), pos(3:end));
         end
       end
     end
@@ -353,4 +362,62 @@ function [gauss_params] = estimate_spots(imgs, estim_pos, wsize, thresh, niter, 
 
     return;
   end
+
+  function params = regress_2d_amplitude(s, prev_params)
+  % Similar to regress_2d_gaussian but having mu_x and mu_y both equal to 0, and
+  % sigma set, leading to the set of equations to be solved to:
+  %
+  %       J(L-S) = [ 1;    and  V = [ln(s);
+  %                  z ]             z*ln(s)]
+
+    % We cannot perform the estimat
+    if (numel(prev_params) < 2 || any(~isfinite(prev_params(1:2))) || prev_params(1) == 0)
+      params = [0 0 0 0];
+
+      return;
+    end
+
+    % Get the good positions
+    z = Z(goods);
+
+    % Precompute
+    ls = log(s);
+    prev_coeffs = [log(prev_params(2)) -(1/(2*prev_params(1)^2))];
+
+    % Get the pixel weights
+    se = exp(prev_coeffs(1) + prev_coeffs(2)*z);
+
+    % More precomputing
+    se2 = se.^2;
+    se2ls = se2 .* ls;
+
+    ss2 = sum(se2);
+    szs2 = sum(z.*se2);
+
+    % The tiny Jacobian matrix
+    mat = [ss2; ...
+           szs2];
+
+    % Results
+    res = [sum(se2ls); sum(z.*se2ls)];
+
+    % Avoid badly scaled matrix
+    rs = rcond(mat);
+    if (abs(det(mat)) < 1e-5 || isnan(rs) || abs(rs) < 1e-3)
+      coeffs = [-Inf];
+    end
+
+    % Regression
+    coeffs = mat \ res;
+
+    % Extract the parameters
+    ampl = exp(coeffs(1));
+
+    % And store them
+    params = [0 0 prev_params(1) ampl];
+
+    return;
+  end
+
+
 end

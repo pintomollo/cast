@@ -51,6 +51,7 @@ function mystruct = get_struct(type, nstruct)
     case 'detection'
       mystruct = struct('carth', NaN(1, 2), ...     % Cartesian position of the detections (Nx2)
                         'cluster', [], ...          % Temporal cluster containing the detection paths
+                        'noise', [], ...            % Parameters of the image noise
                         'properties', []);          % Other properties computed on each detection, depending on the algorithm
 
     % Structure handling the export options
@@ -60,6 +61,7 @@ function mystruct = get_struct(type, nstruct)
                         'full_cycles_only', false, ...      % Keep only tracks that both start and end with a division
                         'export_data', true, ...            % Do we export a CSV table of the data ?
                         'data_aligning_type', 'time', ...   % How do we align the paths ? (time/start/end)
+                        'export_noise', false, ...          % Export the parameters of the noise in each image
                         'export_movie', false, ...          % Do we export an AVI movie ?
                         'movie_show_index', true, ...       % Do we display the track indexes in the movie ?
                         'movie_show_detection', true, ...   % Do we display the detected radii in the movie ?
@@ -85,6 +87,7 @@ function mystruct = get_struct(type, nstruct)
                         'denoise_remove_bkg', true, ...    % Removes the background uniform value (estimated using estimate_noise.m) ?
                         'atrous_max_size', 10, ...         % Maximal size of the spots to detect (in um), see imatrous.m
                         'atrous_thresh', 10, ...           % Threshold used to detect a valid spot as brighter than THRESH*MAD
+                        'force_estimation', 1, ...         % Will force the estimation of the signal intensity on the raw data
                         'estimate_thresh', 1, ...          % Utilizes only the pixels brighter than this threshold (times noise variance) to estimate the spots
                         'estimate_niter', 15, ...          % Maximal number in the estimation procedure, see estimate_spots.m
                         'estimate_stop', 1e-2, ...         % Stopping criterion for the estimation procedure, see estimate_spots.m
