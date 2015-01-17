@@ -240,8 +240,8 @@ function folder = write_csv(fname, colnames, col_headers, row_headers, matrix, c
   % Include the noise data in the output if need be
   if (include_noise)
     full_mat = [noises full_mat];
-    full_headers = [full_headers(1) noise_names full_headers(2:end)];
-    full_cols = [full_cols(1) repmat(1, 4, {'Noise'}) full_cols(2:end)];
+    full_headers = [full_headers(1) repmat({'Noise'}, 1, 4) full_headers(2:end)];
+    full_cols = [full_cols(1) noise_names full_cols(2:end)];
   end
 
   % Open the specified CSV file

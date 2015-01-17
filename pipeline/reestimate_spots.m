@@ -145,7 +145,7 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
 
           % Filter the detected spots ?
           goods = true(size(spots, 1), 1);
-          if (mytracking.segmentations(indx).filter_spots)
+          if (do_all && mytracking.segmentations(indx).filter_spots)
             % Spots are organised with intensity in column 4 and radii in column 3
             goods = (spots(:,3)*3 > extrema_size(1) & spots(:,3) < extrema_size(2)...
                    & ~any(imag(spots), 2));
