@@ -10,7 +10,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mwSize nzmax, nzstep;
   mwIndex *irs,*jcs,i,j, count;
   double *x1,*y1,*t1,*x2,*y2,*t2,*rs;
-  double dist, dist2, thresh, thresh2, thresh3, signal1, signal2, weight;
+  double dist, dist2, thresh, thresh2, thresh3, signal1, signal2, weight, gaping;
   bool is_test;
 
   // Check for proper number of input and output arguments
@@ -71,7 +71,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     for (j = 0; j < m1; j++) {
       dist2 = t2[i]-t1[j];
 
-      dist = (__SQR__(x2[i]-x1[j]) + __SQR__(y2[i]-y1[j])) / __SQR__(dist2);
+      dist = (__SQR__(x2[i]-x1[j]) + __SQR__(y2[i]-y1[j]));
 
       // Only if it passes the thresholds
       if (dist < thresh && dist2 <= thresh2 && dist2 > 0) {
@@ -83,7 +83,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         weight = __WGT__(signal2 / signal1);
 
         // Enforce the intensity threshold
-        if (weight <= thresh2) {
+        if (weight <= thresh3) {
+
+          // Add a time-favoring component
+          gaping = __SQR__(dist2 / thresh2);
 
           // Here we might need to increase the number of elements in the matrix
           if (count >= nzmax){
@@ -98,7 +101,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           }
 
           // Store it in the matrix
-          rs[count] = -fast_exp(-dist);
+          rs[count] = -fast_exp(-dist -gaping);
           irs[count] = j;
 
           count++;

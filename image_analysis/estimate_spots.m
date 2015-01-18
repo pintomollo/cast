@@ -363,7 +363,7 @@ function [gauss_params] = estimate_spots(imgs, estim_pos, wsize, thresh, niter, 
     return;
   end
 
-  function params = regress_2d_amplitude(s, prev_params)
+  function params = regress_2d_amplitudes(s, prev_params)
   % Similar to regress_2d_gaussian but having mu_x and mu_y both equal to 0, and
   % sigma set, leading to the set of equations to be solved to:
   %

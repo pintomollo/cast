@@ -447,7 +447,7 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, min_length
 
     % Compute the bridging costs
     if (tracking_options(1))
-      mutual_dist = closing_weight(ends, starts, max_move/max_gap, max_gap, max_ratio);
+      mutual_dist = closing_weight(ends, starts, max_move, max_gap, max_ratio);
     else
       mutual_dist = sparse(nends, nstarts);
     end
