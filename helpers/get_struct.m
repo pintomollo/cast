@@ -150,6 +150,7 @@ function mystruct = get_struct(type, nstruct)
                         'min_section_length', 5, ...          % The minimum number of contiguous frames a path "section" should last to be kept for merging/spliting/gap closing
                         'bridging_max_gap', 3, ...            % Considered number of frames for the gap closing algorithm (see track_spots.m)
                         'max_intensity_ratio', Inf, ...       % Defines an upper bound to the allowed signal ratios (see track_spots.m)
+                        'bridging_max_dist', Inf, ...         % Maximal distance throughout the gap (see track_spots.m)
                         'bridging_function', @bridging_cost_sparse_mex, ...   % Function used to measure the gap-closing weight
                         'joining_function', @joining_cost_sparse_mex, ...     % Function used to measure the joinging weight
                         'splitting_function', @splitting_cost_sparse_mex, ... % Function used to measure the splitting weight

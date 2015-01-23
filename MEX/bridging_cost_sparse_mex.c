@@ -10,13 +10,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mwSize nzmax, nzstep;
   mwIndex *irs,*jcs,i,j, count;
   double *x1,*y1,*t1,*x2,*y2,*t2,*rs;
-  double dist, dist2, thresh, thresh2, thresh3, signal1, signal2, weight, gaping;
+  double dist, dist2, thresh, thresh_lim, thresh2, thresh3, signal1, signal2;
+  double weight, gaping, inverse;
   bool is_test;
 
   // Check for proper number of input and output arguments
-  if (nrhs != 5) {
+  if (nrhs != 6) {
     mexErrMsgIdAndTxt( "MATLAB:bridging_cost_sparse_mex:invalidNumInputs",
-        "Five input arguments required.");
+        "Six input arguments required.");
   }
 
   // Check data type of input argument
@@ -43,9 +44,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   t2  = x2 + (n2-1)*m2;
 
   // Get the thresholds
-  thresh = __SQR__(mxGetScalar(prhs[2]));
+  thresh = 2*mxGetScalar(prhs[2]);
+  inverse = __MAX__(1/__SQR__(thresh), 0.001);
   thresh2 = mxGetScalar(prhs[3]);
-  thresh3 = mxGetScalar(prhs[4]);
+  thresh_lim = __SQR__(mxGetScalar(prhs[4]));
+  thresh3 = mxGetScalar(prhs[5]);
 
   // A guess on the number of elements needed
   nzmax=(mwSize)ceil((double)m1*(double)m2*0.1);
@@ -74,7 +77,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       dist = (__SQR__(x2[i]-x1[j]) + __SQR__(y2[i]-y1[j]));
 
       // Only if it passes the thresholds
-      if (dist < thresh && dist2 <= thresh2 && dist2 > 0) {
+      if (dist <= __MIN__(thresh*dist2, thresh_lim) && dist2 <= thresh2 && dist2 > 0) {
 
         // Get the other signal
         signal1 = compute_signal(x1, j, m1);
@@ -101,7 +104,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           }
 
           // Store it in the matrix
-          rs[count] = -fast_exp(-dist -gaping);
+          rs[count] = -fast_exp(-inverse*(dist + gaping));
           irs[count] = j;
 
           count++;

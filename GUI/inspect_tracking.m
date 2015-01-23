@@ -185,7 +185,7 @@ function [mytracking, opts, is_updated] = inspect_tracking(mytracking, opts)
       spots_next = spots_next(all(~isnan(spots_next),2),:);
 
       % Perform the actual one-step tracking
-      links = track_spots({spots, spots_next}, {opts.spot_tracking.linking_function}, (opts.spot_tracking.spot_max_speed/opts.pixel_size)*opts.time_interval, opts.spot_tracking.bridging_max_gap, 0, opts.spot_tracking.max_intensity_ratio, opts.spot_tracking.allow_branching_gap);
+      links = track_spots({spots, spots_next}, {opts.spot_tracking.linking_function}, (opts.spot_tracking.spot_max_speed/opts.pixel_size)*opts.time_interval, opts.spot_tracking.bridging_max_gap, Inf, 0, opts.spot_tracking.max_intensity_ratio, opts.spot_tracking.allow_branching_gap);
 
       % And reconstruct the corresponding tracks for display purposes
       paths = reconstruct_tracks({spots, spots_next}, links);

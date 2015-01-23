@@ -1,4 +1,4 @@
-function [links, opts] = track_spots(spots, funcs, max_move, max_gap, min_length, max_ratio, allow_branching_gap, verbosity)
+function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, min_length, max_ratio, allow_branching_gap, verbosity)
 % TRACK_SPOTS tracks spots over time using a global optimization algorithm [1].
 %
 %   LINKS = TRACK_SPOTS(SPOTS, FUNCS) LINKS the sets of SPOTS using the provided
@@ -29,17 +29,20 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, min_length
 %   number of frames a spot can be "lost" in a track, while the track gaps over them
 %   (default: 5).
 %
-%   LINKS = TRACK_SPOTS(SPOTS, FUNCS, MAX_MOVEMENT, MAX_GAP_LENGTH, MIN_SECTION_LENGTH)
-%   defines the minimum number of frames a spot has to be tracked over to be kept for
-%   bridging, splitting and merging (default 0).
+%   LINKS = TRACK_SPOTS(SPOTS, FUNCS, MAX_MOVEMENT, MAX_GAP_LENGTH, MAX_DIST) defines
+%   the maximum distance allowed throughout a gap (default: Inf).
 %
-%   LINKS = TRACK_SPOTS(SPOTS, FUNCS, MAX_MOVEMENT, MAX_GAP_LENGTH, MIN_SECTION_LENGTH, ...
-%   MAX_RATIO) defines an upper bound to the allowed signal ratios as defined in [1]
-%   (default: Inf).
+%   LINKS = TRACK_SPOTS(SPOTS, FUNCS, MAX_MOVEMENT, MAX_GAP_LENGTH, MAX_DIST, ...
+%   MIN_SECTION_LENGTH) defines the minimum number of frames a spot has to be tracked
+%   over to be kept for bridging, splitting and merging (default 0).
 %
-%   LINKS = TRACK_SPOTS(SPOTS, FUNCS, MAX_MOVEMENT, MAX_GAP_LENGTH, MIN_SECTION_LENGTH, ...
-%   MAX_RATIO, ALLOW_BRANCHING_GAP) defines if merging and splitting can occur over
-%   MAX_GAP_LENGTH (default: false).
+%   LINKS = TRACK_SPOTS(SPOTS, FUNCS, MAX_MOVEMENT, MAX_GAP_LENGTH, MAX_DIST, ...
+%   MIN_SECTION_LENGTH, MAX_RATIO) defines an upper bound to the allowed signal ratios
+%   as defined in [1] (default: Inf).
+%
+%   LINKS = TRACK_SPOTS(SPOTS, FUNCS, MAX_MOVEMENT, MAX_GAP_LENGTH, MAX_DIST, ...
+%   MIN_SECTION_LENGTH, MAX_RATIO, ALLOW_BRANCHING_GAP) defines if merging and splitting
+%   can occur over MAX_GAP_LENGTH (default: false).
 %
 %   LINKS = TRACK_SPOTS(..., VERBOSITY) when VERBOSITY > 1, displays a progress bar.
 %
@@ -67,29 +70,37 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, min_length
   elseif (nargin < 3)
     max_move = Inf;
     max_gap = 5;
+    max_dist = Inf;
     min_length = 0;
     max_ratio = Inf;
     allow_branching_gap = false;
     verbosity = 2;
   elseif (nargin < 4)
     max_gap = 5;
+    max_dist = Inf;
     min_length = 0;
     max_ratio = Inf;
     allow_branching_gap = false;
     verbosity = 2;
   elseif (nargin < 5)
+    max_dist = Inf;
     min_length = 0;
     max_ratio = Inf;
     allow_branching_gap = false;
     verbosity = 2;
   elseif (nargin < 6)
+    min_length = 0;
     max_ratio = Inf;
     allow_branching_gap = false;
     verbosity = 2;
   elseif (nargin < 7)
+    max_ratio = Inf;
     allow_branching_gap = false;
     verbosity = 2;
   elseif (nargin < 8)
+    allow_branching_gap = false;
+    verbosity = 2;
+  elseif (nargin < 9)
     verbosity = 2;
   end
 
@@ -109,6 +120,7 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, min_length
     links = track_spots(spots, funcs, ...
             opts.time_interval*opts.spot_tracking.spot_max_speed/opts.pixel_size, ...
             opts.spot_tracking.bridging_max_gap, ...
+            opts.time_interval*opts.spot_tracking.bridging_max_dist/opts.pixel_size, ...
             opts.spot_tracking.min_section_length, ...
             opts.spot_tracking.max_intensity_ratio, ...
             opts.spot_tracking.allow_branching_gap, opts.verbosity);
@@ -139,7 +151,7 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, min_length
       for i = 1:length(mystruct.channels)
         mystruct.trackings(i).detections = track_spots( ...
                     mystruct.segmentations(i).detections, funcs, max_move, max_gap, ...
-                    min_length, max_ratio, allow_branching_gap, verbosity);
+                    max_dist, min_length, max_ratio, allow_branching_gap, verbosity);
       end
 
       % Save the result and exit
@@ -327,7 +339,7 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, min_length
   splitting_weight = weighting_funcs{4};
 
   % And check if we need to skip some functionalities
-  tracking_options = ~[isempty(closing_weight) || max_gap<2 || isempty(closing_weight(1, 1, 1, 1, 1)), ...
+  tracking_options = ~[isempty(closing_weight) || max_gap<2 || isempty(closing_weight(1, 1, 1, 1, 1, 1)), ...
                        isempty(joining_weight) || isempty(joining_weight(1, 1, 1, 1)), ...
                        isempty(splitting_weight) || isempty(splitting_weight(1, 1, 1, 1))] & (nframes > 2);
 
@@ -447,7 +459,7 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, min_length
 
     % Compute the bridging costs
     if (tracking_options(1))
-      mutual_dist = closing_weight(ends, starts, max_move, max_gap, max_ratio);
+      mutual_dist = closing_weight(ends, starts, max_move, max_gap, max_dist, max_ratio);
     else
       mutual_dist = sparse(nends, nstarts);
     end
@@ -514,7 +526,7 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, min_length
       alt_cost = -0.1;
       min_dist = -1;
     else
-      alt_cost = prctile(all_vals, 90);
+      alt_cost = prctile(all_vals, 90) * 0.999;
       min_dist = min(all_vals);
     end
 

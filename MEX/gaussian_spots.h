@@ -15,6 +15,9 @@
 #ifndef __MAX__
 #define __MAX__(A, B)     ((A)>=(B)? (A) : (B))
 #endif
+#ifndef __MIN__
+#define __MIN__(A, B)     ((A)<=(B)? (A) : (B))
+#endif
 #ifndef __SQR__
 #define __SQR__(A)        ((A) * (A))
 #endif
