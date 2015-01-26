@@ -60,6 +60,9 @@ function [mytracking, opts] = segment_movie(mytracking, opts)
         % Get the current image
         img = double(load_data(mytracking.channels(indx), nimg));
 
+        % Get the noise parameters
+        noise = estimate_noise(img);
+
         % Detrend the image ?
         if (mytracking.segmentations(indx).detrend)
           img = imdetrend(img, opts.segmenting.detrend_meshpoints);
@@ -67,7 +70,7 @@ function [mytracking, opts] = segment_movie(mytracking, opts)
 
         % Denoise the image ?
         if (mytracking.segmentations(indx).denoise)
-          [img, noise] = imdenoise(img, opts.segmenting.denoise_remove_bkg, ...
+          img = imdenoise(img, opts.segmenting.denoise_remove_bkg, ...
                           opts.segmenting.denoise_func, opts.segmenting.denoise_size);
         end
 
@@ -82,11 +85,6 @@ function [mytracking, opts] = segment_movie(mytracking, opts)
                              opts.segmenting.estimate_stop, ...
                              opts.segmenting.estimate_weight, ...
                              opts.segmenting.estimate_fit_position);
-
-        % Get the noise parameters
-        if (isempty(noise))
-          noise = estimate_noise(img);
-        end
 
         % Filter the detected spots ?
         if (mytracking.segmentations(indx).filter_spots)
