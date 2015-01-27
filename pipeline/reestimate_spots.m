@@ -96,14 +96,15 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
 
         % First re-estimate the interpolated spots
         nans = isnan(detections(nimg).properties);
-        if (any(nans))
+
+        % Check whether we have some to interpolate
+        to_refine = any(nans, 2);
+        if (any(to_refine))
 
           % Which ones ?
-          to_refine = any(nans, 2);
-          spots = detections(nimg).carth(to_refine,:);
-
-          % Replaces the "a-trous" score
-          orig_spots = [spots NaN(size(spots, 1), 1)];
+          spots = [detections(nimg).carth(to_refine,:) ...
+                   detections(nimg).properties(to_refine, :)];
+          orig_spots = spots;
 
           % We may need data about the noise
           noise = [];
@@ -136,7 +137,8 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
           end
 
           % Estimate the gaussian parameters for each spot
-          spots = estimate_spots(img, orig_spots, opts.segmenting.filter_max_size/(2*opts.pixel_size), ...
+          spots = estimate_spots(img, orig_spots(:,[1 2 end]), ...
+                               opts.segmenting.filter_max_size/(2*opts.pixel_size), ...
                                opts.segmenting.estimate_thresh, ...
                                opts.segmenting.estimate_niter, ...
                                opts.segmenting.estimate_stop, ...

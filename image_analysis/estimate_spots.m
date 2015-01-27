@@ -154,7 +154,11 @@ function [gauss_params] = estimate_spots(imgs, estim_pos, wsize, thresh, niter, 
     curr_params(:,1:2) = curr_params(:,1:2) + curr_pos(:,1:2);
 
     % Store the additional parameters to the output
-    gauss_params{nimg} = [curr_params curr_pos(:,3:end)];
+    if (fit_intens)
+      gauss_params{nimg} = [curr_params curr_pos(:,5:end)];
+    else
+      gauss_params{nimg} = [curr_params curr_pos(:,3:end)];
+    end
   end
 
   % If we have only one plane, return the matrix alone
@@ -177,7 +181,7 @@ function [gauss_params] = estimate_spots(imgs, estim_pos, wsize, thresh, niter, 
   %                                       c = mu_y / (sigma^2)
   %                                       d = -1 / (2 * sigma^2)
   %
-  % when the solve the following system of equations: J * [a;b;c;d] = V
+  % when then solve the following system of equations: J * [a;b;c;d] = V
   %
   % where J(L-S) = [ 1   x    y    z  ;   and  V = [ln(s);
   %                  x   x^2  x*y  x*z;             x*ln(s);
@@ -365,10 +369,8 @@ function [gauss_params] = estimate_spots(imgs, estim_pos, wsize, thresh, niter, 
 
   function params = regress_2d_amplitudes(s, prev_params)
   % Similar to regress_2d_gaussian but having mu_x and mu_y both equal to 0, and
-  % sigma set, leading to the set of equations to be solved to:
-  %
-  %       J(L-S) = [ 1;    and  V = [ln(s);
-  %                  z ]             z*ln(s)]
+  % sigma set, we can do a direct regression of the amplitude, weighted by the provided
+  % Gaussian estimate.
 
     % We cannot perform the estimat
     if (numel(prev_params) < 2 || any(~isfinite(prev_params(1:2))) || prev_params(1) == 0)
@@ -380,44 +382,15 @@ function [gauss_params] = estimate_spots(imgs, estim_pos, wsize, thresh, niter, 
     % Get the good positions
     z = Z(goods);
 
-    % Precompute
-    ls = log(s);
-    prev_coeffs = [log(prev_params(2)) -(1/(2*prev_params(1)^2))];
+    % The gaussian weight and objective function
+    se = exp(-z/(2*(prev_params(1)^2)));
 
-    % Get the pixel weights
-    se = exp(prev_coeffs(1) + prev_coeffs(2)*z);
-
-    % More precomputing
-    se2 = se.^2;
-    se2ls = se2 .* ls;
-
-    ss2 = sum(se2);
-    szs2 = sum(z.*se2);
-
-    % The tiny Jacobian matrix
-    mat = [ss2; ...
-           szs2];
-
-    % Results
-    res = [sum(se2ls); sum(z.*se2ls)];
-
-    % Avoid badly scaled matrix
-    rs = rcond(mat);
-    if (abs(det(mat)) < 1e-5 || isnan(rs) || abs(rs) < 1e-3)
-      coeffs = [-Inf];
-    end
-
-    % Regression
-    coeffs = mat \ res;
-
-    % Extract the parameters
-    ampl = exp(coeffs(1));
+    % The weighted regression
+    ampl = (se.^2) \ (s.*se);
 
     % And store them
     params = [0 0 prev_params(1) ampl];
 
     return;
   end
-
-
 end
