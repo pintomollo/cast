@@ -54,13 +54,6 @@ function export_tracking(mytracking, props, opts)
   time_frac = (1/(24*60*60));
   time_format = 'dd:HH:MM:SS';
 
-  % The factors for the conversion to um
-  rescale_factor = [1 ([1 1 1] * opts.pixel_size) 1];
-
-  % The list of columns to export
-  colname = {'status', 'x_coord_um', 'y_coord_um', 'sigma_um', 'amplitude_int'};
-  ncols = length(colname);
-
   % A hidden waitbar
   hwait = waitbar(0,'','Name','Cell Tracking', 'Visible', 'off');
 
@@ -73,8 +66,41 @@ function export_tracking(mytracking, props, opts)
     nchannels = length(mytracking.trackings);
   end
 
+  % Might need that value later on
+  maxuint = intmax('uint16');
+
   % Loop over all channels
   for i=1:nchannels
+
+    % Get the current type of segmentation to apply
+    type = mytracking.segmentations(i).type;
+
+    % Rescaling the pixel intensities
+    if (mytracking.channels(i).normalize)
+      int_scale = double(mytracking.channels(i).max - mytracking.channels(i).min) ...
+                         / double(maxuint);
+      bkg = double(mytracking.channels(i).min);
+    else
+      int_scale = 1;
+      bkg = 0;
+    end
+
+    % The list of columns to export
+    switch type
+      case 'detect_spots'
+        % The names
+        colname = {'status', 'x_coord_um', 'y_coord_um', 'sigma_um', 'amplitude_int'};
+
+        % The factors for the various conversions
+        rescale_factor = [1 ([1 1 1] * opts.pixel_size) int_scale];
+      case {'None','none'}
+        % Skipping it !
+        colname = {};
+      otherwise
+        disp(['Warning: segmentation type "' type '" unknown, ignoring.']);
+        return;
+    end
+    ncols = length(colname);
 
     % Now check how many frames there are
     nframes = length(mytracking.trackings(i).filtered);
@@ -95,6 +121,12 @@ function export_tracking(mytracking, props, opts)
       % Extract the results of the tracking in this channel
       paths = reconstruct_tracks(mytracking.trackings(i).detections, low_duplicates);
       noises = gather_noises(mytracking.trackings(i).detections);
+    end
+
+    % Rescaling the noise as well
+    if (mytracking.channels(i).normalize)
+      noises = noises * int_scale;
+      noises(:,1) = noises(:,1) + bkg;
     end
 
     % Still nothing, giving up
