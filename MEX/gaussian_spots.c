@@ -9,6 +9,7 @@
 /// Can be off by about +-4% in the range -100 to 100.
 double fast_exp(double y) {
   double d;
+  y = (y < -700) ? -700 : (y > 700 ? 700 : y);
   *((int*)(&d) + 0) = 0;
   *((int*)(&d) + 1) = (int)(1512775 * y + 1072632447);
   return d;
