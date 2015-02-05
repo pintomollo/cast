@@ -200,7 +200,7 @@ function [mytracking, opts, is_updated] = inspect_paths(mytracking, opts)
       end
 
       % Perform the actual estimation
-      spots_filt = reestimate_spots(spots_filt, orig_img, segmentations(indx), opts);
+      spots_filt(:,2:end-2) = reestimate_spots(spots_filt(:,2:end-2), orig_img, segmentations(indx), opts);
 
       if (~recompute)
         set(hFig, 'Name', 'Tracks Filtering');

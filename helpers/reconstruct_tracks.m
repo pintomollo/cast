@@ -5,8 +5,9 @@ function [paths, track_num] = reconstruct_tracks(spots, links, low_duplicates)
 %   in each cell the results of tracking for a single cell, using the detected SPOTS
 %   and the tracking results LINKS. Upon merging or splitting of tracks, data are
 %   duplicated. Consequently, portions of the different PATHS can be identical. PATHS
-%   contains matrices organised per row as follows: [status, spot, frame_index] where
-%   status is -1 (merging) 0 (track) 1 (splitting).
+%   contains matrices organised per row as follows:
+%     [status, spot, frame_index, spot_index]
+%   where status is -1 (merging) 0 (track) 1 (splitting).
 %
 %   PATHS = RECONSTRUCT_TRACKS(MYTRACKING) extracts the paths from MYTRACKING. PATHS
 %   then becomes a cell array of cell arrays (one for each channel).
