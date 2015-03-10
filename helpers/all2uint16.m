@@ -56,13 +56,13 @@ function infos = get_infos(img)
 
         % Warn the user as there is no "range" for double so we will use the
         % range of values
-        warning('Real value arrays will be rescaled');
+        warning('CAST:all2uint16', 'Real value arrays will be rescaled');
       case {'uint8', 'uint16', 'uint32', 'uint64'}
         minval = intmin(type);
         maxval = intmax(type);
         is_signed = false;
       otherwise
-        warning(['Unkown image data type:' class(img)]);
+        warning('CAST:all2uint16', ['Unkown image data type:' class(img)]);
 
         infos = struct('is_signed', false, ...
                        'offset', 0, ...

@@ -16,13 +16,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // Check for proper number of input and output arguments
   if (nrhs != 6) {
-    mexErrMsgIdAndTxt( "MATLAB:bridging_cost_sparse_mex:invalidNumInputs",
+    mexErrMsgIdAndTxt( "CAST:bridging_cost_sparse_mex:invalidNumInputs",
         "Six input arguments required.");
   }
 
   // Check data type of input argument
   if (!(mxIsDouble(prhs[0]) && mxIsDouble(prhs[1]) && mxIsDouble(prhs[2]))){
-    mexErrMsgIdAndTxt( "MATLAB:bridging_cost_sparse_mex:inputNotDouble",
+    mexErrMsgIdAndTxt( "CAST:bridging_cost_sparse_mex:inputNotDouble",
         "Input arguments must be of type double.");
   }
 

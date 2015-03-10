@@ -1,5 +1,5 @@
 % README.txt
-% A few expanations on how to use the Cell Tracking Plateform
+% A few expanations on how to use CAST
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud
@@ -9,11 +9,11 @@
 
 Hi !
 
-This set of functions (so-called Cell Tracking Plateform) are designed to provide
-an intuitive user interface for the automated segmentation, tracking and
-quantification of time-lapse fluorescence/luminescence data. All functions can
+This set of functions (so-called CAST: Cell Automated Segmentation and Tracking platform)
+are designed to provide an intuitive user interface for the automated segmentation, tracking
+and quantification of time-lapse fluorescence/luminescence data. All functions can
 be accessed directly using command-lines, however it is designed to be used through
-the main interface function "cell_tracking_GUI".
+the main interface function "CAST_GUI".
 
 This program is distributed under the terms of the GNU GPL, please refer to
 licence.txt for details.
@@ -30,15 +30,18 @@ licence.txt for details.
  - All functions have a corresponding help message that describes its function,
    inputs and outputs. Type "help myfunction" in the command line to read it.
 
+ - A list of all available functions along with a short description of their
+   purpose is available in CONTENT.TXT
+
  - Data are stored within Matlab using structures. This should be completely
    transparent to the user. However, if need be, their respective definitions
-   can be found in cell-tracking/helpers/get_struct.m.
+   can be found in cast/helpers/get_struct.m.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 1. Starting up an experiment
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
- - Once the install has been successful, call "cell_tracking_GUI" from Matlab.
+ - Once the install has been successful, call "CAST_GUI" from Matlab.
 
  - On the opened window, one can either:
    - Load a previous experiment : Upper right button "Load"
@@ -47,11 +50,11 @@ licence.txt for details.
 
  - As an example, let's start by pressing "Load Recording" !
 
- - And choose the sample recording located in "cell-tracking/sample_signal.ome.tif".
+ - And choose the sample recording located in "cast/sample_signal.ome.tif".
 
  - Note that if the the data you are trying to load is not successfully converted
-   by the Cell Tracking Plateform, you should convert it manually to a TIFF stack.
-   To do so, a simple approach is to use the LOCI library for ImageJ:
+   by CAST, you should convert it manually to a TIFF stack. To do so, a simple approach
+   is to use the LOCI library for ImageJ:
    http://www.openmicroscopy.org/site/support/bio-formats5/users/imagej/
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -102,7 +105,7 @@ licence.txt for details.
 
  - In addition, you can save/load the current option structure using the
    corresponding buttons (Lower right buttons). You can also manually edit these
-   configuration files (located in "cell-tracking/Conf"). See example_params.txt
+   configuration files (located in "cast/Conf"). See example_params.txt
    for an explanation on the syntax of these files.
 
  - When editing parameters, a help message will pop-up if you leave the mouse cursor
@@ -116,7 +119,7 @@ licence.txt for details.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
  - Once the preprocessing of your data has been performed, the GUI for editing the
-   global parameters of your reocrding will open. Because the Cell Tracking Plateform
+   global parameters of your reocrding will open. Because the CAST
    works with um and seconds units, it is important that both the XY and the time
    resolutions of the recording are properly set !
    - XY    : binning * ccd_pixel_size / magnification
@@ -215,13 +218,13 @@ licence.txt for details.
     and should be quite self-explanatory !
 
   - In particular, to add another segmenting function, you should:
-    - Add the new function in cell-tracking/pipeline.
-    - Add the corresponding choice in cell-tracking/pipeline/segment_movie.m
+    - Add the new function in cast/pipeline.
+    - Add the corresponding choice in cast/pipeline/segment_movie.m
       (both in the first switch and in the following processing code).
     - Add the corresponding segmentation to the reestimation step
-      (cell-tracking/pipeline/reestimate_spots.m).
+      (cast/pipeline/reestimate_spots.m).
     - Add the new segmenting function to the segentation GUI 
-      (cell-tracking/GUI/inspect_segmentation.m):
+      (cast/GUI/inspect_segmentation.m):
       - in the segmentation switch (l. 191)
       - in the drop-down list (l. 485)
 

@@ -1,12 +1,12 @@
-function [mytracking, opts] = segment_movie(mytracking, opts)
+function [myrecording, opts] = segment_movie(myrecording, opts)
 % SEGMENT_MOVIE segments the various channels of an experiment.
 %
-%   [MYTRACKING] = SEGMENT_MOVIE(MYTRACKING, OPTS) segments all the channels present
-%   in MYTRACKING using the options set in the "segmentations" structure, using the
+%   [MYRECORDING] = SEGMENT_MOVIE(MYRECORDING, OPTS) segments all the channels present
+%   in MYRECORDING using the options set in the "segmentations" structure, using the
 %   parameter values from OPTS. The resulting detections are stored in "detections"
 %   in the corresponding segmentation field.
 %
-%   [MYTRACKING, OPTS] = SEGMENT_MOVIE(...) also returns the option structure OPTS.
+%   [MYRECORDING, OPTS] = SEGMENT_MOVIE(...) also returns the option structure OPTS.
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud
@@ -14,17 +14,17 @@ function [mytracking, opts] = segment_movie(mytracking, opts)
 
   % A nice status-bar if possible
   if (opts.verbosity > 1)
-    hwait = waitbar(0,'','Name','Cell Tracking');
+    hwait = waitbar(0,'','Name','CAST');
   end
 
   % Get the number of channels to parse
-  nchannels = length(mytracking.channels);
+  nchannels = length(myrecording.channels);
 
   % Loop over them
   for indx = 1:nchannels
 
     % Get the current type of segmentation to apply
-    type = mytracking.segmentations(indx).type;
+    type = myrecording.segmentations(indx).type;
 
     % Check whether it's a spot detection
     is_spot = false;
@@ -41,11 +41,11 @@ function [mytracking, opts] = segment_movie(mytracking, opts)
     if (is_spot)
 
       % Get the number of frames
-      nframes = size_data(mytracking.channels(indx));
+      nframes = size_data(myrecording.channels(indx));
 
       % Update the waitbar
       if (opts.verbosity > 1)
-        waitbar(0, hwait, ['Segmenting channel #' num2str(indx) ': ' mytracking.channels(indx).type]);
+        waitbar(0, hwait, ['Segmenting channel #' num2str(indx) ': ' myrecording.channels(indx).type]);
       end
 
       % Prepare the output structure
@@ -58,18 +58,18 @@ function [mytracking, opts] = segment_movie(mytracking, opts)
         noise = [];
 
         % Get the current image
-        img = double(load_data(mytracking.channels(indx), nimg));
+        img = double(load_data(myrecording.channels(indx), nimg));
 
         % Get the noise parameters
         noise = estimate_noise(img);
 
         % Detrend the image ?
-        if (mytracking.segmentations(indx).detrend)
+        if (myrecording.segmentations(indx).detrend)
           img = imdetrend(img, opts.segmenting.detrend_meshpoints);
         end
 
         % Denoise the image ?
-        if (mytracking.segmentations(indx).denoise)
+        if (myrecording.segmentations(indx).denoise)
           img = imdenoise(img, opts.segmenting.denoise_remove_bkg, ...
                           opts.segmenting.denoise_func, opts.segmenting.denoise_size);
         end
@@ -87,7 +87,7 @@ function [mytracking, opts] = segment_movie(mytracking, opts)
                              opts.segmenting.estimate_fit_position);
 
         % Filter the detected spots ?
-        if (mytracking.segmentations(indx).filter_spots)
+        if (myrecording.segmentations(indx).filter_spots)
 
           % Build the parameters and filter
           extrema = [opts.segmenting.filter_min_size opts.segmenting.filter_max_size]/...
@@ -110,7 +110,7 @@ function [mytracking, opts] = segment_movie(mytracking, opts)
       end
 
       % Store all detection in the segmentation structure
-      mytracking.segmentations(indx).detections = detections;
+      myrecording.segmentations(indx).detections = detections;
     end
   end
 

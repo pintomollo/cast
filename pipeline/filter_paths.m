@@ -1,30 +1,30 @@
-function [mytracking, opts] = filter_paths(mytracking, opts)
+function [myrecording, opts] = filter_paths(myrecording, opts)
 % FILTER_PATHS filters the paths previously build by tracking the detections in the
 % various channels of the experiment, reestimating theire parameters if need be.
 %
-%   [MYTRACKING] = FILTER_PATHS(MYTRACKING, OPTS) filters the paths present in the
-%   "trackings" field of MYTRACKING, using the options set in the "tracks_filtering"
+%   [MYRECORDING] = FILTER_PATHS(MYRECORDING, OPTS) filters the paths present in the
+%   "trackings" field of MYRECORDING, using the options set in the "tracks_filtering"
 %   structure.
 %
-%   [MYTRACKING, OPTS] = FILTER_PATHS(...) also returns the option structure OPTS.
+%   [MYRECORDING, OPTS] = FILTER_PATHS(...) also returns the option structure OPTS.
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 28.08.2014
 
   % Get the number of channels to parse
-  nchannels = length(mytracking.channels);
+  nchannels = length(myrecording.channels);
 
   % Loop over them
   for indx = 1:nchannels
 
     % Filter them
-    mytracking.trackings(indx).filtered = filter_tracking(mytracking.trackings(indx).detections, opts.tracks_filtering.min_path_length, opts.tracks_filtering.max_zip_length,opts.tracks_filtering.interpolate);
+    myrecording.trackings(indx).filtered = filter_tracking(myrecording.trackings(indx).detections, opts.tracks_filtering.min_path_length, opts.tracks_filtering.max_zip_length,opts.tracks_filtering.interpolate);
 
   end
 
   % And reestimate the spots if need be
-  mytracking = reestimate_spots(mytracking, opts);
+  myrecording = reestimate_spots(myrecording, opts);
 
   return;
 end

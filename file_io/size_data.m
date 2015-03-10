@@ -15,7 +15,7 @@ function [nframes, ssize] = size_data(fname)
 
   % If no filename is provided, we have a problem
   if (isempty(fname))
-    warning('Tracking:SizeData', 'No file name was provided.');
+    warning('CAST:size_data', 'No file name was provided.');
     return;
 
   % Or, potentially is it's a structure
@@ -23,7 +23,7 @@ function [nframes, ssize] = size_data(fname)
 
     % We're looking only for one field with the name 'fname', everyhting else if wrong
     if (~isfield(fname, 'fname') || isempty(fname.fname))
-      warning('Tracking:SizeData', 'No file name was found in the provided structure.');
+      warning('CAST:size_data', 'No file name was found in the provided structure.');
       return;
 
     % Try to open it
@@ -38,13 +38,13 @@ function [nframes, ssize] = size_data(fname)
 
   % Otherwise, we do not know what to do
   else
-    warning('Tracking:SizeData', 'Unable to extract a filename from an "%s" object.', class(fname));
+    warning('CAST:size_data', 'Unable to extract a filename from an "%s" object.', class(fname));
     return
   end
 
   % Here, we could not open the file previously, so problem...
   if (fid == -1)
-    warning('Tracking:SizeData', 'Unable to open file "%s" for reading.', fname);
+    warning('CAST:size_data', 'Unable to open file "%s" for reading.', fname);
     return
 
   % Now we can work ! Most of this part was extracted from the code of imfinfo

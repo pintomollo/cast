@@ -22,7 +22,7 @@ function mystruct = get_struct(type, nstruct)
   % Switch between all the different types
   switch type
 
-    % Structure used to parse the original files (reused in mytracking)
+    % Structure used to parse the original files (reused in myrecording)
     case 'channel'
       mystruct = struct('color', 1, ...             % Color of the channel (index of 'colors')
                         'compression', 'none', ...  % Compression used for the temporary file

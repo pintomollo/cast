@@ -51,9 +51,9 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, 
 %   to compute the per pixel / per frame values. OPTS should have the structure
 %   provided by get_struct('options').
 %
-%   MYTRACKING = TRACK_SPOTS(MYTRACKING, ...) tracks the spots segmented in MYTRACKING.
+%   MYRECORDING = TRACK_SPOTS(MYRECORDING, ...) tracks the spots segmented in MYRECORDING.
 %
-%   [MYTRACKING, OPTS] = TRACK_SPOTS(MYTRACKING, OPTS) also returns OPTS.
+%   [MYRECORDING, OPTS] = TRACK_SPOTS(MYRECORDING, OPTS) also returns OPTS.
 %
 % References:
 %   [1] Jaqaman K, Loerke D, Mettlen M, Kuwata H, Grinstein S, et al. Robust
@@ -66,7 +66,7 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, 
 
   % Input checking and default values
   if (nargin < 2)
-    error('Tracking:track_spots', 'Not enough parameters provided (min=2)');
+    error('CAST:track_spots', 'Not enough parameters provided (min=2)');
   elseif (nargin < 3)
     max_move = Inf;
     max_gap = 5;
@@ -187,13 +187,13 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, 
   % Make sure we at elast got this handler !
   frame_linking_weight = weighting_funcs{1};
   if (isempty(frame_linking_weight) || isempty(frame_linking_weight(1, 1, 1, 1)))
-    error('Tracking:track_spots', 'No valid frame to frame weighting function provided');
+    error('CAST:track_spots', 'No valid frame to frame weighting function provided');
   end
 
   % A nice status-bar if possible
   do_display = (verbosity > 1 && nframes > 2);
   if (do_display)
-    hwait = waitbar(0,'','Name','Cell Tracking');
+    hwait = waitbar(0,'','Name','CAST');
 
     % Update the waitbar
     waitbar(0, hwait, ['Linking spots between consecutive frames...']);

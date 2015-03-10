@@ -16,7 +16,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
   // Check for proper number of input and output arguments
   if (nrhs < 2) {
-    mexErrMsgIdAndTxt("MATLAB:bilinear:invalidInputs",
+    mexErrMsgIdAndTxt("CAST:bilinear:invalidInputs",
         "Not enough input arguments (2 is the minimum) !");
 
   // In that case, we got an image and a matrix of coordinates
@@ -39,11 +39,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
       // And thus need to allocate memory for the temporary matrix
       if ((x_indx = mxCalloc(n, sizeof(double))) == NULL) {
-        mexErrMsgIdAndTxt("MATLAB:bilinear:invalidInputs", 
+        mexErrMsgIdAndTxt("CAST:bilinear:invalidInputs", 
           "Memory allocation failed !");
       }
       if ((y_indx = mxCalloc(n, sizeof(double))) == NULL) {
-        mexErrMsgIdAndTxt("MATLAB:bilinear:invalidInputs",
+        mexErrMsgIdAndTxt("CAST:bilinear:invalidInputs",
           "Memory allocation failed !");
       }
 
@@ -61,7 +61,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
     // Otherwise, something is wrong in the inputs
     } else {
-      mexErrMsgIdAndTxt("MATLAB:bilinear:invalidInputs",
+      mexErrMsgIdAndTxt("CAST:bilinear:invalidInputs",
         "Indexes should be organized as a Nx2 subpixel coordinates table !");
     }
 
@@ -88,11 +88,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
         // And thus need to allocate memory for the temporary matrix
         if ((x_indx = mxCalloc(n, sizeof(double))) == NULL) {
-          mexErrMsgIdAndTxt("MATLAB:bilinear:invalidInputs", 
+          mexErrMsgIdAndTxt("CAST:bilinear:invalidInputs", 
             "Memory allocation failed !");
         }
         if ((y_indx = mxCalloc(n, sizeof(double))) == NULL) {
-          mexErrMsgIdAndTxt("MATLAB:bilinear:invalidInputs",
+          mexErrMsgIdAndTxt("CAST:bilinear:invalidInputs",
             "Memory allocation failed !");
         }
 
@@ -110,7 +110,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
       // Otherwise, something is wrong in the inputs
       } else {
-        mexErrMsgIdAndTxt("MATLAB:bilinear:invalidInputs",
+        mexErrMsgIdAndTxt("CAST:bilinear:invalidInputs",
           "Both indexes must have the same number of elements");
       }
 
@@ -136,7 +136,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   // Finally, maybe the boundary conditions are also provided
   } else if (nrhs == 4) {
     if (mxGetNumberOfElements(prhs[1]) != mxGetNumberOfElements(prhs[2])) {
-      mexErrMsgIdAndTxt("MATLAB:bilinear:invalidInputs",
+      mexErrMsgIdAndTxt("CAST:bilinear:invalidInputs",
         "Both indexes must have the same number of elements");
     }
     x_indx = mxGetPr(prhs[1]);
@@ -159,7 +159,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
   // Ensure the types of the two first arrays at least
   if (!(mxIsDouble(prhs[0]) && mxIsDouble(prhs[1]))) {
-    mexErrMsgIdAndTxt("MATLAB:bilinear:invalidInputs",
+    mexErrMsgIdAndTxt("CAST:bilinear:invalidInputs",
         "Input arguments must be of type double.");
   }
 

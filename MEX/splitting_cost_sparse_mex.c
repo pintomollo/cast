@@ -21,17 +21,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   } else if (nrhs == 8) {
     is_test = false;
   } else {
-    mexErrMsgIdAndTxt( "MATLAB:splitting_cost_sparse_mex:invalidNumInputs",
+    mexErrMsgIdAndTxt( "CAST:splitting_cost_sparse_mex:invalidNumInputs",
         "Four or eight input arguments required.");
   }
 
   // Check data type of input argument
   if (!(mxIsDouble(prhs[0]) && mxIsDouble(prhs[1]) && mxIsDouble(prhs[2]))){
-    mexErrMsgIdAndTxt( "MATLAB:splitting_cost_sparse_mex:inputNotDouble",
+    mexErrMsgIdAndTxt( "CAST:splitting_cost_sparse_mex:inputNotDouble",
         "Input arguments must be of type double.");
   }
   if (!is_test && !(mxIsCell(prhs[6]) && mxIsCell(prhs[7]))) {
-    mexErrMsgIdAndTxt( "MATLAB:splitting_cost_sparse_mex:inputNotCell",
+    mexErrMsgIdAndTxt( "CAST:splitting_cost_sparse_mex:inputNotCell",
         "Input arguments (7, 8) must be of type cell.");
   }
 

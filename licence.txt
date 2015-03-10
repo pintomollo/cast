@@ -1,5 +1,5 @@
 
-    Cell Tracking Plateform, automated cell tracking and image quantification.
+    CAST: Cell Automated Segmentation and Tracking platform.
     Copyright (C) 2014  Simon Blanchoud
 
     This program is free software: you can redistribute it and/or modify

@@ -26,7 +26,7 @@ function fused_spots = filter_spots(all_spots, extrema_size, min_intensity, ...
 
   % Input checking and default values
   if (nargin == 0)
-    error('Tracking:filter_spots', 'Not enough parameters provided (min=1)');
+    error('CAST:filter_spots', 'Not enough parameters provided (min=1)');
   elseif (nargin < 2)
     extrema_size = [0 Inf];
     min_intensity = 0;

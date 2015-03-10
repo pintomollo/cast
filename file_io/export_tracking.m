@@ -1,11 +1,11 @@
-function export_tracking(mytracking, props, opts)
+function export_tracking(myrecording, props, opts)
 % EXPORT_TRACKING writes CSV files containing the results of the tracking.
 %
-%   EXPORT_TRACKING(MYTRACKING, OPTS) writes in CSV files the content of MYTRACKING,
+%   EXPORT_TRACKING(MYRECORDING, OPTS) writes in CSV files the content of MYRECORDING,
 %   utilizing the parameters from OPTS to convert the tracking values to um and s.
 %
-%   EXPORT_TRACKING(MYTRACKING, FNAME, OPTS) specifies the name of the CSV files to
-%   write to. By default, the name contained in MYTRACKING.experiment is used.
+%   EXPORT_TRACKING(MYRECORDING, FNAME, OPTS) specifies the name of the CSV files to
+%   write to. By default, the name contained in MYRECORDING.experiment is used.
 %   If no folder is specified in FNAME, files are written in the 'export' folder.
 %
 %   EXPORT_TRACKING(..., LOW_DUPLICATES) when true, does not repeat the information from
@@ -43,7 +43,7 @@ function export_tracking(mytracking, props, opts)
 
   % Do we have a filename ?
   if (isempty(fname))
-    fname = mytracking.experiment;
+    fname = myrecording.experiment;
   end
 
   % Force to have low duplicates if we want full cycles
@@ -55,15 +55,15 @@ function export_tracking(mytracking, props, opts)
   time_format = 'dd:HH:MM:SS';
 
   % A hidden waitbar
-  hwait = waitbar(0,'','Name','Cell Tracking', 'Visible', 'off');
+  hwait = waitbar(0,'','Name','CAST', 'Visible', 'off');
 
   % Now we loop over all channels
-  nchannels = length(mytracking.trackings);
+  nchannels = length(myrecording.trackings);
 
   % Switch to segmentations instead, as there seems to be data in it
-  if (nchannels==0 && length(mytracking.segmentations)>0)
-    mytracking.trackings = mytracking.segmentations;
-    nchannels = length(mytracking.trackings);
+  if (nchannels==0 && length(myrecording.segmentations)>0)
+    myrecording.trackings = myrecording.segmentations;
+    nchannels = length(myrecording.trackings);
   end
 
   % Might need that value later on
@@ -73,13 +73,13 @@ function export_tracking(mytracking, props, opts)
   for i=1:nchannels
 
     % Get the current type of segmentation to apply
-    type = mytracking.segmentations(i).type;
+    type = myrecording.segmentations(i).type;
 
     % Rescaling the pixel intensities
-    if (mytracking.channels(i).normalize)
-      int_scale = double(mytracking.channels(i).max - mytracking.channels(i).min) ...
+    if (myrecording.channels(i).normalize)
+      int_scale = double(myrecording.channels(i).max - myrecording.channels(i).min) ...
                          / double(maxuint);
-      bkg = double(mytracking.channels(i).min);
+      bkg = double(myrecording.channels(i).min);
     else
       int_scale = 1;
       bkg = 0;
@@ -103,28 +103,28 @@ function export_tracking(mytracking, props, opts)
     ncols = length(colname);
 
     % Now check how many frames there are
-    nframes = length(mytracking.trackings(i).filtered);
+    nframes = length(myrecording.trackings(i).filtered);
 
     set(hwait, 'Visible', 'off');
 
     % Extract the results of the tracking in this channel
-    paths = reconstruct_tracks(mytracking.trackings(i).filtered, low_duplicates);
-    noises = gather_noises(mytracking.trackings(i).filtered);
+    paths = reconstruct_tracks(myrecording.trackings(i).filtered, low_duplicates);
+    noises = gather_noises(myrecording.trackings(i).filtered);
 
     % If it's empty, switch to the detections
     if (isempty(paths))
       disp(['No filtered data to be exported in channel ' num2str(i) ', switching to the detections']);
 
       % Now check how many frames there are
-      nframes = length(mytracking.trackings(i).detections);
+      nframes = length(myrecording.trackings(i).detections);
 
       % Extract the results of the tracking in this channel
-      paths = reconstruct_tracks(mytracking.trackings(i).detections, low_duplicates);
-      noises = gather_noises(mytracking.trackings(i).detections);
+      paths = reconstruct_tracks(myrecording.trackings(i).detections, low_duplicates);
+      noises = gather_noises(myrecording.trackings(i).detections);
     end
 
     % Rescaling the noise as well
-    if (mytracking.channels(i).normalize)
+    if (myrecording.channels(i).normalize)
       noises = noises * int_scale;
       noises(:,1) = noises(:,1) + bkg;
     end
@@ -174,7 +174,7 @@ function export_tracking(mytracking, props, opts)
                                                    rescale_factor);
         otherwise
           close(hwait);
-          error('Tracking:BadAligning', ['Alignment type "' aligning_type '" does not exist']);
+          error('CAST:export_tracking', ['Alignment type "' aligning_type '" does not exist']);
       end
 
       % Get a name for the current path

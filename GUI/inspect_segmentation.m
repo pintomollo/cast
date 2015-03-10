@@ -1,21 +1,21 @@
-function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
+function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opts)
 % INSPECT_SEGMENTATION displays a pop-up window for the user to manually inspect the
 % segmentation that will be performed on the provided movie.
 %
-%   [MYTRACKING, OPTS] = INSPECT_SEGMENTATION(MYTRACKING,OPTS) displays the window
-%   using the data contained in MYTRACKING and the parameter values from OPTS. It
-%   them accordingly to the user's choice. MYTRACKING should be a structure as
+%   [MYRECORDING, OPTS] = INSPECT_SEGMENTATION(MYRECORDING,OPTS) displays the window
+%   using the data contained in MYRECORDING and the parameter values from OPTS. It
+%   them accordingly to the user's choice. MYRECORDING should be a structure as
 %   defined by get_struct('myrecording')
 %
-%   [...] = INSPECT_SEGMENTATION() prompts the user to select a MYTRACKING containing
+%   [...] = INSPECT_SEGMENTATION() prompts the user to select a MYRECORDING containing
 %   Matlab file before opening the GUI.
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud
 % 17.06.2014
 
-  % Argument checking, need to know if we ask for a mytracking file or not.
-  if (nargin ~= 2 | isempty(mytracking) | isempty(opts))
+  % Argument checking, need to know if we ask for a myrecording file or not.
+  if (nargin ~= 2 | isempty(myrecording) | isempty(opts))
 
     % Fancy output
     disp('[Select a MAT file]');
@@ -26,7 +26,7 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
 
     % Loading was cancelled
     if (isequal(dirpath, 0))
-      mytracking = [];
+      myrecording = [];
       opts = [];
       is_updated = false;
 
@@ -37,9 +37,9 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
     data = load(fname);
 
     % Not what we expected
-    if (~isfield(data, 'mytracking') || ~isfield(data, 'opts'))
+    if (~isfield(data, 'myrecording') || ~isfield(data, 'opts'))
       disp(['Error: ' fname ' does not contain a valid tracking structure']);
-      mytracking = [];
+      myrecording = [];
       opts = [];
       is_updated = false;
 
@@ -47,7 +47,7 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
 
     % Extract the loaded data
     else
-      mytracking = data.mytracking;
+      myrecording = data.myrecording;
       opts = data.opts;
     end
   end
@@ -56,7 +56,7 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
   orig_opts = opts;
 
   % Prepare some global variables
-  channels = mytracking.channels;
+  channels = myrecording.channels;
   nchannels = length(channels);
   segmentations = get_struct('segmentation', [1, nchannels]);
 
@@ -91,16 +91,16 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
 
   if (is_updated)
     % Store the channels
-    mytracking.channels = channels;
+    myrecording.channels = channels;
     % Store the segmentations
-    mytracking.segmentations = segmentations;
+    myrecording.segmentations = segmentations;
     % And get the experiment name
-    mytracking.experiment = get(handles.experiment, 'String');
+    myrecording.experiment = get(handles.experiment, 'String');
     % And reset the other fields
     for i=1:nchannels
-      mytracking.segmentations(i).detections = get_struct('detection',0);
+      myrecording.segmentations(i).detections = get_struct('detection',0);
     end
-    mytracking.trackings = get_struct('tracking', 0);
+    myrecording.trackings = get_struct('tracking', 0);
   end
 
   % Delete the whole figure
@@ -534,7 +534,7 @@ function [mytracking, opts, is_updated] = inspect_segmentation(mytracking, opts)
     nframes = size_data(channels(1).fname);
 
     % And the experiment name
-    exp_name = mytracking.experiment;
+    exp_name = myrecording.experiment;
 
     % Create my own grayscale map for the image display
     mygray = [0:255]' / 255;

@@ -16,7 +16,7 @@ function done = save_data(fname, imgs)
 
   % If no filename is provided, we have a problem
   if (isempty(fname))
-    warning('Tracking:SaveData', 'No file name was provided.');
+    warning('CAST:save_data', 'No file name was provided.');
     return;
 
   % Or, potentially is it's a structure
@@ -24,7 +24,7 @@ function done = save_data(fname, imgs)
 
     % We're looking only for one field with the name 'fname', everyhting else if wrong
     if (~isfield(fname, 'fname') || isempty(fname.fname))
-      warning('Tracking:SaveData', 'No file name was found in the provided structure.');
+      warning('CAST:save_data', 'No file name was found in the provided structure.');
       return;
 
     % We'll try this one then
@@ -34,13 +34,13 @@ function done = save_data(fname, imgs)
 
   % If we have a string, try to open the file
   elseif (~ischar(fname))
-    warning('Tracking:SaveData', 'Unable to extract a filename from an "%s" object.', class(fname));
+    warning('CAST:save_data', 'Unable to extract a filename from an "%s" object.', class(fname));
     return
   end
 
   % Check that we can actually save what we got
   if (isempty(imgs) || ~isnumeric(imgs))
-    warning('Tracking:SaveData', 'No valid image was provided.');
+    warning('CAST:save_data', 'No valid image was provided.');
     return
   end
 

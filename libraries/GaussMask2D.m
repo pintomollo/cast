@@ -52,7 +52,7 @@ switch ls
     case 1
         sigma = [sigma,sigma];
     otherwise
-        error('sigma has to be either a 1-by-2 vector or a scalar!')
+        error('GaussMask2D','sigma has to be either a 1-by-2 vector or a scalar!')
 end
 
 lf = length(fSze);
@@ -62,7 +62,7 @@ switch lf
     case 1
         fSze = [fSze,fSze];
     otherwise
-        error('fSze has to be either a 1-by-2 vector or a scalar!')
+        error('GaussMask2D','fSze has to be either a 1-by-2 vector or a scalar!')
 end
 
 if nargin < 3 || isempty(cent)

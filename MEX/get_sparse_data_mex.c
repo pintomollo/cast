@@ -10,13 +10,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // Check for proper number of input and output arguments
   if (nrhs != 1) {
-    mexErrMsgIdAndTxt( "MATLAB:get_sparse_data_mex:invalidNumInputs",
+    mexErrMsgIdAndTxt( "CAST:get_sparse_data_mex:invalidNumInputs",
         "One input argument required.");
   }
 
   // Check data type of input argument
   if (!(mxIsSparse(prhs[0]) && mxIsDouble(prhs[0]))) {
-    mexErrMsgIdAndTxt( "MATLAB:get_sparse_data_mex:inputNotSparse",
+    mexErrMsgIdAndTxt( "CAST:get_sparse_data_mex:inputNotSparse",
         "Input arguments must be of type double sparse.");
   }
 

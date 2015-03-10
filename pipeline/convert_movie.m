@@ -92,7 +92,7 @@ function [newfile] = bftools_convert(fname)
   fname = absolutepath(fname);
 
   if (exist(fname, 'file') ~= 2)
-    error('Tracking:BadFile', ['File ' fname ' does not exist']);
+    error('CAST:convert_movie', ['File ' fname ' does not exist']);
   end
 
   % Split the filename
@@ -116,7 +116,7 @@ function [newfile] = bftools_convert(fname)
   curdir = pwd;
   cmd_path = which('bfconvert.bat');
   if (isempty(cmd_path))
-    error('Tracking:lociMissing', 'The LOCI command line tools are not present !\nPlease follow the instructions provided by install_cell_tracking');
+    error('CAST:convert_movie', 'The LOCI command line tools are not present !\nPlease follow the instructions provided by install_cell_tracking');
   end
   [mypath, junk] = fileparts(cmd_path);
 
@@ -143,7 +143,7 @@ function [newfile] = bftools_convert(fname)
   % Check if an error occured
   if (res ~= 0)
     cd(curdir);
-    error(metadata);
+    error('CAST:convert_movie',metadata);
   end
 
   % Extract the three important informations from the extracted metadata
@@ -176,7 +176,7 @@ function [newfile] = bftools_convert(fname)
   % Something went terribly wrong...
   if (isempty(format) | isempty(is_rgb))
     cd(curdir);
-    error('Tracking:lociFormat', ['The metadata does not present the expected information: ''file format'' and ''RGB'' :\n\n' metadata]);
+    error('CAST:convert_movie', ['The metadata does not present the expected information: ''file format'' and ''RGB'' :\n\n' metadata]);
   end
 
   % Get the information out of the search results
@@ -195,7 +195,7 @@ function [newfile] = bftools_convert(fname)
 
   % RGB will not work
   if (is_rgb)
-    warning('Tracking:RGB','RGB channels will be separated, please make sure that no information is lost !')
+    warning('CAST:convert_movie','RGB channels will be separated, please make sure that no information is lost !')
   end
 
   % We create an OME-TIFF file
@@ -261,7 +261,7 @@ function [newfile] = bftools_convert(fname)
   % Check if an error occured
   if (res ~= 0)
     cd(curdir);
-    error(infos);
+    error('CAST:convert_movie', infos);
   end
 
   % Store the new name in relative path and come back to the original folder

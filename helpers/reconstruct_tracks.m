@@ -9,7 +9,7 @@ function [paths, track_num] = reconstruct_tracks(spots, links, low_duplicates)
 %     [status, spot, frame_index, spot_index]
 %   where status is -1 (merging) 0 (track) 1 (splitting).
 %
-%   PATHS = RECONSTRUCT_TRACKS(MYTRACKING) extracts the paths from MYTRACKING. PATHS
+%   PATHS = RECONSTRUCT_TRACKS(MYRECORDING) extracts the paths from MYRECORDING. PATHS
 %   then becomes a cell array of cell arrays (one for each channel).
 %
 %   PATHS = RECONSTRUCT_TRACKS(..., LOW_DUPLICATES) if true, does not duplicate the
@@ -80,7 +80,7 @@ function [paths, track_num] = reconstruct_tracks(spots, links, low_duplicates)
   end
 
   % A nice visual waitbar
-  hwait = waitbar(0,'','Name','Cell Tracking');
+  hwait = waitbar(0,'','Name','CAST');
   waitbar(0, hwait, ['Reconstructing tracks...']);
 
   % The size of the problem

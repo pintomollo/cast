@@ -1,15 +1,15 @@
-function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
-% CELL_TRACKING_GUI displays the main window of this interactive segmentation and
+function [myrecording, opts] = CAST_GUI(myrecording, opts)
+% CAST_GUI displays the main window of this interactive segmentation and
 % tracking platform in time-lapse recordings.
 %
-%   CELL_TRACKING_GUI() displays an empty GUI for the user to load a recording interactively.
+%   CAST_GUI() displays an empty GUI for the user to load a recording interactively.
 %
-%   [MYTRACKING, OPTS] = CELL_TRACKING_GUI() returns the results of the analysis in MYTRACKING
-%   and the corresponding options in OPTS. MYTRACKING and OPTS will be structured as defined
-%   get_struct('mytracking') and get_struct('options') respectively.
+%   [MYRECORDING, OPTS] = CAST_GUI() returns the results of the analysis in MYRECORDING
+%   and the corresponding options in OPTS. MYRECORDING and OPTS will be structured as defined
+%   get_struct('myrecording') and get_struct('options') respectively.
 %
-%   [MYTRACKING, OPTS] = CELL_TRACKING_GUI(MYTRACKING, OPTS) displays the window using
-%   the data contained in MYTRACKING and the parameter values from OPTS. It updates
+%   [MYRECORDING, OPTS] = CAST_GUI(MYRECORDING, OPTS) displays the window using
+%   the data contained in MYRECORDING and the parameter values from OPTS. It updates
 %   them accordingly to the user's choice.
 %
 % Gonczy & Naef labs, EPFL
@@ -17,8 +17,8 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
 % 02.07.2014
 
   % Argument checking, need to know if we create new structures or not
-  if (nargin ~= 2 | isempty(mytracking) | isempty(opts))
-    mytracking = get_struct('myrecording');
+  if (nargin ~= 2 | isempty(myrecording) | isempty(opts))
+    myrecording = get_struct('myrecording');
     opts = get_struct('options');
   else
     % We utilize this function to improve compatibility between versions of this
@@ -27,11 +27,11 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
   end
 
   % Prepare some global variables
-  channels = mytracking.channels;
+  channels = myrecording.channels;
   nchannels = length(channels);
   nframes = 1;
-  segmentations = mytracking.segmentations;
-  trackings = mytracking.trackings;
+  segmentations = myrecording.segmentations;
+  trackings = myrecording.trackings;
   has_segmentation = false;
   has_tracking = false;
   has_filtered = false;
@@ -103,10 +103,10 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
 
   if (is_updated)
     % Store the segmentations
-    mytracking.segmentations = segmentations;
+    myrecording.segmentations = segmentations;
     % And get the experiment name
     if (nchannels > 0)
-      mytracking.experiment = get(handles.experiment, 'String');
+      myrecording.experiment = get(handles.experiment, 'String');
     end
   end
 
@@ -120,10 +120,10 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
   % This function steups all the variables and GUI elements required for it to work
 
     % Some default global variables
-    channels = mytracking.channels;
+    channels = myrecording.channels;
     nchannels = length(channels);
-    segmentations = mytracking.segmentations;
-    trackings = mytracking.trackings;
+    segmentations = myrecording.segmentations;
+    trackings = myrecording.trackings;
 
     % Initialize the structure used for the interface
     liststring = '';
@@ -144,7 +144,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
     end
 
     % And the experiment name
-    exp_name = mytracking.experiment;
+    exp_name = myrecording.experiment;
     if (isempty(exp_name))
       exp_name = 'Load a recording here -->';
     end
@@ -268,7 +268,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
     if (indx ~= handles.prev_channel && indx <= nchannels)
       % Because it takes long, display it and block the GUI
       color_index = channels(indx).color(1);
-      set(hFig, 'Name', 'Cell Tracking Platform (Processing...)');
+      set(hFig, 'Name', 'CAST (Processing...)');
       all_all = [handles.all_buttons, handles.save, handles.pipeline];
       curr_status = get(all_all, 'Enable');
       set(all_all, 'Enable', 'off');
@@ -319,7 +319,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
         all_filtered = reconstruct_tracks(trackings(indx).filtered, true);
       end
 
-      set(hFig, 'Name', 'Cell Tracking Platform');
+      set(hFig, 'Name', 'CAST');
       set(all_all, {'Enable'}, curr_status);
     end
     all_colors = colorize_graph(all_paths, colors.paths{color_index}(length(all_paths)));
@@ -331,7 +331,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
 
     if (recompute)
       % Because it takes long, display it and block the GUI
-      set(hFig, 'Name', 'Cell Tracking Platform (Processing...)');
+      set(hFig, 'Name', 'CAST (Processing...)');
       curr_status = get(handles.all_buttons, 'Enable');
       set(handles.all_buttons, 'Enable', 'off');
       drawnow;
@@ -518,7 +518,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
 
     if (recompute)
       % Release the image
-      set(hFig, 'Name', 'Cell Tracking Platform');
+      set(hFig, 'Name', 'CAST');
       set(handles.all_buttons, {'Enable'}, curr_status);
     end
 
@@ -551,7 +551,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
         if (nchannels > 0)
           answer = questdlg('Save the current project ?', 'Save ?');
           if (strcmp(answer, 'Yes'))
-            uisave({'mytracking','opts'}, [mytracking.experiment '.mat'])
+            uisave({'myrecording','opts'}, [myrecording.experiment '.mat'])
           end
         end
 
@@ -570,34 +570,34 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
           data = load(fname);
 
           % Not what we expected
-          if (~isfield(data, 'mytracking') || ~isfield(data, 'opts'))
-            disp(['Error: ' fname ' does not contain a valid mytracking structure']);
+          if (~isfield(data, 'myrecording') || ~isfield(data, 'opts'))
+            disp(['Error: ' fname ' does not contain a valid myrecording structure']);
 
           % Extract the loaded data
           else
-            mytracking = data.mytracking;
+            myrecording = data.myrecording;
             opts = update_structure(data.opts, 'options');
           end
         end
 
       % Call the saving function
       case 'save'
-        uisave({'mytracking','opts'}, [mytracking.experiment '.mat'])
+        uisave({'myrecording','opts'}, [myrecording.experiment '.mat'])
         recompute = false;
 
       % Export the results
       case 'export'
         props = get_struct('exporting');
-        props.file_name = mytracking.experiment;
-        mytracking.channels = channels;
+        props.file_name = myrecording.experiment;
+        myrecording.channels = channels;
 
         [props, do_export] = edit_options(props);
         if (do_export)
           if (props.export_data)
-            export_tracking(mytracking, props, opts);
+            export_tracking(myrecording, props, opts);
           end
           if (props.export_movie)
-            export_movie(mytracking, props, opts);
+            export_movie(myrecording, props, opts);
           end
         end
         recompute = false;
@@ -710,17 +710,17 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
 
       % Create a new, empty experiment
       case 'new'
-        mytracking = get_struct('myrecording');
+        myrecording = get_struct('myrecording');
         opts = get_struct('options');
 
       % Call the data processing GUI and process the channels accordingly
       case 'process'
         set(hFig, 'Visible', 'off')
-        [mytracking, opts, reload] = inspect_recording(mytracking, opts);
+        [myrecording, opts, reload] = inspect_recording(myrecording, opts);
         if (reload)
-          [mytracking, opts] = preprocess_movie(mytracking, opts);
+          [myrecording, opts] = preprocess_movie(myrecording, opts);
           if (autosave)
-            save([mytracking.experiment '.mat'], 'mytracking', 'opts');
+            save([myrecording.experiment '.mat'], 'myrecording', 'opts');
           end
           [opts, recompute] = edit_options(opts);
         end
@@ -729,11 +729,11 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
       % Call the segmenting GUI, and segment accordingly
       case 'segment'
         set(hFig, 'Visible', 'off')
-        [mytracking, opts, reload] = inspect_segmentation(mytracking, opts);
+        [myrecording, opts, reload] = inspect_segmentation(myrecording, opts);
         if (reload)
-          [mytracking, opts] = segment_movie(mytracking, opts);
+          [myrecording, opts] = segment_movie(myrecording, opts);
           if (autosave)
-            save([mytracking.experiment '.mat'], 'mytracking', 'opts');
+            save([myrecording.experiment '.mat'], 'myrecording', 'opts');
           end
         end
         set(hFig, 'Visible', 'on')
@@ -741,11 +741,11 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
       % Call the scell tracking GUI, and track accordingly
       case 'track'
         set(hFig, 'Visible', 'off')
-        [mytracking, opts, reload] = inspect_tracking(mytracking, opts);
+        [myrecording, opts, reload] = inspect_tracking(myrecording, opts);
         if (reload)
-          [mytracking, opts] = track_spots(mytracking, opts);
+          [myrecording, opts] = track_spots(myrecording, opts);
           if (autosave)
-            save([mytracking.experiment '.mat'], 'mytracking', 'opts');
+            save([myrecording.experiment '.mat'], 'myrecording', 'opts');
           end
         end
         set(hFig, 'Visible', 'on')
@@ -753,11 +753,11 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
       % Call the path filtering GUI, and filter accordingly
       case 'paths'
         set(hFig, 'Visible', 'off')
-        [mytracking, opts, reload] = inspect_paths(mytracking, opts);
+        [myrecording, opts, reload] = inspect_paths(myrecording, opts);
         if (reload)
-          [mytracking, opts] = filter_paths(mytracking, opts);
+          [myrecording, opts] = filter_paths(myrecording, opts);
           if (autosave)
-            save([mytracking.experiment '.mat'], 'mytracking', 'opts');
+            save([myrecording.experiment '.mat'], 'myrecording', 'opts');
           end
         end
         set(hFig, 'Visible', 'on')
@@ -835,11 +835,11 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
   % This function converts the various indexes back into strings to prepare
   % the segmentations structure for its standard form.
 
-    mytracking.channels = channels;
+    myrecording.channels = channels;
     if (nchannels > 0)
       answer = questdlg('Save the current project ?', 'Save ?');
       if (strncmp(answer, 'Yes', 3))
-        uisave({'mytracking','opts'}, [mytracking.experiment '.mat'])
+        uisave({'myrecording','opts'}, [myrecording.experiment '.mat'])
       end
     end
 
@@ -867,7 +867,7 @@ function [mytracking, opts] = cell_tracking_GUI(mytracking, opts)
                   'Color',  [0.7 0.7 0.7], ...
                   'Colormap', mygray, ...
                   'MenuBar', 'none',  ...
-                  'Name', 'Cell Tracking Plateform',  ...
+                  'Name', 'CAST',  ...
                   'NumberTitle', 'off',  ...
                   'Units', 'normalized', ...
                   'Position', [0 0 1 1], ...

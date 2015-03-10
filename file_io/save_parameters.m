@@ -71,7 +71,7 @@ function save_parameters(opts, fname)
   try
     myprint(fid, opts, spacer, prefix);
   catch ME
-    warning('Tracking:SavingParameters', ['An error occured when saving the parameters:\n' ME.message])
+    warning('CAST:save_parameters', ['An error occured when saving the parameters:\n' ME.message])
   end
 
   % If we did not get a file identifier, we need to close the file

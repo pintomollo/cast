@@ -30,7 +30,7 @@ function detected = reconstruct_detection(imgs, spots)
 
   % Something went wrong...
   if (length(spots) ~= p)
-    warning('Tracking:ReconstructDetections', 'Sizes does not correspond between the image and the detections.');
+    warning('CAST:reconstruct_detection', 'Sizes does not correspond between the image and the detections.');
 
     return;
   end

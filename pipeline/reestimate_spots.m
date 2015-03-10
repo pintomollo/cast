@@ -1,9 +1,9 @@
-function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
+function [myrecording] = reestimate_spots(myrecording, img, segmentation, opts)
 % REESTIMATE_SPOTS re-estimates the segmentation of the various channels of an
 % experiment, taking advantage of the information resulting from the tracking.
 %
-%   [MYTRACKING] = REESTIMATE_SPOTS(MYTRACKING, OPTS) refines all the channels
-%   present in MYTRACKING, when needed, using the options set in the "trackings"
+%   [MYRECORDING] = REESTIMATE_SPOTS(MYRECORDING, OPTS) refines all the channels
+%   present in MYRECORDING, when needed, using the options set in the "trackings"
 %   structure, using the parameter values from OPTS. The resulting detections are
 %   then stored in "filtered" in the corresponding segmentation field.
 %
@@ -22,22 +22,22 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
     do_all = true;
     segmentation = [];
   elseif (nargin ~= 4)
-     error('Tracking:reestimate_spots', 'Wrong number of inputs, either 2 or 4 accepted');
+     error('CAST:reestimate_spots', 'Wrong number of inputs, either 2 or 4 accepted');
   end
 
   % No data provided
-  if (isempty(mytracking))
+  if (isempty(myrecording))
     return;
   end
 
   % A nice status-bar if possible
   if (opts.verbosity > 1 && do_all)
-    hwait = waitbar(0,'','Name','Cell Tracking');
+    hwait = waitbar(0,'','Name','CAST');
   end
 
   % Get the number of channels to parse
   if (do_all)
-    nchannels = length(mytracking.channels);
+    nchannels = length(myrecording.channels);
   else
     nchannels = 1;
   end
@@ -51,10 +51,10 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
 
     % Get the current type of segmentation to apply
     if (do_all)
-      type = mytracking.segmentations(indx).type;
+      type = myrecording.segmentations(indx).type;
 
       % Maybe we do not want to do it...
-      if (~mytracking.trackings(indx).reestimate_spots)
+      if (~myrecording.trackings(indx).reestimate_spots)
         continue
       end
     else
@@ -75,20 +75,20 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
 
       if (do_all)
         % Get the number of frames
-        nframes = size_data(mytracking.channels(indx));
+        nframes = size_data(myrecording.channels(indx));
         frames = [1:nframes];
 
         % Update the waitbar
         if (opts.verbosity > 1)
-          waitbar(0, hwait, ['Reestimating channel #' num2str(indx) ': ' mytracking.channels(indx).type]);
+          waitbar(0, hwait, ['Reestimating channel #' num2str(indx) ': ' myrecording.channels(indx).type]);
         end
 
         % Prepare the output structure
-        detections = mytracking.trackings(indx).filtered;
+        detections = myrecording.trackings(indx).filtered;
       else
         % And in the case we refine only one plane
         frames = [1];
-        detections = struct('carth', mytracking(:,1:2), 'properties', mytracking(:,3:end));
+        detections = struct('carth', myrecording(:,1:2), 'properties', myrecording(:,3:end));
       end
 
       % Iterate over the whole recording
@@ -111,15 +111,15 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
 
           % Get the current image
           if (do_all)
-            img = double(load_data(mytracking.channels(indx), nimg));
+            img = double(load_data(myrecording.channels(indx), nimg));
 
             % Detrend the image ?
-            if (mytracking.segmentations(indx).detrend)
+            if (myrecording.segmentations(indx).detrend)
               img = imdetrend(img, opts.segmenting.detrend_meshpoints);
             end
 
             % Denoise the image ?
-            if (mytracking.segmentations(indx).denoise)
+            if (myrecording.segmentations(indx).denoise)
               [img, noise] = imdenoise(img, opts.segmenting.denoise_remove_bkg, ...
                               opts.segmenting.denoise_func, opts.segmenting.denoise_size);
             end
@@ -147,7 +147,7 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
 
           % Filter the detected spots ?
           goods = true(size(spots, 1), 1);
-          if (do_all && mytracking.segmentations(indx).filter_spots)
+          if (do_all && myrecording.segmentations(indx).filter_spots)
             % Spots are organised with intensity in column 4 and radii in column 3
             goods = (spots(:,3)*3 > extrema_size(1) & spots(:,3) < extrema_size(2)...
                    & ~any(imag(spots), 2));
@@ -185,9 +185,9 @@ function [mytracking] = reestimate_spots(mytracking, img, segmentation, opts)
 
       % Store all detection in the tracking structure
       if (do_all)
-        mytracking.trackings(indx).filtered = detections;
+        myrecording.trackings(indx).filtered = detections;
       else
-        mytracking = [detections.carth detections.properties];
+        myrecording = [detections.carth detections.properties];
       end
     end
   end

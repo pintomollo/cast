@@ -98,7 +98,7 @@ function opts = load_parameters(opts, fnames)
 
       % Otherwise we ran out of options
       else
-        warning(['Configuration file ''' fname ''' could not be found.'])
+        warning('CAST:load_parameters', ['Configuration file ''' fname ''' could not be found.'])
 
         continue;
       end
@@ -163,7 +163,7 @@ function opts = load_parameters(opts, fnames)
               % We use the eval function to interpret the values as in MATLAB 
               eval(['opts.' prefix tokens{1}{1} ' = ' tokens{1}{2} ';']);
             catch ME
-              warning('Tracking:LoadingParameters', ['An error occured when loading field ''' prefix '.' tokens{1}{1} '''\n' ME.message])
+              warning('CAST:load_parameters', ['An error occured when loading field ''' prefix '.' tokens{1}{1} '''\n' ME.message])
               break;
             end
           end

@@ -26,7 +26,7 @@ function spots = detect_spots(imgs, thresh, max_size)
 
   % Input checking
   if (nargin == 0)
-    error('Tracking:detect_spots', 'Not enough parameters provided (min=1)');
+    error('CAST:detect_spots', 'Not enough parameters provided (min=1)');
   elseif (nargin < 2)
     thresh = 3;
     max_size = Inf;

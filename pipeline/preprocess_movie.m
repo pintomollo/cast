@@ -17,7 +17,7 @@ function [myrecording, opts] = preprocess_movie(myrecording, opts)
 
   % A nice status-bar if possible
   if (opts.verbosity > 1)
-    hwait = waitbar(0,'','Name','Cell Tracking','Visible','off');
+    hwait = waitbar(0,'','Name','CAST','Visible','off');
   end
 
   % Get the number of channels to parse
@@ -40,7 +40,7 @@ function [myrecording, opts] = preprocess_movie(myrecording, opts)
 
     % We need LOCI to do so...
     if (isempty(cmd_path))
-      error('Tracking:lociMissing', 'The LOCI command line tools are not present !\nPlease follow the instructions provided by install_cell_tracking');
+      error('CAST:preprocess_movie', 'The LOCI command line tools are not present !\nPlease follow the instructions provided by install_cell_tracking');
     end
     [mypath, junk] = fileparts(cmd_path);
 
@@ -70,14 +70,22 @@ function [myrecording, opts] = preprocess_movie(myrecording, opts)
 
     % Check if an error occured
     if (res ~= 0)
-      error(metadata);
+      error('CAST:preprocess_movie', metadata);
     end
 
     % Try to identify better metadata
     metadata = find_metadata(fname, metadata);
 
+    % This can take a while, so inform the user
+    hInfo = warndlg('Parsing metadata, please wait.', 'Preprocessing movie...');
+
     % Store the resulting metadata
-    myrecording.channels(k).metadata = metadata;
+    [myrecording.channels(k).metadata, opts] = parse_metadata(metadata, opts);
+
+    % Delete the information if need be
+    if (ishandle(hInfo))
+      delete(hInfo);
+    end
 
     % Store the original file name as we will replace it by the rescaled one
     myrecording.channels(k).file = absolutepath(myrecording.channels(k).fname);
@@ -193,6 +201,10 @@ function metadata = find_metadata(filename, metadata)
 % This function tries to identify more suitable metadata. For now
 % on, the following metadata are supported:
 %   - Leica Application Suite ".las"
+%   - uManager "metadata.txt"
+%   - files manually placed in the "Metadata" folder and named
+%     as the recording
+%   - files present in the original folder and called metadata
 
   % Get the folder in which the file is contained
   [file_path, file_name, file_ext] = fileparts(filename);
@@ -202,6 +214,24 @@ function metadata = find_metadata(filename, metadata)
 
     % Load it !
     metadata = fileread(fullfile(file_path, '.las'));
+
+  % For uManager
+  elseif (exist(fullfile(file_path, 'metadata.txt')))
+    metadata = fileread(fullfile(file_path, 'metadata.txt'));
+
+  % For manually edited files
+  elseif (exist(fullfile(pwd, 'Metadata', [filename '.txt'])))
+    metadata = fileread(fullfile(pwd, 'Metadata', [filename '.txt']));
+  elseif (exist(fullfile(pwd, 'Metadata', [filename '.xml'])))
+    metadata = fileread(fullfile(pwd, 'Metadata', [filename '.xml']));
+
+  % And other logical potential targets
+  elseif (exist(fullfile(file_path, [filename '.xml'])))
+    metadata = fileread(fullfile(file_path, [filename '.xml']));
+  elseif (exist(fullfile(file_path, [filename '.txt'])))
+    metadata = fileread(fullfile(file_path, [filename '.txt']));
+  elseif (exist(fullfile(file_path, 'metadata.xml')))
+    metadata = fileread(fullfile(file_path, 'metadata.xml'));
   end
 
   return;

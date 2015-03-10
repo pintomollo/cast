@@ -1,10 +1,10 @@
-function export_movie(mytracking, props, opts)
+function export_movie(myrecording, props, opts)
 % EXPORT_MOVIE exports an experiment as an AVI movie.
 %
-%   EXPORT_MOVIE(MYTRACKING, OPTS) exports the channels of MYTRACKING using OPTS and
+%   EXPORT_MOVIE(MYRECORDING, OPTS) exports the channels of MYRECORDING using OPTS and
 %   default properties.
 %
-%   EXPORT_MOVIE(MYTRACKING, PROPS, OPTS) exports MYTRACKING configuring its properties
+%   EXPORT_MOVIE(MYRECORDING, PROPS, OPTS) exports MYRECORDING configuring its properties
 %   using the correspinding data structure PROPS (get_struct('exporting')).
 %
 % Gonczy & Naef labs, EPFL
@@ -39,7 +39,7 @@ function export_movie(mytracking, props, opts)
 
   % Do we have a filename ?
   if (isempty(fname))
-    fname = mytracking.experiment;
+    fname = myrecording.experiment;
   end
 
   % Force to have low duplicates if we want full cycles
@@ -84,12 +84,12 @@ function export_movie(mytracking, props, opts)
   maxuint = intmax('uint16');
 
   % Now we loop over all channels
-  nchannels = length(mytracking.trackings);
+  nchannels = length(myrecording.trackings);
   for i=1:nchannels
 
     % If we want to display the index, we need to reconstruct the tracks
     if (show_text)
-      [paths, indexes] = reconstruct_tracks(mytracking.trackings(i).detections, low_duplicates);
+      [paths, indexes] = reconstruct_tracks(myrecording.trackings(i).detections, low_duplicates);
     end
 
     % Open the specified AVI file with the maximal quality
@@ -99,16 +99,16 @@ function export_movie(mytracking, props, opts)
     open(mymovie);
 
     % Get the current number of frames and format the corresponding part of the title
-    nframes = length(mytracking.trackings(i).detections);
+    nframes = length(myrecording.trackings(i).detections);
     total_str = ['/' num2str(nframes*nchannels)];
 
     % Loop over all frames
     for nimg = 1:nframes
 
       % Get the image and the spots
-      img = double(load_data(mytracking.channels(i), nimg));
-      spots = [mytracking.trackings(i).detections(nimg).carth mytracking.trackings(i).detections(nimg).properties];
-      color_index = mytracking.channels(i).color(1);
+      img = double(load_data(myrecording.channels(i), nimg));
+      spots = [myrecording.trackings(i).detections(nimg).carth myrecording.trackings(i).detections(nimg).properties];
+      color_index = myrecording.channels(i).color(1);
 
       % Maybe we need to reconstruct the image
       if (show_reconst)

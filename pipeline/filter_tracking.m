@@ -6,9 +6,9 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
 %   LINKS connecting the SPOTS using the default values for each three operations
 %   (see below).
 %
-%   [MYTRACKING] = FILTER_TRACKING(MYTRACKING) filters the segmentations of MYTRACKING.
+%   [MYRECORDING] = FILTER_TRACKING(MYRECORDING) filters the segmentations of MYRECORDING.
 %
-%   [MYTRACKING] = FILTER_TRACKING(MYTRACKING, OPTS) uses OPTS to set up the default
+%   [MYRECORDING] = FILTER_TRACKING(MYRECORDING, OPTS) uses OPTS to set up the default
 %   values for each operation (see below).
 %
 %   [...] = FILTER_TRACKING(..., MIN_PATH_LENGTH) defines the minimal durations of a
@@ -30,7 +30,7 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
 
   % Input checking
   if (nargin < 1)
-    error('Tracking:filter_tracking', 'Not enough parameters provided (min=1)');
+    error('CAST:filter_tracking', 'Not enough parameters provided (min=1)');
   elseif (nargin < 2)
     links = {};
     min_path_length = 5;

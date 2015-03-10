@@ -1,5 +1,5 @@
-function install_cell_tracking
-% INSTALL_CELL_TRACKING adds the required directories to the matlabpath
+function install_CAST
+% INSTALL_CAST adds the required directories to the matlabpath
 % and handles the directories structure and the dependent libraries. It also
 % compiles the required MEX libraries, hence a C/C++ compiler is requried.
 %
@@ -8,7 +8,7 @@ function install_cell_tracking
 % 01.05.2014
 
   % Start by moving inside the cell_tracking folder
-  cell_folder = which('install_cell_tracking');
+  cell_folder = which('install_CAST');
   [current_dir, junk, junk] = fileparts(cell_folder);
   [root_dir, junk, junk] = fileparts(current_dir);
   cd(current_dir);
@@ -54,7 +54,7 @@ function install_cell_tracking
         savepath;
       catch
         errs = lasterror;
-        warning('Tracking:installLOCI', ['Installation failed for the following reason:\n' errs.message]);
+        warning('CAST:install_CAST', ['Installation failed for the following reason:\n' errs.message]);
       end
 
       % Amazing enough !!
@@ -62,7 +62,7 @@ function install_cell_tracking
         disp('Done !');
         disp(' ');
       else
-        disp('Failed... try to get the Bio-Formats command-line tools from http://www.loci.wisc.edu/bio-formats/downloads and place it in the cell-tracking folder');
+        disp('Failed... try to get the Bio-Formats command-line tools from http://www.loci.wisc.edu/bio-formats/downloads and place it in the cast folder');
         disp(' ');
       end
     end
@@ -89,7 +89,7 @@ function install_cell_tracking
       did_setup = true;
     catch ME
       cd(root_dir);
-      error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
+      error('CAST:install_CAST', ['Could not compile the required MEX function!\n' ME.message]);
     end
   end
   if (exist('gaussian_mex') ~= 3)
@@ -101,7 +101,7 @@ function install_cell_tracking
       did_setup = true;
     catch ME
       cd(root_dir);
-      error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
+      error('CAST:install_CAST', ['Could not compile the required MEX function!\n' ME.message]);
     end
   end
   if (exist('nl_means_mex') ~= 3)
@@ -113,7 +113,7 @@ function install_cell_tracking
       did_setup = true;
     catch ME
       cd(root_dir);
-      error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
+      error('CAST:install_CAST', ['Could not compile the required MEX function!\n' ME.message]);
     end
   end
   if (exist('bilinear_mex') ~= 3)
@@ -125,7 +125,7 @@ function install_cell_tracking
       did_setup = true;
     catch ME
       cd(root_dir);
-      error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
+      error('CAST:install_CAST', ['Could not compile the required MEX function!\n' ME.message]);
     end
   end
   if (exist('get_sparse_data_mex') ~= 3)
@@ -138,7 +138,7 @@ function install_cell_tracking
     catch ME
       cd(root_dir);
       cd ..;
-      error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
+      error('CAST:install_CAST', ['Could not compile the required MEX function!\n' ME.message]);
     end
   end
   if (exist('linking_cost_sparse_mex') ~= 3)
@@ -150,7 +150,7 @@ function install_cell_tracking
       did_setup = true;
     catch ME
       cd(root_dir);
-      error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
+      error('CAST:install_CAST', ['Could not compile the required MEX function!\n' ME.message]);
     end
   end
   if (exist('bridging_cost_sparse_mex') ~= 3)
@@ -162,7 +162,7 @@ function install_cell_tracking
       did_setup = true;
     catch ME
       cd(root_dir);
-      error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
+      error('CAST:install_CAST', ['Could not compile the required MEX function!\n' ME.message]);
     end
   end
   if (exist('joining_cost_sparse_mex') ~= 3)
@@ -174,7 +174,7 @@ function install_cell_tracking
       did_setup = true;
     catch ME
       cd(root_dir);
-      error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
+      error('CAST:install_CAST', ['Could not compile the required MEX function!\n' ME.message]);
     end
   end
   if (exist('splitting_cost_sparse_mex') ~= 3)
@@ -186,7 +186,7 @@ function install_cell_tracking
       did_setup = true;
     catch ME
       cd(root_dir);
-      error('Tracking:MEX', ['Could not compile the required MEX function!\n' ME.message]);
+      error('CAST:install_CAST', ['Could not compile the required MEX function!\n' ME.message]);
     end
   end
   cd(root_dir);
@@ -203,13 +203,14 @@ function install_cell_tracking
   disp('Installation successful !');
 
   % Gnu GPL notice
-  fprintf(1, ['\nCell Tracking Plateform,  Copyright (C) 2014  Simon Blanchoud\n', ...
+  fprintf(1, ['\nCAST: Cell Automated Segmentation and Trackin platform,\n', ...
+    'Copyright (C) 2014  Simon Blanchoud\n', ...
     'This program comes with ABSOLUTELY NO WARRANTY;\n', ...
     'This is free software, and you are welcome to redistribute it\n', ...
     'under certain conditions; read licence.txt for details.\n\n']);
 
   % First step !
-  disp('Start using the Cell Tracking Platform by calling "cell_tracking_GUI"');
+  disp('Start using CAST by calling "CAST_GUI"');
 
   return;
 end

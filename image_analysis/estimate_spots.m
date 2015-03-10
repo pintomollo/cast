@@ -39,7 +39,7 @@ function [gauss_params] = estimate_spots(imgs, estim_pos, wsize, thresh, niter, 
 
   % Input checking and default values
   if (nargin < 3)
-    error('Tracking:estimate_spots', 'Not enough parameters provided (min=3)');
+    error('CAST:estimate_spots', 'Not enough parameters provided (min=3)');
   elseif (nargin < 4)
     thresh = 0;
     niter = 15;
