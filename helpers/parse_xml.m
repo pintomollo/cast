@@ -1,5 +1,5 @@
 function xml_tree = parse_xml(data)
-% PARSEXML Convert XML file to a MATLAB structure.
+% PARSEXML converts an XML file to a MATLAB structure.
 %
 % Based on the code provided by Matlab, with a number
 % of simplifactions in the resulting structure.

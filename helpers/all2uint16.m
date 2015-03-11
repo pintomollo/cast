@@ -1,5 +1,5 @@
 function [img, params] = all2uint16(img, params)
-% ALL2UINT16 converts any type of array to uint16, rescaling it ot fit the new range
+% ALL2UINT16 converts any type of array to uint16, rescaling it to fit the new range
 % of values.
 %
 %   M = ALL2UINT16(M) converts M to UINT16.
