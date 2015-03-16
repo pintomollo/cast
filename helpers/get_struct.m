@@ -145,7 +145,7 @@ function mystruct = get_struct(type, nstruct)
 
     % Structure containing the different parameters required for tracking spots
     case 'spot_tracking'
-      mystruct = struct('spot_max_speed', 0.05, ...           % Maximal speed of displacement of a spot (in um/s)
+      mystruct = struct('spot_max_speed', 0.025, ...          % Maximal speed of displacement of a spot (in um/s)
                         'allow_branching_gap', false, ...     % Allows merging/splitting to occur at the same time as gap closing ?
                         'min_section_length', 5, ...          % The minimum number of contiguous frames a path "section" should last to be kept for merging/spliting/gap closing
                         'bridging_max_gap', 3, ...            % Considered number of frames for the gap closing algorithm (see track_spots.m)
@@ -171,7 +171,7 @@ function mystruct = get_struct(type, nstruct)
     case 'tracks_filtering'
       mystruct = struct('interpolate', true, ...        % Interpolate the position of cells to fill gaps ?
                         'max_zip_length', 3, ...        % A "zip" is defined as a cell splitting and merging back together. This defines the maximum number of frames this separation can last to be closed
-                        'min_path_length', 10);         % The minimum number of frames a path should last to be kept
+                        'min_path_length', 5);          % The minimum number of frames a path should last to be kept
 
     % If the required type of structure has not been implemented, return an empty one
     otherwise

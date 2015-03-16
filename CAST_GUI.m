@@ -40,7 +40,8 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
   color_index = 1;
 
   % Dragzoom help message
-  imghelp = ['DRAGZOOM interactions (help dragzoom):\n\n', ...
+  imghelp = ['DRAGZOOM interactions (help dragzoom):\n', ...
+  ' \n', ...
   '###Normal mode:###\n', ...
   'single-click and holding LB : Activation Drag mode\n', ...
   'single-click and holding RB : Activation Rubber Band for region zooming\n', ...
@@ -553,6 +554,12 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
           if (strcmp(answer, 'Yes'))
             uisave({'myrecording','opts'}, [myrecording.experiment '.mat'])
           end
+        end
+
+        % Reset the current display
+        if (all(ishandle(handles.img)))
+          dragzoom(handles.axes, 'off')
+          delete(handles.img);
         end
 
         % Fancy output
