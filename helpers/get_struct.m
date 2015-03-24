@@ -85,9 +85,10 @@ function mystruct = get_struct(type, nstruct)
                         'denoise_func', @gaussian_mex, ... % Function used to denoise the image (see imdenoise.m)
                         'denoise_size', -1,          ...   % Parameter used by the denoising function (-1: default value)
                         'denoise_remove_bkg', true, ...    % Removes the background uniform value (estimated using estimate_noise.m) ?
+                        'force_estimation', 1, ...         % Will force the estimation of the signal intensity on the raw data
                         'atrous_max_size', 10, ...         % Maximal size of the spots to detect (in um), see imatrous.m
                         'atrous_thresh', 10, ...           % Threshold used to detect a valid spot as brighter than THRESH*MAD
-                        'force_estimation', 1, ...         % Will force the estimation of the signal intensity on the raw data
+                        'maxima_window', [5 5], ...        % Window size used to detect local maxima
                         'estimate_thresh', 1, ...          % Utilizes only the pixels brighter than this threshold (times noise variance) to estimate the spots
                         'estimate_niter', 15, ...          % Maximal number in the estimation procedure, see estimate_spots.m
                         'estimate_stop', 1e-2, ...         % Stopping criterion for the estimation procedure, see estimate_spots.m

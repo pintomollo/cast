@@ -1,4 +1,4 @@
-function fused_spots = filter_spots(all_spots, extrema_size, min_intensity, ...
+function fused_spots = filter_spots(all_spots, all_values, extrema_size, min_intensity, ...
                                     overlap_thresh)
 % FILTER_SPOTS filters a list of estimated spots based on their intensity and size,
 % and fuses overlapping ones, assuming some sort of oversampling.
@@ -27,14 +27,14 @@ function fused_spots = filter_spots(all_spots, extrema_size, min_intensity, ...
   % Input checking and default values
   if (nargin == 0)
     error('CAST:filter_spots', 'Not enough parameters provided (min=1)');
-  elseif (nargin < 2)
+  elseif (nargin < 3)
     extrema_size = [0 Inf];
     min_intensity = 0;
     overlap_thresh = 0.75;
-  elseif (nargin < 3)
+  elseif (nargin < 4)
     min_intensity = 0;
     overlap_thresh = 0.75;
-  elseif (nargin < 4)
+  elseif (nargin < 5)
     overlap_thresh = 0.75;
   end
 
@@ -56,6 +56,7 @@ function fused_spots = filter_spots(all_spots, extrema_size, min_intensity, ...
 
     % Get the current set of spots
     spots = all_spots{nimg};
+    values = all_values{nimg};
 
     % Prepare the list
     curr_fused = NaN(0,size(spots,2));
@@ -66,21 +67,19 @@ function fused_spots = filter_spots(all_spots, extrema_size, min_intensity, ...
     end
 
     % Spots should be organised with intensity in column 4 and radii in column 3
-    goods = (spots(:,4) > min_intensity & spots(:,3)*3 > extrema_size(1) ...
-           & ~any(imag(spots), 2) & spots(:,3) < extrema_size(2));
+    goods = (values(:,4) > min_intensity & values(:,3)*3 > extrema_size(1) ...
+           & ~any(imag(values), 2) & values(:,3) < extrema_size(2));
 
     % Keep only the good spots
     spots = spots(goods,:);
+    values = values(goods,:);
 
     % Now, for the fusion part, we first need to determine the all-to-all distance
     dist = sqrt(bsxfun(@minus, spots(:,1), spots(:,1).').^2 + bsxfun(@minus, spots(:,2), spots(:,2).').^2);
 
     % And their respective sizes
-    rads = spots(:,3);
+    rads = values(:,3);
     rads = bsxfun(@plus, rads, rads.');
-
-    % Get an estimate of the spot signal for weighting the fused spots
-    signal = spots(:,3).^2 .* spots(:,4);
 
     % Now check which ones should be fused
     fused = (dist < (1-overlap_thresh) * rads);
@@ -118,22 +117,23 @@ function fused_spots = filter_spots(all_spots, extrema_size, min_intensity, ...
 
           % Get the spots to be fused
           curr_spots = spots(groups, :);
+          curr_values = values(groups, :);
 
           % Utilize the estimated signal for weighting the average
-          intensities = signal(groups);
+          intensities = curr_values(:,5);
           intensities = intensities / sum(intensities);
 
           % Compute the future position
-          target = bsxfun(@times, curr_spots(:,1:2), intensities);
+          target = bsxfun(@times, curr_values(:,1:2), intensities);
           target = sum(target, 1)/length(intensities);
 
           % And their relative distance to the new position
-          center_dist = sqrt(sum(bsxfun(@minus, curr_spots(:,1:2), target).^2, 2));
+          center_dist = sqrt(sum(bsxfun(@minus, curr_values(:,1:2), target).^2, 2));
 
           % Gaussian-like distance kernel for weighting the average, weighted by the
           % signal intensity once more
-          weights = exp(-center_dist ./ (2*curr_spots(:, 3).^2));
-          weights = weights .* signal(groups);
+          weights = exp(-center_dist ./ (2*curr_values(:, 3).^2));
+          weights = weights .* curr_values(:,5);
           weights = weights / sum(weights);
 
           % Average and store the new spot

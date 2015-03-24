@@ -186,8 +186,9 @@ function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opt
 
       % Segment the image
       contents = get(handles.segmentation_type,'String');
-      switch contents{segmentations(indx).type}
-        case 'detect_spots'
+      segment_type = contents{segmentations(indx).type};
+      switch segment_type
+        case 'multiscale_gaussian_spots'
           spots = detect_spots(img, opts.segmenting.atrous_thresh, ...
                                opts.segmenting.atrous_max_size/opts.pixel_size);
           spots = estimate_spots(img, spots, opts.segmenting.atrous_max_size/(2*opts.pixel_size), ...
@@ -196,32 +197,62 @@ function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opt
                                opts.segmenting.estimate_stop, ...
                                opts.segmenting.estimate_weight, ...
                                opts.segmenting.estimate_fit_position);
+        case 'rectangular_local_maxima'
+          spots = detect_maxima(img, opts.segmenting.maxima_window);
+          spots = estimate_window(img, spots, opts.segmenting.maxima_window);
         otherwise
           spots = [];
           %disp('No segmentation')
       end
 
-      % Filter the detected spots using the extram values provided
+      % Setup the filtering values
       if (isempty(noise))
         noise = estimate_noise(img);
       end
       extrema = [opts.segmenting.filter_min_size opts.segmenting.filter_max_size]/...
                  opts.pixel_size;
-      filt_spots = filter_spots(spots, extrema, opts.segmenting.filter_min_intensity*noise(2), ...
+
+      % Compute the signal intensities
+      switch segment_type
+        case 'multiscale_gaussian_spots'
+          spots_intens = gaussian_intensities(spots);
+        case 'rectangular_local_maxima'
+          spots_intens = window_intensities(spots);
+        otherwise
+          spots_intens = [];
+          %disp('No segmentation')
+      end
+
+      % Filter the detected spots using the extram values provided
+      filt_spots = filter_spots(spots, spots_intens, extrema, ...
+                                opts.segmenting.filter_min_intensity*noise(2), ...
                                 opts.segmenting.filter_overlap);
 
+      % Compute the filtered intensities
+      switch segment_type
+        case 'multiscale_gaussian_spots'
+          filt_intens = gaussian_intensities(filt_spots);
+        case 'rectangular_local_maxima'
+          filt_intens = window_intensities(filt_spots);
+        otherwise
+          filt_intens = [];
+          %disp('No segmentation')
+      end
+
       % And reconstrcut the image using the previous detection
-      reconstr = reconstruct_detection(orig_img, real(spots));
-      reconstr_filt = reconstruct_detection(orig_img, filt_spots);
+      reconstr = reconstruct_detection(orig_img, real(spots_intens));
+      reconstr_filt = reconstruct_detection(orig_img, filt_intens);
     end
 
     % Decide which type of spots to display
     if (segmentations(indx).filter_spots)
       curr_spots = filt_spots;
       curr_rec = reconstr_filt;
+      curr_intens = filt_intens;
     else
       curr_spots = real(spots);
       curr_rec = reconstr;
+      curr_intens = spots_intens;
     end
 
     % Determine which image to display in the left panel
@@ -266,7 +297,7 @@ function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opt
       set(handles.img(2),'CData', img2);
 
       % And update the spots
-      plot_spots(handles.data, curr_spots, spots_colors);
+      plot_spots(handles.data, curr_intens, spots_colors);
     else
 
       % Otherwise, we create the two images in their respective axes
@@ -282,7 +313,7 @@ function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opt
                  'DataAspectRatio',  [1 1 1]);
 
       % Now add the detected spots
-      handles.data = plot_spots(handles.axes(2), curr_spots, spots_colors);
+      handles.data = plot_spots(handles.axes(2), curr_intens, spots_colors);
 
       % Drag and Zoom library from Evgeny Pr aka iroln
       dragzoom(handles.axes, 'on')

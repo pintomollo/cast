@@ -1,7 +1,7 @@
 function spots = detect_spots(imgs, thresh, max_size)
 % DETECT_SPOTS detects spots in biological images using the "A-trous" method [1].
 %
-%   SPOTS = DETECT_SPOTS(IMG) returns a list of detect spots in IMG using IMATROU
+%   SPOTS = DETECT_SPOTS(IMG) returns a list of detected spots in IMG using IMATROU
 %   and a noise threshold of 3 (see imatrou.m). SPOTS is a Nx3 matrix where each row
 %   has the structure [x y p]:
 %     - x,y   the pixel position of the spot (in carthesian coordinates)
@@ -46,6 +46,12 @@ function spots = detect_spots(imgs, thresh, max_size)
   % Convert just in case
   imgs = double(imgs);
 
+  % Create a mask to identify the local maxima
+  tmp_size = ceil(max_size/2);
+  tmp_size = tmp_size + mod(tmp_size+1, 2);
+  mask = ones(tmp_size);
+  mask((end-1)/2+1) = 0;
+
   % We iterate over the frames
   for i = 1:nframes
 
@@ -54,12 +60,6 @@ function spots = detect_spots(imgs, thresh, max_size)
 
     % Performs the actual spot detection "a trous" algorithm [1]
     atrous = imatrou(img, max_size, thresh);
-
-    % Create a mask to identify the local maxima
-    tmp_size = ceil(max_size/2);
-    tmp_size = tmp_size + mod(tmp_size+1, 2);
-    mask = ones(tmp_size);
-    mask((end-1)/2+1) = 0;
 
     % Get the local maxima
     bw = (atrous > 0) & (img >= imdilate(img, mask));
