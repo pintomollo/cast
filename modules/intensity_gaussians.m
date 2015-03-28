@@ -1,4 +1,4 @@
-function all_values = gaussian_intensities(all_spots)
+function all_values = intensity_gaussians(all_spots)
 % GAUSSIAN_INTENSITIES
 
   % For convenience, work always with cells

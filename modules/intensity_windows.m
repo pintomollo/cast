@@ -1,4 +1,4 @@
-function all_values = window_intensities(all_spots)
+function all_values = intensity_windows(all_spots)
 % WINDOW_INTENSITIES
 
   % For convenience, work always with cells

@@ -31,9 +31,9 @@ function [varargout] = perform_step(cast_step, segment_type, varargin)
       % Compute the signal intensities
       switch segment_type
         case 'multiscale_gaussian_spots'
-          spots_intens = gaussian_intensities(spots);
+          spots_intens = intensity_gaussians(spots);
         case 'rectangular_local_maxima'
-          spots_intens = window_intensities(spots);
+          spots_intens = intensity_windows(spots);
         otherwise
           spots_intens = [];
           %disp('No segmentation')
@@ -48,13 +48,13 @@ function [varargout] = perform_step(cast_step, segment_type, varargin)
       % Compute the signal intensities
       switch segment_type
         case 'multiscale_gaussian_spots'
-          spots_intens = gaussian_intensities(spots);
+          spots_intens = intensity_gaussians(spots);
           extrema = [opts.segmenting.filter_min_size / opts.pixel_size, ...
                      opts.segmenting.filter_min_intensity*noise(2); ...
                      opts.segmenting.filter_max_size / opts.pixel_size, Inf];
           fusion = @fuse_gaussians;
         case 'rectangular_local_maxima'
-          spots_intens = window_intensities(spots);
+          spots_intens = intensity_windows(spots);
           extrema = [opts.segmenting.filter_min_size / opts.pixel_size, ...
                      opts.segmenting.filter_min_intensity*noise(2); ...
                      opts.segmenting.filter_max_size / opts.pixel_size, Inf];
