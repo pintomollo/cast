@@ -1,4 +1,4 @@
-function hgroup = plot_spots(h, spots, color, mark_center)
+function hgroup = plot_windows(h, spots, color, mark_center)
 % PLOT_SPOTS draws gaussian spots as circles proportional to their variance.
 %
 %   HGROUP = PLOT_SPOTS(SPOTS) draws all SPOTS in the current axes, returning a handler
@@ -82,12 +82,12 @@ function hgroup = plot_spots(h, spots, color, mark_center)
   set(haxes,'NextPlot', 'add');
 
   % Get the handlers and the number of existing circles in the hggroup
-  hcircls = get(hgroup, 'Children');
-  ncircls = length(hcircls);
+  hrects = get(hgroup, 'Children');
+  nrects = length(hrects);
 
-  % We draw a circle using complex coordinates
-  complex_circle = exp(i*[0:0.1:2*pi]);
-  complex_circle = complex_circle([1:end 1]);
+  % We draw a rectangle
+  rectang = [-1 1 1 -1; -1 -1 1 1];
+  rectang = rectang(:, [1:end 1]);
 
   % Need to remember how many circles we have drawn in total
   count = 0;
@@ -114,43 +114,43 @@ function hgroup = plot_spots(h, spots, color, mark_center)
     for s = 1:nspots
 
       % Scale and translate the circle to the current spot
-      pos = complex_circle*max(2*curr_spots(s,3), 1) + ...
-            curr_spots(s,1) + i*curr_spots(s,2);
+      pos = bsxfun(@plus, curr_spots(s, 1:2).', ...
+                    bsxfun(@times, rectang, curr_spots(s, 3:4).'));
 
       if (mark_center)
         indx = (s-1)*2 + 1;
 
         % If we ran out of existing circles to modify, creat a new one
-        if (count + indx > ncircls)
-          handles(count + indx) = line('XData', real(pos), 'YData', imag(pos), 'Parent', hgroup, ...
+        if (count + indx > nrects)
+          handles(count + indx) = line('XData', pos(1,:), 'YData', pos(2,:), 'Parent', hgroup, ...
                             'Color', curr_color, 'Marker', 'none');
 
         % Otherwise, modify the required data, and store the previous handler
         else
-          set(hcircls(count + indx), 'XData', real(pos), 'YData', imag(pos), 'Color', curr_color, 'Marker', 'none');
-          handles(indx) = hcircls(count + indx);
+          set(hrects(count + indx), 'XData', pos(1,:), 'YData', pos(2,:), 'Color', curr_color, 'Marker', 'none');
+          handles(indx) = hrects(count + indx);
         end
 
         % If we ran out of existing circles to modify, creat a new one
-        if (count + indx + 1 > ncircls)
+        if (count + indx + 1 > nrects)
           handles(count + indx + 1) = line('XData', curr_spots(s,1), 'YData', curr_spots(s,2), 'Parent', hgroup, ...
                             'Color', curr_color, 'Marker', 'd');
 
         % Otherwise, modify the required data, and store the previous handler
         else
-          set(hcircls(count + indx + 1), 'XData', curr_spots(s,1), 'YData', curr_spots(s,2), 'Color', curr_color, 'Marker', 'd');
-          handles(indx + 1) = hcircls(count + indx + 1);
+          set(hrects(count + indx + 1), 'XData', curr_spots(s,1), 'YData', curr_spots(s,2), 'Color', curr_color, 'Marker', 'd');
+          handles(indx + 1) = hrects(count + indx + 1);
         end
       else
         % If we ran out of existing circles to modify, creat a new one
-        if (count+s > ncircls)
-          handles(s) = line('XData', real(pos), 'YData', imag(pos), 'Parent', hgroup, ...
+        if (count+s > nrects)
+          handles(s) = line('XData', pos(1,:), 'YData', pos(2,:), 'Parent', hgroup, ...
                             'Color', curr_color, 'Marker', 'none');
 
         % Otherwise, modify the required data, and store the previous handler
         else
-          set(hcircls(count+s), 'XData', real(pos), 'YData', imag(pos), 'Color', curr_color, 'Marker', 'none');
-          handles(s) = hcircls(count+s);
+          set(hrects(count+s), 'XData', pos(1,:), 'YData', pos(2,:), 'Color', curr_color, 'Marker', 'none');
+          handles(s) = hrects(count+s);
         end
       end
     end
@@ -173,7 +173,7 @@ function hgroup = plot_spots(h, spots, color, mark_center)
   set(haxes,'NextPlot', status);
 
   % Delete additional previous circles
-  delete(hcircls(count+1:ncircls))
+  delete(hrects(count+1:nrects))
 
   % Prevent the output if not needed
   if (nargout == 0)

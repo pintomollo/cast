@@ -17,7 +17,7 @@ function params = estimate_window(imgs, estim_pos, wsize)
   params = cell(p, 1);
 
   % Create a mask to identify the local maxima
-  mask = ones(2*window_size + 1);
+  mask = ones(2*wsize + 1);
   mask((end-1)/2+1) = 0;
   navg = 1/numel(mask);
 
@@ -36,8 +36,8 @@ function params = estimate_window(imgs, estim_pos, wsize)
     local_stds = stdfilt(img, mask);
 
     % Store the averages
-    params{nimg} = [curr_pos(:,1:2) local_mean(estim_pos), ...
-                    local_stds(estim_pos) curr_pos(:,3:end)];
+    params{nimg} = [curr_pos(:,1:2) repmat(wsize, length(estim_pos), 1), ...
+                    local_mean(estim_pos) local_stds(estim_pos) curr_pos(:,3:end)];
   end
 
   % If we have only one plane, return the matrix alone

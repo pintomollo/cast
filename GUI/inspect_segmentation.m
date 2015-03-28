@@ -149,6 +149,11 @@ function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opt
       handles.prev_frame = -1;
     end
 
+    % Segment the image
+    contents = get(handles.segmentation_type,'String');
+    % Get the type of segmentation currently used
+    segment_type = contents{segmentations(indx).type};
+
     % Here we actually segment the image (and update some important displays)
     if (recompute)
 
@@ -184,9 +189,7 @@ function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opt
                         opts.segmenting.denoise_func, opts.segmenting.denoise_size);
       end
 
-      % Segment the image
-      contents = get(handles.segmentation_type,'String');
-      segment_type = contents{segmentations(indx).type};
+      %{
       switch segment_type
         case 'multiscale_gaussian_spots'
           spots = detect_spots(img, opts.segmenting.atrous_thresh, ...
@@ -204,11 +207,16 @@ function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opt
           spots = [];
           %disp('No segmentation')
       end
+      %}
+      spots = perform_step('segmentation', segment_type, img, opts);
 
       % Setup the filtering values
       if (isempty(noise))
         noise = estimate_noise(img);
       end
+
+      filt_spots = perform_step('filtering', segment_type, spots, opts, noise);
+      %{
       extrema = [opts.segmenting.filter_min_size opts.segmenting.filter_max_size]/...
                  opts.pixel_size;
 
@@ -222,12 +230,17 @@ function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opt
           spots_intens = [];
           %disp('No segmentation')
       end
+      %test2 = perform_step('intensity', segment_type, spots);
+      filt_spots2 = perform_step('filtering', segment_type, spots, opts, noise);
 
       % Filter the detected spots using the extram values provided
-      filt_spots = filter_spots(spots, spots_intens, extrema, ...
-                                opts.segmenting.filter_min_intensity*noise(2), ...
+      filt_spots = filter_spots(spots, spots_intens, @fuse_gaussians, ...
+              [extrema(:), [opts.segmenting.filter_min_intensity*noise(2); Inf]],  ...
                                 opts.segmenting.filter_overlap);
+      keyboard
+      %}
 
+      %{
       % Compute the filtered intensities
       switch segment_type
         case 'multiscale_gaussian_spots'
@@ -238,21 +251,22 @@ function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opt
           filt_intens = [];
           %disp('No segmentation')
       end
+      %}
 
       % And reconstrcut the image using the previous detection
-      reconstr = reconstruct_detection(orig_img, real(spots_intens));
-      reconstr_filt = reconstruct_detection(orig_img, filt_intens);
+      reconstr = perform_step('reconstructing', segment_type, orig_img, spots);
+      reconstr_filt = perform_step('reconstructing', segment_type, orig_img, filt_spots);
+      %reconstr = reconstruct_detection(orig_img, real(spots_intens));
+      %reconstr_filt = reconstruct_detection(orig_img, filt_intens);
     end
 
     % Decide which type of spots to display
     if (segmentations(indx).filter_spots)
       curr_spots = filt_spots;
       curr_rec = reconstr_filt;
-      curr_intens = filt_intens;
     else
       curr_spots = real(spots);
       curr_rec = reconstr;
-      curr_intens = spots_intens;
     end
 
     % Determine which image to display in the left panel
@@ -297,7 +311,8 @@ function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opt
       set(handles.img(2),'CData', img2);
 
       % And update the spots
-      plot_spots(handles.data, curr_intens, spots_colors);
+      %plot_spots(handles.data, curr_intens, spots_colors);
+      perform_step('plotting', segment_type, handles.data, curr_spots, spots_colors);
     else
 
       % Otherwise, we create the two images in their respective axes
@@ -313,7 +328,8 @@ function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opt
                  'DataAspectRatio',  [1 1 1]);
 
       % Now add the detected spots
-      handles.data = plot_spots(handles.axes(2), curr_intens, spots_colors);
+      handles.data = perform_step('plotting', segment_type, handles.axes(2), curr_spots, spots_colors);
+      %handles.data = plot_spots(handles.axes(2), curr_intens, spots_colors);
 
       % Drag and Zoom library from Evgeny Pr aka iroln
       dragzoom(handles.axes, 'on')
@@ -539,7 +555,7 @@ function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opt
     nchannels = length(channels);
 
     % Initialize the possible segmentations and their corresponding channels
-    typestring = {'None','detect_spots'};
+    typestring = {'None','multiscale_gaussian_spots', 'rectangular_local_maxima'};
     typechannel = {'luminescence','fluorescence'};
 
     % Initialize the structure used for the interface

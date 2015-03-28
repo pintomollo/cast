@@ -21,6 +21,7 @@ function install_CAST
   addpath(fullfile(current_dir, 'helpers'));
   addpath(fullfile(current_dir, 'image_analysis'));
   addpath(fullfile(current_dir, 'libraries'));
+  addpath(fullfile(current_dir, 'modules'));
   addpath(fullfile(current_dir, 'pipeline'));
   savepath;
 

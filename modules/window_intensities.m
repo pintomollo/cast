@@ -1,5 +1,5 @@
-function all_values = gaussian_intensities(all_spots)
-% GAUSSIAN_INTENSITIES
+function all_values = window_intensities(all_spots)
+% WINDOW_INTENSITIES
 
   % For convenience, work always with cells
   if (~iscell(all_spots))
@@ -16,10 +16,15 @@ function all_values = gaussian_intensities(all_spots)
     spots = all_spots{nimg};
 
     % Compute the corresponding values
-    values = [spots(:,1:4) 2*pi.*spots(:,4).*spots(:,3).^2];
+    values = [spots(:,1:7) spots(:,5).*prod(spots(:,3:4), 2)];
 
     % Store them
     all_values{nimg} = values;
+  end
+
+  % If we have only one element, use the matrix directly
+  if (numel(all_values)==1)
+    all_values = all_values{1};
   end
 
   return;

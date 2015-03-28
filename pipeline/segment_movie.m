@@ -24,7 +24,7 @@ function [myrecording, opts] = segment_movie(myrecording, opts)
   for indx = 1:nchannels
 
     % Get the current type of segmentation to apply
-    type = myrecording.segmentations(indx).type;
+    segment_type = myrecording.segmentations(indx).type;
 
     % Get the number of frames
     nframes = size_data(myrecording.channels(indx));
@@ -32,6 +32,7 @@ function [myrecording, opts] = segment_movie(myrecording, opts)
     % Prepare the output structure
     detections = get_struct('detection', [1 nframes]);
 
+    %{
     % Check whether it's a spot detection
     switch type
       case {'multiscale_gaussian_spots', 'rectangular_local_maxima'}
@@ -44,6 +45,7 @@ function [myrecording, opts] = segment_movie(myrecording, opts)
         disp(['Warning: segmentation type "' type '" unknown, ignoring.']);
         continue;
     end
+    %}
 
     % Update the waitbar
     if (opts.verbosity > 1)
@@ -73,6 +75,7 @@ function [myrecording, opts] = segment_movie(myrecording, opts)
                         opts.segmenting.denoise_func, opts.segmenting.denoise_size);
       end
 
+      %{
       switch type
         case 'multiscale_gaussian_spots'
           % Segment the image
@@ -94,15 +97,20 @@ function [myrecording, opts] = segment_movie(myrecording, opts)
           spots = estimate_window(img, spots, opts.segmenting.maxima_window);
           spots_intens = window_intensities(spots);
       end
+      %}
+
+      spots = perform_step('segmentation', segment_type, img, opts);
 
       % Filter the detected spots ?
       if (myrecording.segmentations(indx).filter_spots)
 
+        spots = perform_step('filtering', segment_type, spots, opts, noise);
+
         % Build the parameters and filter
-        extrema = [opts.segmenting.filter_min_size opts.segmenting.filter_max_size]/...
-                   opts.pixel_size;
-        spots = filter_spots(spots, spots_intens, extrema, opts.segmenting.filter_min_intensity*noise(2), ...
-                                  opts.segmenting.filter_overlap);
+        %extrema = [opts.segmenting.filter_min_size opts.segmenting.filter_max_size]/...
+        %           opts.pixel_size;
+        %spots = filter_spots(spots, spots_intens, extrema, opts.segmenting.filter_min_intensity*noise(2), ...
+        %                          opts.segmenting.filter_overlap);
       end
 
       % If we have some detections, store them in the final structure

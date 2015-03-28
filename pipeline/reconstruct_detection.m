@@ -1,4 +1,4 @@
-function detected = reconstruct_detection(imgs, spots)
+function detected = reconstruct_detection(imgs, spots, draw)
 % RECONSTRUCT_DETECTION creates an image of the detected gaussian spots.
 %
 %   RIMG = RECONSTRUCT_DETECTION(IMG, SPOTS) creates a reconstructed image RIMG from
@@ -57,8 +57,7 @@ function detected = reconstruct_detection(imgs, spots)
       gauss_params = curr_spots(s,:);
 
       % Add its gaussian shape to the current plane
-      img = img + GaussMask2D(gauss_params(3), size_img, gauss_params([2 1]), 0, 1) ...
-                  * gauss_params(4);
+      img = img + draw(gauss_params, size_img);
     end
 
     % Store the reconstructed image

@@ -473,6 +473,12 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
         divisions_colors2 = 'k';
     end
 
+    if (has_segmentation)
+      segment_type = segmentations(indx).type;
+    else
+      segment_type = 'unknown';
+    end
+
     % If we have already created the axes and the images, we can simply change their
     % content (i.e. CData, XData, ...)
     [size_y, size_x] = size(orig_img);
@@ -483,8 +489,8 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
       plot_paths(handles.data(3), links1, colors1);
       plot_paths(handles.data(4), links2, colors2);
 
-      plot_spots(handles.data(1), spots1, divisions_colors1, iscell(spots1));
-      plot_spots(handles.data(2), spots2, divisions_colors2, iscell(spots2));
+      perform_step('plotting', segment_type, handles.data(1), spots1, divisions_colors1, iscell(spots1));
+      perform_step('plotting', segment_type, handles.data(2), spots2, divisions_colors2, iscell(spots2));
 
       set(handles.scale, 'XData', size_x*[0.05 0.05]+[0 10/opts.pixel_size], 'YData', size_y*[0.95 0.95]);
     else
@@ -506,8 +512,10 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
       handles.data(4) = plot_paths(handles.axes(2), links2, colors2);
 
       % And their detected spots
-      handles.data(1) = plot_spots(handles.axes(1), spots1, divisions_colors1, iscell(spots1));
-      handles.data(2) = plot_spots(handles.axes(2), spots2, divisions_colors2, iscell(spots2));
+      %handles.data(1) = plot_spots(handles.axes(1), spots1, divisions_colors1, iscell(spots1));
+      %handles.data(2) = plot_spots(handles.axes(2), spots2, divisions_colors2, iscell(spots2));
+      handles.data(1) = perform_step('plotting', segment_type, handles.axes(1), spots1, divisions_colors1, iscell(spots1));
+      handles.data(2) = perform_step('plotting', segment_type, handles.axes(2), spots2, divisions_colors2, iscell(spots2));
 
       % And the necessary scale bar
       handles.scale = line('XData', size_x*[0.05 0.05]+[0 10/opts.pixel_size], 'YData', size_y*[0.95 0.95], 'Parent', handles.axes(1), 'Color', 'w', 'LineWidth', 4);
