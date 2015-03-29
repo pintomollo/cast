@@ -146,7 +146,6 @@ function [myrecording, opts, is_updated] = inspect_paths(myrecording, opts)
 
       % The filters
       set(handles.refine,'Value', trackings(indx).reestimate_spots);
-      %set(handles.force,'Value', trackings(indx).force_cell_behavior);
 
       % The paths
       all_paths = reconstruct_tracks(trackings(indx).detections, true);
@@ -156,6 +155,9 @@ function [myrecording, opts, is_updated] = inspect_paths(myrecording, opts)
       handles.prev_channel = indx;
       handles.prev_frame = -1;
     end
+
+    % Get the type of segmentation currently used
+    segment_type = segmentations(indx).type;
 
     % The slider
     set(handles.text, 'String', ['Frame #' num2str(nimg)]);
@@ -294,8 +296,8 @@ function [myrecording, opts, is_updated] = inspect_paths(myrecording, opts)
       plot_paths(handles.data(4), links2, colors2);
 
       % And the spots on top
-      plot_spots(handles.data(1), spots1, divisions_colors, true);
-      plot_spots(handles.data(2), spots2, divisions_colors, true);
+      perform_step('plotting', segment_type, handles.data(1), spots1, divisions_colors, true);
+      perform_step('plotting', segment_type, handles.data(2), spots2, divisions_colors, true);
     else
 
       % Otherwise, we create the two images in their respective axes
@@ -315,8 +317,8 @@ function [myrecording, opts, is_updated] = inspect_paths(myrecording, opts)
       handles.data(4) = plot_paths(handles.axes(2), links2, colors2);
 
       % And their detected spots
-      handles.data(1) = plot_spots(handles.axes(1), spots1, divisions_colors);
-      handles.data(2) = plot_spots(handles.axes(2), spots2, divisions_colors);
+      handles.data(1) = perform_step('plotting', segment_type, handles.axes(1), spots1, divisions_colors);
+      handles.data(2) = perform_step('plotting', segment_type, handles.axes(2), spots2, divisions_colors);
 
       % Drag and Zoom library from Evgeny Pr aka iroln
       dragzoom(handles.axes, 'on')

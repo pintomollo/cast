@@ -1,6 +1,37 @@
 function [varargout] = perform_step(cast_step, segment_type, varargin)
 
   switch cast_step
+    case 'estimation'
+
+      img = varargin{1};
+      spots = varargin{2};
+      opts = varargin{3};
+
+      force_estim = false;
+      if (length(varargin) > 3)
+        force_estim = varargin{4};
+      end
+
+      switch segment_type
+        case 'multiscale_gaussian_spots'
+          if (force_estim)
+            spots = estimate_spots(img, spots, opts.segmenting.atrous_max_size/(2*opts.pixel_size), []);
+          else
+            spots = estimate_spots(img, spots, opts.segmenting.atrous_max_size/(2*opts.pixel_size), ...
+                               opts.segmenting.estimate_thresh, ...
+                               opts.segmenting.estimate_niter, ...
+                               opts.segmenting.estimate_stop, ...
+                               opts.segmenting.estimate_weight, ...
+                               opts.segmenting.estimate_fit_position);
+          end
+        case 'rectangular_local_maxima'
+          spots = estimate_window(img, spots, opts.segmenting.maxima_window);
+        otherwise
+          spots = [];
+          %disp('No segmentation')
+      end
+      varargout = {spots};
+
     case 'segmentation'
 
       img = varargin{1};
@@ -9,15 +40,8 @@ function [varargout] = perform_step(cast_step, segment_type, varargin)
         case 'multiscale_gaussian_spots'
           spots = detect_spots(img, opts.segmenting.atrous_thresh, ...
                                opts.segmenting.atrous_max_size/opts.pixel_size);
-          spots = estimate_spots(img, spots, opts.segmenting.atrous_max_size/(2*opts.pixel_size), ...
-                               opts.segmenting.estimate_thresh, ...
-                               opts.segmenting.estimate_niter, ...
-                               opts.segmenting.estimate_stop, ...
-                               opts.segmenting.estimate_weight, ...
-                               opts.segmenting.estimate_fit_position);
         case 'rectangular_local_maxima'
           spots = detect_maxima(img, opts.segmenting.maxima_window);
-          spots = estimate_window(img, spots, opts.segmenting.maxima_window);
         otherwise
           spots = [];
           %disp('No segmentation')
@@ -67,9 +91,9 @@ function [varargout] = perform_step(cast_step, segment_type, varargin)
           fusion = [];
           %disp('No segmentation')
       end
-      filtered = filter_spots(spots, spots_intens, fusion, extrema, ...
-                              opts.segmenting.filter_overlap);
-      varargout = {filtered};
+      [filtered, goods] = filter_spots(spots, spots_intens, fusion, extrema, ...
+                                       opts.segmenting.filter_overlap);
+      varargout = {filtered, goods};
 
     case 'reconstructing'
 

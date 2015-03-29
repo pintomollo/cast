@@ -88,7 +88,13 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
   for i=1:nframes
     if (~isempty(spots{i}))
       nprops = size(spots{i},2)-2;
-      break;
+      %break;
+    end
+
+    % And add a flag for interpolated points
+    curr_spots = spots{i};
+    if (~isempty(curr_spots))
+      spots{i} = [curr_spots zeros(size(curr_spots, 1), 1)];
     end
   end
 
@@ -450,7 +456,7 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
             nprev = size(spots{curr_indx}, 1) + 1;
 
             % Flag these interpolated spots using a NaN at the end of their properties
-            spots{curr_indx} = [spots{curr_indx}; [new_pts(k,1:end-1) NaN]];
+            spots{curr_indx} = [spots{curr_indx}; [new_pts(k,1:end-1) true]];
             links{curr_indx+1} = [links{curr_indx+1}; [curr_pos nprev curr_indx]];
             curr_pos = nprev;
           end

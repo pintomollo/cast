@@ -85,11 +85,27 @@ function export_movie(myrecording, props, opts)
 
   % Now we loop over all channels
   nchannels = length(myrecording.trackings);
+
+  % Switch to segmentations instead, as there seems to be data in it
+  if (nchannels==0 && length(myrecording.segmentations)>0)
+    myrecording.trackings = myrecording.segmentations;
+    nchannels = length(myrecording.trackings);
+  end
+
+  % Loop over all channels
   for i=1:nchannels
+
+    if (isfield(myrecording.trackings(i), 'filtered') && length(myrecording.trackings(i).filtered)>0 && ~all(isnan(myrecording.trackings(i).filtered(1).carth)))
+      detections = myrecording.trackings(i).filtered;
+    else
+      detections = myrecording.trackings(i).detections;
+    end
+
+    segment_type = myrecording.segmentations(i).type;
 
     % If we want to display the index, we need to reconstruct the tracks
     if (show_text)
-      [paths, indexes] = reconstruct_tracks(myrecording.trackings(i).detections, low_duplicates);
+      [paths, indexes] = reconstruct_tracks(detections, low_duplicates);
     end
 
     % Open the specified AVI file with the maximal quality
@@ -99,7 +115,7 @@ function export_movie(myrecording, props, opts)
     open(mymovie);
 
     % Get the current number of frames and format the corresponding part of the title
-    nframes = length(myrecording.trackings(i).detections);
+    nframes = length(detections);
     total_str = ['/' num2str(nframes*nchannels)];
 
     % Loop over all frames
@@ -107,12 +123,13 @@ function export_movie(myrecording, props, opts)
 
       % Get the image and the spots
       img = double(load_data(myrecording.channels(i), nimg));
-      spots = [myrecording.trackings(i).detections(nimg).carth myrecording.trackings(i).detections(nimg).properties];
+      spots = [detections(nimg).carth detections(nimg).properties];
       color_index = myrecording.channels(i).color(1);
 
       % Maybe we need to reconstruct the image
       if (show_reconst)
-        reconstr = reconstruct_detection(img, spots);
+        %reconstr = reconstruct_detection(img, spots);
+        reconstr = perform_step('reconstructing', segment_type, img, spots);
 
         % Concatenate them
         img = [img reconstr];
@@ -170,7 +187,7 @@ function export_movie(myrecording, props, opts)
         end
 
         % NaN would not be drawn !
-        spots(isnan(spots(:,3)),3) = 0;
+        spots(spots(:,end),:) = 0;
 
         % Display the text
         hText = text(spots(:,1), spots(:,2)-6*spots(:,3), num2str(indexes{nimg}), ...

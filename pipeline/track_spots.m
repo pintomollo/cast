@@ -338,6 +338,11 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, 
   % Filter the intermediate sections before bridging/merging/splitting
   if (min_length > 0 && nframes > 2)
     [spots, links] = filter_tracking(spots, links, min_length, 0, false);
+
+    % And clean out the interpolation flags
+    for i=1:length(spots)
+      spots{i} = spots{i}(:, 1:end-1);
+    end
   end
 
   % We need to build several lists for bridging/merging/splitting

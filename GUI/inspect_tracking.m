@@ -252,8 +252,6 @@ function [myrecording, opts, is_updated] = inspect_tracking(myrecording, opts)
       % The spots
       perform_step('plotting', segment_type, handles.data(1), spots1, spots_colors);
       perform_step('plotting', segment_type, handles.data(2), spots2, spots_colors([2 1]));
-      %plot_spots(handles.data(1), spots1, spots_colors);
-      %plot_spots(handles.data(2), spots2, spots_colors([2 1]));
 
       % And the tracks on top
       plot_paths(handles.data(3), links1, links_colors);

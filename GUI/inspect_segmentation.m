@@ -191,6 +191,7 @@ function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opt
 
       % Segment the image
       spots = perform_step('segmentation', segment_type, img, opts);
+      spots = perform_step('estimation', segment_type, img, spots, opts);
 
       % Estimate the noise if not previously done
       if (isempty(noise))
@@ -256,7 +257,6 @@ function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opt
       set(handles.img(2),'CData', img2);
 
       % And update the spots
-      %plot_spots(handles.data, curr_intens, spots_colors);
       perform_step('plotting', segment_type, handles.data, curr_spots, spots_colors);
     else
 
@@ -274,10 +274,9 @@ function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opt
 
       % Now add the detected spots
       handles.data = perform_step('plotting', segment_type, handles.axes(2), curr_spots, spots_colors);
-      %handles.data = plot_spots(handles.axes(2), curr_intens, spots_colors);
 
       % Drag and Zoom library from Evgeny Pr aka iroln
-      dragzoom(handles.axes, 'on')
+      dragzoom(handles.axes, 'on');
     end
 
     % And set the colormap

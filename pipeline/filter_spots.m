@@ -1,5 +1,5 @@
-function fused_spots = filter_spots(all_spots, all_intensities, fusion, extrema, ...
-                                    overlap_thresh)
+function [fused_spots, all_goods] = filter_spots(all_spots, all_intensities, ...
+                                    fusion, extrema, overlap_thresh)
 % FILTER_SPOTS filters a list of estimated spots based on their intensity and size,
 % and fuses overlapping ones, assuming some sort of oversampling.
 %
@@ -52,6 +52,7 @@ function fused_spots = filter_spots(all_spots, all_intensities, fusion, extrema,
 
   % Assign the output
   fused_spots = cell(size(all_spots));
+  all_goods = cell(size(all_spots));
 
   % The number of properties belonging to a spot
   nprops = -1;
@@ -91,11 +92,13 @@ function fused_spots = filter_spots(all_spots, all_intensities, fusion, extrema,
 
     % Store the whole list
     fused_spots{nimg} = curr_fused;
+    all_goods{nimg} = goods;
   end
 
   % If we have only one element, use the matrix directly
   if (numel(fused_spots)==1)
     fused_spots = fused_spots{1};
+    all_goods = all_goods{1};
   end
 
   return;

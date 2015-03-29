@@ -100,6 +100,7 @@ function [myrecording, opts] = segment_movie(myrecording, opts)
       %}
 
       spots = perform_step('segmentation', segment_type, img, opts);
+      spots = perform_step('estimation', segment_type, img, spots, opts);
 
       % Filter the detected spots ?
       if (myrecording.segmentations(indx).filter_spots)
