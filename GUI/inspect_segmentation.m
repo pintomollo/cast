@@ -189,75 +189,20 @@ function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opt
                         opts.segmenting.denoise_func, opts.segmenting.denoise_size);
       end
 
-      %{
-      switch segment_type
-        case 'multiscale_gaussian_spots'
-          spots = detect_spots(img, opts.segmenting.atrous_thresh, ...
-                               opts.segmenting.atrous_max_size/opts.pixel_size);
-          spots = estimate_spots(img, spots, opts.segmenting.atrous_max_size/(2*opts.pixel_size), ...
-                               opts.segmenting.estimate_thresh, ...
-                               opts.segmenting.estimate_niter, ...
-                               opts.segmenting.estimate_stop, ...
-                               opts.segmenting.estimate_weight, ...
-                               opts.segmenting.estimate_fit_position);
-        case 'rectangular_local_maxima'
-          spots = detect_maxima(img, opts.segmenting.maxima_window);
-          spots = estimate_window(img, spots, opts.segmenting.maxima_window);
-        otherwise
-          spots = [];
-          %disp('No segmentation')
-      end
-      %}
+      % Segment the image
       spots = perform_step('segmentation', segment_type, img, opts);
 
-      % Setup the filtering values
+      % Estimate the noise if not previously done
       if (isempty(noise))
         noise = estimate_noise(img);
       end
 
+      % And filter the spots
       filt_spots = perform_step('filtering', segment_type, spots, opts, noise);
-      %{
-      extrema = [opts.segmenting.filter_min_size opts.segmenting.filter_max_size]/...
-                 opts.pixel_size;
 
-      % Compute the signal intensities
-      switch segment_type
-        case 'multiscale_gaussian_spots'
-          spots_intens = gaussian_intensities(spots);
-        case 'rectangular_local_maxima'
-          spots_intens = window_intensities(spots);
-        otherwise
-          spots_intens = [];
-          %disp('No segmentation')
-      end
-      %test2 = perform_step('intensity', segment_type, spots);
-      filt_spots2 = perform_step('filtering', segment_type, spots, opts, noise);
-
-      % Filter the detected spots using the extram values provided
-      filt_spots = filter_spots(spots, spots_intens, @fuse_gaussians, ...
-              [extrema(:), [opts.segmenting.filter_min_intensity*noise(2); Inf]],  ...
-                                opts.segmenting.filter_overlap);
-      keyboard
-      %}
-
-      %{
-      % Compute the filtered intensities
-      switch segment_type
-        case 'multiscale_gaussian_spots'
-          filt_intens = gaussian_intensities(filt_spots);
-        case 'rectangular_local_maxima'
-          filt_intens = window_intensities(filt_spots);
-        otherwise
-          filt_intens = [];
-          %disp('No segmentation')
-      end
-      %}
-
-      % And reconstrcut the image using the previous detection
+      % Finally, reconstrcut the image using the previous detection
       reconstr = perform_step('reconstructing', segment_type, orig_img, spots);
       reconstr_filt = perform_step('reconstructing', segment_type, orig_img, filt_spots);
-      %reconstr = reconstruct_detection(orig_img, real(spots_intens));
-      %reconstr_filt = reconstruct_detection(orig_img, filt_intens);
     end
 
     % Decide which type of spots to display

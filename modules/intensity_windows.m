@@ -16,7 +16,7 @@ function all_values = intensity_windows(all_spots)
     spots = all_spots{nimg};
 
     % Compute the corresponding values
-    values = [spots(:,1:7) spots(:,5).*prod(spots(:,3:4), 2)];
+    values = spots(:,5).*prod(spots(:,3:4), 2);
 
     % Store them
     all_values{nimg} = values;

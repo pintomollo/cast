@@ -65,7 +65,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   for (i = 0; i < m2; i++) {
 
     // Get the signal
-    signal2 = compute_signal(x2, i, m2);
+    signal2 = x2[i + (n2-3)*m2];
 
     // The number of elements up to the current column
     jcs[i] = count;
@@ -80,7 +80,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       if (dist <= __MIN__(thresh*dist2, thresh_lim) && dist2 <= thresh2 && dist2 > 0) {
 
         // Get the other signal
-        signal1 = compute_signal(x1, j, m1);
+        signal1 = x1[j + (n1-3)*m1];
 
         // The weight
         weight = __WGT__(signal2 / signal1);

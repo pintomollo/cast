@@ -16,7 +16,7 @@ function all_values = intensity_gaussians(all_spots)
     spots = all_spots{nimg};
 
     % Compute the corresponding values
-    values = [spots(:,1:4) 2*pi.*spots(:,4).*spots(:,3).^2];
+    values = 2*pi.*spots(:,4).*spots(:,3).^2;
 
     % Store them
     all_values{nimg} = values;

@@ -1,4 +1,4 @@
-function fused_spots = fuse_gaussians(spots, values, overlap_thresh)
+function fused_spots = fuse_gaussians(spots, all_intensities, overlap_thresh)
 
   % Prepare the output
   fused_spots = NaN(0, size(spots, 2));
@@ -7,7 +7,7 @@ function fused_spots = fuse_gaussians(spots, values, overlap_thresh)
   dist = sqrt(bsxfun(@minus, spots(:,1), spots(:,1).').^2 + bsxfun(@minus, spots(:,2), spots(:,2).').^2);
 
   % And their respective sizes
-  rads = values(:,3);
+  rads = spots(:,3);
   rads = bsxfun(@plus, rads, rads.');
 
   % Now check which ones should be fused
@@ -46,23 +46,22 @@ function fused_spots = fuse_gaussians(spots, values, overlap_thresh)
 
         % Get the spots to be fused
         curr_spots = spots(groups, :);
-        curr_values = values(groups, :);
 
         % Utilize the estimated signal for weighting the average
-        intensities = curr_values(:,5);
+        intensities = all_intensities(groups);
         intensities = intensities / sum(intensities);
 
         % Compute the future position
-        target = bsxfun(@times, curr_values(:,1:2), intensities);
+        target = bsxfun(@times, curr_spots(:,1:2), intensities);
         target = sum(target, 1)/length(intensities);
 
         % And their relative distance to the new position
-        center_dist = sqrt(sum(bsxfun(@minus, curr_values(:,1:2), target).^2, 2));
+        center_dist = sqrt(sum(bsxfun(@minus, curr_spots(:,1:2), target).^2, 2));
 
         % Gaussian-like distance kernel for weighting the average, weighted by the
         % signal intensity once more
-        weights = exp(-center_dist ./ (2*curr_values(:, 3).^2));
-        weights = weights .* curr_values(:,5);
+        weights = exp(-center_dist ./ (2*curr_spots(:, 3).^2));
+        weights = weights .* intensities;
         weights = weights / sum(weights);
 
         % Average and store the new spot

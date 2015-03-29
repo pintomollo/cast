@@ -7,8 +7,12 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, 
 %   spot per row, the organisation of which depends on the expected format for the
 %   cost functions FUNCS. The standard functions (see get_struct.m) expect:
 %     [X_coord, Y_coord, sigma, amplitude, ..., row_index, frame_index]
-%   FUNCS should be a cell array of 4 function handlers, in the following order:
-%     {linking_function, bridging_function, joining_function, splitting_function}
+%   FUNCS should be a cell array of 5 function handlers, in the following order:
+%     {intensity_function,
+%      linking_function,
+%      bridging_function,
+%      joining_function,
+%      splitting_function}
 %   Providing an empty cell for any of the three last functions disables this function
 %   in the tracking algorithm [1].
 %   LINKS will be a cell vector with the same size as SPOTS, each cell containing a
@@ -111,7 +115,8 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, 
   if (isstruct(funcs))
 
     % Get the function handlers
-    funcs = {opts.spot_tracking.linking_function, ...
+    funcs = {'', ...
+             opts.spot_tracking.linking_function, ...
              opts.spot_tracking.bridging_function, ...
              opts.spot_tracking.joining_function, ...
              opts.spot_tracking.splitting_function};
@@ -134,8 +139,8 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, 
   end
 
   % Create empty function handlers in case not enough where provided
-  weighting_funcs = cell(4, 1);
-  weighting_funcs(1:min(length(funcs), end)) = funcs(1:min(4, end));
+  weighting_funcs = cell(5, 1);
+  weighting_funcs(1:min(length(funcs), end)) = funcs(1:min(5, end));
 
   % Create a structure to store the one which might be provided
   mystruct = [];
@@ -149,6 +154,7 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, 
 
       % Loop over all channels and call itself recursively
       for i = 1:length(mystruct.channels)
+        funcs{1} = @(p)(perform_step('intensity', mystruct.segmentations(i).type, p));
         mystruct.trackings(i).detections = track_spots( ...
                     mystruct.segmentations(i).detections, funcs, max_move, max_gap, ...
                     max_dist, min_length, max_ratio, allow_branching_gap, verbosity);
@@ -184,10 +190,18 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, 
   % Initialize the output variable
   links = cell(nframes, 1);
 
-  % Make sure we at elast got this handler !
-  frame_linking_weight = weighting_funcs{1};
+  % Make sure we at least got this handler !
+  frame_linking_weight = weighting_funcs{2};
   if (isempty(frame_linking_weight) || isempty(frame_linking_weight(1, 1, 1, 1)))
     error('CAST:track_spots', 'No valid frame to frame weighting function provided');
+  end
+
+  % If we have a way to compute the intensity, do it !
+  intensity_func = weighting_funcs{1};
+  if (~isempty(intensity_func))
+    for i=1:nframes
+      spots{i} = [spots{i} intensity_func(spots{i})];
+    end
   end
 
   % A nice status-bar if possible
@@ -217,6 +231,9 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, 
     % And load the current data
     pts = spots{i};
     npts = size(pts, 1);
+
+    % Add two empty columns at the end of the array to simulate the indexes used later
+    pts = [pts zeros(npts, 2)];
 
     % If one of the two is empty, no linking will happen
     if (prev_npts > 0 && npts > 0)
@@ -334,9 +351,9 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, 
   max_gap = max_gap + 1;
 
   % Get the corresponding cost functions
-  closing_weight = weighting_funcs{2};
-  joining_weight = weighting_funcs{3};
-  splitting_weight = weighting_funcs{4};
+  closing_weight = weighting_funcs{3};
+  joining_weight = weighting_funcs{4};
+  splitting_weight = weighting_funcs{5};
 
   % And check if we need to skip some functionalities
   tracking_options = ~[isempty(closing_weight) || max_gap<2 || isempty(closing_weight(1, 1, 1, 1, 1, 1)), ...
@@ -600,6 +617,13 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, 
   % Close the progress bar
   if (do_display)
     close(hwait);
+  end
+
+  % If we had a way to compute the intensity, we need to remove it now
+  if (~isempty(intensity_func))
+    for i=1:nframes
+      spots{i} = spots{i}(:, 1:end-1);
+    end
   end
 
   % And store the corresponding information in the structure, if need be

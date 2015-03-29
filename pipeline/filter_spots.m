@@ -1,4 +1,4 @@
-function fused_spots = filter_spots(all_spots, all_values, fusion, extrema, ...
+function fused_spots = filter_spots(all_spots, all_intensities, fusion, extrema, ...
                                     overlap_thresh)
 % FILTER_SPOTS filters a list of estimated spots based on their intensity and size,
 % and fuses overlapping ones, assuming some sort of oversampling.
@@ -47,7 +47,7 @@ function fused_spots = filter_spots(all_spots, all_values, fusion, extrema, ...
   % For convenience, work always with cells
   if (~iscell(all_spots))
     all_spots = {all_spots};
-    all_values = {all_values};
+    all_intensities = {all_intensities};
   end
 
   % Assign the output
@@ -61,7 +61,7 @@ function fused_spots = filter_spots(all_spots, all_values, fusion, extrema, ...
 
     % Get the current set of spots
     spots = all_spots{nimg};
-    values = all_values{nimg};
+    intensities = all_intensities{nimg};
 
     % No work needed
     if (isempty(spots))
@@ -70,24 +70,24 @@ function fused_spots = filter_spots(all_spots, all_values, fusion, extrema, ...
 
     % Measure the actual number of properties
     if (nprops < 0)
-      nprops = size(values, 2);
+      nprops = size(spots, 2);
 
       % Adapt the extrema
       extrema = [extrema, repmat([0; Inf], 1, (nprops-2) - size(extrema, 2))];
     end
 
     % Apply the extrema thresholds, ignoring the XY coordinates
-    goods = bsxfun(@ge, values(:, 3:end), extrema(1,:)) & ...
-            bsxfun(@le, values(:, 3:end), extrema(2,:)) & ...
-            isfinite(values(:, 3:end)) & isreal(values);
+    goods = bsxfun(@ge, spots(:, 3:end), extrema(1,:)) & ...
+            bsxfun(@le, spots(:, 3:end), extrema(2,:)) & ...
+            isfinite(spots(:, 3:end)) & isreal(spots);
     goods = all(goods, 2);
 
     % Keep only the good spots
     spots = spots(goods,:);
-    values = values(goods,:);
+    intensities = intensities(goods,:);
 
     % Now fuse the spots
-    curr_fused = fusion(spots, values, overlap_thresh);
+    curr_fused = fusion(spots, intensities, overlap_thresh);
 
     % Store the whole list
     fused_spots{nimg} = curr_fused;

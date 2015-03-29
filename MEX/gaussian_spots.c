@@ -15,12 +15,6 @@ double fast_exp(double y) {
   return d;
 }
 
-// Compute the actual signal
-double compute_signal(double *spots, int spot_indx, int nrows) {
-
-  return M_2PI * __SQR__(spots[spot_indx + 2*nrows]) * spots[spot_indx + 3*nrows];
-}
-
 // Retrieve the signal from a gaussian spot in a cell array of spot matrices
 double get_signal(int frame_indx, int spot_indx, const mxArray *spots) {
 
@@ -37,10 +31,10 @@ double get_signal(int frame_indx, int spot_indx, const mxArray *spots) {
     m  = mxGetM(cell_element_ptr);
     n  = mxGetN(cell_element_ptr);
 
-    // Compute the signal as the integral under the 2D gaussian
-    if (spot_indx < m && n > 3) {
+    // Get the signal that is located in the last column
+    if (spot_indx < m) {
       spot  = mxGetPr(cell_element_ptr);
-      signal = compute_signal(spot, spot_indx, m);
+      signal = spot[spot_indx + (n-3)*m];
     }
   }
 

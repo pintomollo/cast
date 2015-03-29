@@ -30,7 +30,6 @@ extern "C" {
 #endif
 
 double fast_exp(double y);
-double compute_signal(double *spots, int spot_indx, int nrows);
 double get_signal(int frame_indx, int spot_indx, const mxArray *spots);
 double get_next_signal(int frame, int spot_indx, const mxArray *spots, const mxArray *links);
 double get_prev_signal(int frame, int spot_indx, const mxArray *spots, const mxArray *links);

@@ -1,7 +1,6 @@
 function [varargout] = perform_step(cast_step, segment_type, varargin)
 
   switch cast_step
-    case 'display'
     case 'segmentation'
 
       img = varargin{1};
@@ -35,7 +34,7 @@ function [varargout] = perform_step(cast_step, segment_type, varargin)
         case 'rectangular_local_maxima'
           spots_intens = intensity_windows(spots);
         otherwise
-          spots_intens = [];
+          spots_intens = NaN(size(spots, 1), 1);
           %disp('No segmentation')
       end
       varargout = {spots_intens};

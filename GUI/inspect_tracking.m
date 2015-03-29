@@ -145,6 +145,9 @@ function [myrecording, opts, is_updated] = inspect_tracking(myrecording, opts)
       handles.prev_frame = -1;
     end
 
+    % Get the type of segmentation currently used
+    segment_type = segmentations(indx).type;
+
     % Here we perform part of the tracking and update some part of the display
     if (recompute)
 
@@ -185,7 +188,10 @@ function [myrecording, opts, is_updated] = inspect_tracking(myrecording, opts)
       spots_next = spots_next(all(~isnan(spots_next),2),:);
 
       % Perform the actual one-step tracking
-      links = track_spots({spots, spots_next}, {opts.spot_tracking.linking_function}, (opts.spot_tracking.spot_max_speed/opts.pixel_size)*opts.time_interval, opts.spot_tracking.bridging_max_gap, Inf, 0, opts.spot_tracking.max_intensity_ratio, opts.spot_tracking.allow_branching_gap);
+      funcs = {@(p)(perform_step('intensity', segment_type, p)), ...
+               opts.spot_tracking.linking_function};
+
+      links = track_spots({spots, spots_next}, funcs, (opts.spot_tracking.spot_max_speed/opts.pixel_size)*opts.time_interval, opts.spot_tracking.bridging_max_gap, Inf, 0, opts.spot_tracking.max_intensity_ratio, opts.spot_tracking.allow_branching_gap);
 
       % And reconstruct the corresponding tracks for display purposes
       paths = reconstruct_tracks({spots, spots_next}, links);
@@ -244,8 +250,10 @@ function [myrecording, opts, is_updated] = inspect_tracking(myrecording, opts)
       set(handles.img(2),'CData', img_next);
 
       % The spots
-      plot_spots(handles.data(1), spots1, spots_colors);
-      plot_spots(handles.data(2), spots2, spots_colors([2 1]));
+      perform_step('plotting', segment_type, handles.data(1), spots1, spots_colors);
+      perform_step('plotting', segment_type, handles.data(2), spots2, spots_colors([2 1]));
+      %plot_spots(handles.data(1), spots1, spots_colors);
+      %plot_spots(handles.data(2), spots2, spots_colors([2 1]));
 
       % And the tracks on top
       plot_paths(handles.data(3), links1, links_colors);
@@ -265,8 +273,10 @@ function [myrecording, opts, is_updated] = inspect_tracking(myrecording, opts)
                  'DataAspectRatio',  [1 1 1]);
 
       % Now add the detected spots
-      handles.data(1) = plot_spots(handles.axes(1), spots1, spots_colors);
-      handles.data(2) = plot_spots(handles.axes(2), spots2, spots_colors([2 1]));
+      handles.data(1) = perform_step('plotting', segment_type, handles.axes(1), spots1, spots_colors);
+      handles.data(2) = perform_step('plotting', segment_type, handles.axes(2), spots2, spots_colors([2 1]));
+      %handles.data(1) = plot_spots(handles.axes(1), spots1, spots_colors);
+      %handles.data(2) = plot_spots(handles.axes(2), spots2, spots_colors([2 1]));
 
       % And their links
       handles.data(3) = plot_paths(handles.axes(1), links1, links_colors);
