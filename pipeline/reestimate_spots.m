@@ -100,7 +100,7 @@ function [myrecording] = reestimate_spots(myrecording, img, segmentation, opts)
     for nimg = frames
 
       % Check whether we have some to interpolate
-      to_refine = detections(nimg).properties(:, end);
+      to_refine = logical(detections(nimg).properties(:, end));
       if (any(to_refine))
 
         % Which ones ?
@@ -162,7 +162,7 @@ function [myrecording] = reestimate_spots(myrecording, img, segmentation, opts)
             noise = estimate_noise(img);
           end
 
-          [spots, goods] = perform_step('filtering', segment_type, spots, opts, noise);
+          [junk, goods] = perform_step('filtering', segment_type, spots, opts, noise);
 
           % Spots are organised with intensity in column 4 and radii in column 3
           %goods = (spots(:,3)*3 > extrema_size(1) & spots(:,3) < extrema_size(2)...
@@ -172,7 +172,7 @@ function [myrecording] = reestimate_spots(myrecording, img, segmentation, opts)
           if (opts.segmenting.force_estimation && any(~goods))
 
             % Estimate the amplitude for each spot
-            spots(~goods,:) = perform_step('estimation', segment_type, img, orig_spots(~goods,:), opts);
+            spots(~goods,:) = perform_step('estimation', segment_type, img, orig_spots(~goods,1:end-1), opts, true);
             %spots(~goods,:) = estimate_spots(img, orig_spots(~goods,:), ...
             %                     opts.segmenting.filter_max_size/(2*opts.pixel_size), ...
             %                     []);

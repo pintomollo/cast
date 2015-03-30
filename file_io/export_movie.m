@@ -95,10 +95,12 @@ function export_movie(myrecording, props, opts)
   % Loop over all channels
   for i=1:nchannels
 
-    if (isfield(myrecording.trackings(i), 'filtered') && length(myrecording.trackings(i).filtered)>0 && ~all(isnan(myrecording.trackings(i).filtered(1).carth)))
+    if (isfield(myrecording.trackings(i), 'filtered') && length(myrecording.trackings(i).filtered)>0 && ~all(isnan(myrecording.trackings(i).filtered(1).carth(:))))
       detections = myrecording.trackings(i).filtered;
+      is_filtered = true;
     else
       detections = myrecording.trackings(i).detections;
+      is_filtered = false;
     end
 
     segment_type = myrecording.segmentations(i).type;
@@ -124,6 +126,9 @@ function export_movie(myrecording, props, opts)
       % Get the image and the spots
       img = double(load_data(myrecording.channels(i), nimg));
       spots = [detections(nimg).carth detections(nimg).properties];
+      if (~is_filtered)
+        spots = [spots ones(size(spots, 1), 1)];
+      end
       color_index = myrecording.channels(i).color(1);
 
       % Maybe we need to reconstruct the image
@@ -172,9 +177,11 @@ function export_movie(myrecording, props, opts)
       % Maybe we want to display the circles representing the detections
       if (show_detect)
         if (ishandle(hSpots))
-          plot_spots(hSpots, spots);
+          %plot_spots(hSpots, spots);
+          perform_step('plotting', segment_type, hSpots, spots, colors.spots{color_index});
         else
-          hSpots = plot_spots(hAxes, spots, colors.spots{color_index});
+          %hSpots = plot_spots(hAxes, spots, colors.spots{color_index});
+          hSpots = perform_step('plotting', segment_type, hAxes, spots, colors.spots{color_index});
         end
       end
 
@@ -187,7 +194,7 @@ function export_movie(myrecording, props, opts)
         end
 
         % NaN would not be drawn !
-        spots(spots(:,end),:) = 0;
+        spots(any(isnan(spots), 2),:) = 0;
 
         % Display the text
         hText = text(spots(:,1), spots(:,2)-6*spots(:,3), num2str(indexes{nimg}), ...

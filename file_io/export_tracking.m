@@ -72,8 +72,16 @@ function export_tracking(myrecording, props, opts)
   % Loop over all channels
   for i=1:nchannels
 
+    if (isfield(myrecording.trackings(i), 'filtered') && length(myrecording.trackings(i).filtered)>0 && ~all(isnan(myrecording.trackings(i).filtered(1).carth(:))))
+      detections = myrecording.trackings(i).filtered;
+      is_filtered = true;
+    else
+      detections = myrecording.trackings(i).detections;
+      is_filtered = false;
+    end
+
     % Get the current type of segmentation to apply
-    type = myrecording.segmentations(i).type;
+    segment_type = myrecording.segmentations(i).type;
 
     % Rescaling the pixel intensities
     if (myrecording.channels(i).normalize)
@@ -85,6 +93,7 @@ function export_tracking(myrecording, props, opts)
       bkg = 0;
     end
 
+    %{
     % The list of columns to export
     switch type
       case 'detect_spots'
@@ -100,17 +109,20 @@ function export_tracking(myrecording, props, opts)
         disp(['Warning: segmentation type "' type '" unknown, ignoring.']);
         return;
     end
+    %}
+    [colname, rescale_factor] = perform_step('exporting', segment_type, opts, int_scale);
     ncols = length(colname);
 
     % Now check how many frames there are
-    nframes = length(myrecording.trackings(i).filtered);
+    nframes = length(detections);
 
     set(hwait, 'Visible', 'off');
 
     % Extract the results of the tracking in this channel
-    paths = reconstruct_tracks(myrecording.trackings(i).filtered, low_duplicates);
-    noises = gather_noises(myrecording.trackings(i).filtered);
+    paths = reconstruct_tracks(detections, low_duplicates);
+    noises = gather_noises(detections);
 
+    %{
     % If it's empty, switch to the detections
     if (isempty(paths))
       disp(['No filtered data to be exported in channel ' num2str(i) ', switching to the detections']);
@@ -122,6 +134,7 @@ function export_tracking(myrecording, props, opts)
       paths = reconstruct_tracks(myrecording.trackings(i).detections, low_duplicates);
       noises = gather_noises(myrecording.trackings(i).detections);
     end
+    %}
 
     % Rescaling the noise as well
     if (myrecording.channels(i).normalize)

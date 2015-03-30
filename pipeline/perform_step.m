@@ -135,6 +135,27 @@ function [varargout] = perform_step(cast_step, segment_type, varargin)
       varargout = {hgroup};
 
     case 'exporting'
+
+      opts = varargin{1};
+      int_scale = varargin{2};
+
+      switch segment_type
+        case 'multiscale_gaussian_spots'
+          % The names
+          colname = {'status', 'x_coord_um', 'y_coord_um', 'sigma_um', 'amplitude_int', 'interpolated'};
+          % The factors for the various conversions
+          rescale_factor = [1 ([1 1 1] * opts.pixel_size) int_scale 1];
+        case 'rectangular_local_maxima'
+          % The names
+          colname = {'status', 'x_coord_um', 'y_coord_um', 'width_um','height_um', 'mean_int', 'standard_deviation_int', 'interpolated'};
+          % The factors for the various conversions
+          rescale_factor = [1 ([1 1 1 1] * opts.pixel_size) ([1 1] *int_scale) 1];
+        otherwise
+          colname = {};
+          rescale_factor = [];
+      end
+      varargout = {colname, rescale_factor};
+
     otherwise
       varargout = {};
   end
