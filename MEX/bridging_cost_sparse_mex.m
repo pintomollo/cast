@@ -1,5 +1,4 @@
-% BRIDGING_COST_SPARSE_MEX computes the cost matrix, in sparse form, for gaussian
-% spots.
+% BRIDGING_COST_SPARSE_MEX computes the cost matrix, in sparse form, for spots.
 %
 %   COSTS = JOINING_COST_SPARSE_MEX(SPOTS1, SPOTS2, MAX_DIST, MAX_GAP, MAX_RATIO)
 %   computes the COSTS matrix for bridging SPOTS1 with SPOTS2 as defined in [1], with

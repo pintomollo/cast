@@ -1,27 +1,27 @@
 function hgroup = plot_windows(h, spots, color, mark_center)
-% PLOT_SPOTS draws gaussian spots as circles proportional to their variance.
+% PLOT_WINDOWS draws estimation windows as rectangles.
 %
-%   HGROUP = PLOT_SPOTS(SPOTS) draws all SPOTS in the current axes, returning a handler
-%   to the hggroup HGROUP containing the circles. SPOTS should contain one row per
-%   spot, ordered as [X_coord, Y_coord, sigma, ...]. SPOTS are drawn with a diameter
-%   equal to 2*sigma. If the resulting diameter is smaller than 1 pix (or NaN), a
-%   diameter of 1 is used instead.
+%   HGROUP = PLOT_WINDOWS(WINDOWS) draws all WINDOWS in the current axes, returning a
+%   handler to the hggroup HGROUP containing the rectangles. WINDOWS should contain
+%   one row per window, ordered as [X_coord, Y_coord, width, height, ...]. WINDOWS are
+%   drawn with a size of 2*[width height] + 1.
 %
-%   HGROUP = PLOT_SPOTS(SPOTS_GROUPS) plots several layers of spots, group by group,
-%   in the reverse order of the cell vector SPOTS_GROUPS (e.g. different frames).
+%   HGROUP = PLOT_WINDOWS(WINDOWS_GROUPS) plots several layers of windows, group by
+%   group, in the reverse order of the cell vector WINDOWS_GROUPS (e.g. different
+%   frames).
 %
-%   HGROUP = PLOT_SPOTS(..., COLORS) defines the color to be used for the circle. If
-%   several groups of spots are to be drawn, a vector/matrix of colors can be provided.
-%   Default value is 'r'.
+%   HGROUP = PLOT_WINDOWS(..., COLORS) defines the color to be used for the rectangles.
+%   If several groups of windows are to be drawn, a vector/matrix of colors can be
+%   provided. Default value is 'r'.
 %
-%   HGROUP = PLOT_SPOTS(HGROUP, ...) draws the circles in the provided HGROUP,
-%   replacing existing circles (usually faster than creating a new group).
+%   HGROUP = PLOT_WINDOWS(HGROUP, ...) draws the windows in the provided HGROUP,
+%   replacing existing rectangles (usually faster than creating a new group).
 %
-%   HGROUP = PLOT_SPOTS(HAXES, ...) draws the hggroup in the axes defined by HAXES.
+%   HGROUP = PLOT_WINDOWS(HAXES, ...) draws the hggroup in the axes defined by HAXES.
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud
-% 04.07.2014
+% 31.03.2015
 
   % Input checking and default values
   if (nargin == 1)
@@ -113,14 +113,14 @@ function hgroup = plot_windows(h, spots, color, mark_center)
     % Loop over all spots
     for s = 1:nspots
 
-      % Scale and translate the circle to the current spot
+      % Scale and translate the rectangle to the current spot
       pos = bsxfun(@plus, curr_spots(s, 1:2).', ...
                     bsxfun(@times, rectang, curr_spots(s, 3:4).'));
 
       if (mark_center)
         indx = (s-1)*2 + 1;
 
-        % If we ran out of existing circles to modify, creat a new one
+        % If we ran out of existing rectangles to modify, creat a new one
         if (count + indx > nrects)
           handles(count + indx) = line('XData', pos(1,:), 'YData', pos(2,:), 'Parent', hgroup, ...
                             'Color', curr_color, 'Marker', 'none');
@@ -131,7 +131,7 @@ function hgroup = plot_windows(h, spots, color, mark_center)
           handles(indx) = hrects(count + indx);
         end
 
-        % If we ran out of existing circles to modify, creat a new one
+        % If we ran out of existing rectangles to modify, creat a new one
         if (count + indx + 1 > nrects)
           handles(count + indx + 1) = line('XData', curr_spots(s,1), 'YData', curr_spots(s,2), 'Parent', hgroup, ...
                             'Color', curr_color, 'Marker', 'd');
@@ -142,7 +142,7 @@ function hgroup = plot_windows(h, spots, color, mark_center)
           handles(indx + 1) = hrects(count + indx + 1);
         end
       else
-        % If we ran out of existing circles to modify, creat a new one
+        % If we ran out of existing rectangles to modify, creat a new one
         if (count+s > nrects)
           handles(s) = line('XData', pos(1,:), 'YData', pos(2,:), 'Parent', hgroup, ...
                             'Color', curr_color, 'Marker', 'none');
@@ -155,7 +155,7 @@ function hgroup = plot_windows(h, spots, color, mark_center)
       end
     end
 
-    % Update the total number of drawn circles
+    % Update the total number of drawn rectangles
     if (mark_center)
       count = count + 2*nspots;
     else
@@ -172,7 +172,7 @@ function hgroup = plot_windows(h, spots, color, mark_center)
   % Set back the status
   set(haxes,'NextPlot', status);
 
-  % Delete additional previous circles
+  % Delete additional previous rectangles
   delete(hrects(count+1:nrects))
 
   % Prevent the output if not needed

@@ -1,5 +1,5 @@
 function hgroup = plot_gaussians(h, spots, color, mark_center)
-% PLOT_SPOTS draws gaussian spots as circles proportional to their variance.
+% PLOT_GAUSSIANS draws gaussian spots as circles proportional to their variance.
 %
 %   HGROUP = PLOT_SPOTS(SPOTS) draws all SPOTS in the current axes, returning a handler
 %   to the hggroup HGROUP containing the circles. SPOTS should contain one row per
@@ -7,17 +7,20 @@ function hgroup = plot_gaussians(h, spots, color, mark_center)
 %   equal to 2*sigma. If the resulting diameter is smaller than 1 pix (or NaN), a
 %   diameter of 1 is used instead.
 %
-%   HGROUP = PLOT_SPOTS(SPOTS_GROUPS) plots several layers of spots, group by group,
+%   HGROUP = PLOT_GAUSSIANS(SPOTS_GROUPS) plots several layers of spots, group by group,
 %   in the reverse order of the cell vector SPOTS_GROUPS (e.g. different frames).
 %
-%   HGROUP = PLOT_SPOTS(..., COLORS) defines the color to be used for the circle. If
+%   HGROUP = PLOT_GAUSSIANS(..., COLORS) defines the color to be used for the circle. If
 %   several groups of spots are to be drawn, a vector/matrix of colors can be provided.
 %   Default value is 'r'.
 %
-%   HGROUP = PLOT_SPOTS(HGROUP, ...) draws the circles in the provided HGROUP,
+%   HGROUP = PLOT_GAUSSIANS(..., DISPLAY_CENTERS) draws in addition a smaller circle
+%   on the location of the center if true.
+%
+%   HGROUP = PLOT_GAUSSIANS(HGROUP, ...) draws the circles in the provided HGROUP,
 %   replacing existing circles (usually faster than creating a new group).
 %
-%   HGROUP = PLOT_SPOTS(HAXES, ...) draws the hggroup in the axes defined by HAXES.
+%   HGROUP = PLOT_GAUSSIANS(HAXES, ...) draws the hggroup in the axes defined by HAXES.
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud

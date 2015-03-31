@@ -1,24 +1,21 @@
 function [fused_spots, all_goods] = filter_spots(all_spots, all_intensities, ...
                                     fusion, extrema, overlap_thresh)
-% FILTER_SPOTS filters a list of estimated spots based on their intensity and size,
+% FILTER_SPOTS filters a list of estimated spots based on their properties
 % and fuses overlapping ones, assuming some sort of oversampling.
 %
-%   SPOTS = FILTER_SPOTS(SPOTS) removes from SPOTS the estimates which have negative
-%   intensities or imaginary parameter values. In addition, fuse spots having more
-%   than 75% overlap (measured as the distance/radius ratio). SPOTS should be a cell
-%   vector of estimated spots as described in estimate_spots.m.
+%   SPOTS = FILTER_SPOTS(SPOTS, INTENSITIES, FUSE_FUNC) removes from SPOTS the estimates
+%   which have negative or imaginary parameter values. In addition, utilizes FUSE_FUNC
+%   to fuse spots having more than 75% overlap.
 %
-%   SPOTS = FILTER_SPOTS(SPOTS, SIZE_BOUNDS) filters in addition on the size of the
-%   detected spots. SIZE_BOUNDS should contain both a lower and an upper bound.
+%   SPOTS = FILTER_SPOTS(..., EXTREMA) specifies tighter EXTREMA values to be applied
+%   during the filtering. EXTREMA should be a 2-rows matrix with lower bounds on the first,
+%   and upper bound on the second row.
 %
-%   SPOTS = FILTER_SPOTS(SPOTS, SIZE_BOUNDS, MIN_INTENS) removes in addition spots
-%   with an amplitude smaller than MIN_INTENS. Put SIZE_BOUNDS to an empty array to
-%   ignore this parameter.
+%   SPOTS = FILTER_SPOTS(..., OVERLAP) defines the threshold percentage of OVERLAP
+%   required for fusion between spots.
 %
-%   SPOTS = FILTER_SPOTS(SPOTS, SIZE_BOUNDS, MIN_INTENS, OVERLAP) defines the
-%   threshold percentage of OVERLAP required for fusion between spots. Note that the
-%   resulting spot will be a weighted average of the fused spots, based on their
-%   respective signal intensity (i.e. intensity * radii^2).
+%   [SPOTS, KEPT] = FILTER_SPOTS(...) returns in addition an array of the same size as
+%   the input SPOTS containing defining whether the corresponding spot was KEPT.
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud

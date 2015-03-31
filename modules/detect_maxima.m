@@ -45,8 +45,7 @@ function maxs = detect_maxima(imgs, window_size)
     % And get the list of candidates
     [coord_y, coord_x] = find(bw);
 
-    % Invert to carthesian coordinates and append the score
-    %estim_pos = [coord_x, coord_y, img(sub2ind([m,n], coord_y, coord_x))];
+    % Invert to carthesian coordinates
     estim_pos = [coord_x, coord_y];
 
     % And store the results

@@ -187,10 +187,11 @@ function [myrecording, opts, is_updated] = inspect_tracking(myrecording, opts)
       spots = spots(all(~isnan(spots),2),:);
       spots_next = spots_next(all(~isnan(spots_next),2),:);
 
-      % Perform the actual one-step tracking
+      % Add the intensity function to the linking one for a one-step tracking
       funcs = {@(p)(perform_step('intensity', segment_type, p)), ...
                opts.spot_tracking.linking_function};
 
+      % Perform the actual one-step tracking
       links = track_spots({spots, spots_next}, funcs, (opts.spot_tracking.spot_max_speed/opts.pixel_size)*opts.time_interval, opts.spot_tracking.bridging_max_gap, Inf, 0, opts.spot_tracking.max_intensity_ratio, opts.spot_tracking.allow_branching_gap);
 
       % And reconstruct the corresponding tracks for display purposes
@@ -273,8 +274,6 @@ function [myrecording, opts, is_updated] = inspect_tracking(myrecording, opts)
       % Now add the detected spots
       handles.data(1) = perform_step('plotting', segment_type, handles.axes(1), spots1, spots_colors);
       handles.data(2) = perform_step('plotting', segment_type, handles.axes(2), spots2, spots_colors([2 1]));
-      %handles.data(1) = plot_spots(handles.axes(1), spots1, spots_colors);
-      %handles.data(2) = plot_spots(handles.axes(2), spots2, spots_colors([2 1]));
 
       % And their links
       handles.data(3) = plot_paths(handles.axes(1), links1, links_colors);

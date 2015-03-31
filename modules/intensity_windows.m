@@ -1,5 +1,13 @@
 function all_values = intensity_windows(all_spots)
-% WINDOW_INTENSITIES
+% INTENSITY_WINDOWS computes the total intensity of a rectangular estimation window.
+%
+%   INTENSITIES = INTENSITY_WINDOWS(PARAMS) returns the value of the total signal
+%   INTENSITIES of a rectangular estimation window defined by PARAMS. The total signal
+%   is defined as the integral over the estimation window.
+%
+% Gonczy & Naef labs, EPFL
+% Simon Blanchoud
+% 31.03.2015
 
   % For convenience, work always with cells
   if (~iscell(all_spots))

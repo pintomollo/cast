@@ -12,7 +12,6 @@
     inspect_segmentation.m :        displays a pop-up window for the user to manually inspect the segmentation
     inspect_tracking.m :            displays a pop-up window for the user to manually inspect the tracking
     plot_paths.m :                  draws spot paths as lines
-    plot_spots.m :                  draws gaussian spots as circles proportional to their variance
     redbluemap.m :                  creates a red and blue colormap
   INSTALL.txt :                   A few expanations on how to install CAST
   LICENSE.txt :                   GNU General Public License v3
@@ -59,13 +58,11 @@
     mymean.m :                      computes the mean and standard deviation of the provided data, ignoring NaNs
     parse_metadata.m :              extracts relevant information from the metadata file
     parse_xml.m :                   converts an XML file to a MATLAB structure
-    reconstruct_detection.m :       creates an image of the detected gaussian spots
     reconstruct_tracks.m :          gathers single plane detections into individual tracks
     set_pixel_size.m :              computes the actual size of the pixel in the image using the option structure
     update_structure.m :            converts an older structure into an up-to-date one
   image_analysis/
     estimate_noise.m :              returns an estimation of the noise present in the image
-    estimate_spots.m :              performs an estimation of the size and shape of gaussian spots
     imadm.m :                       implements the Absolute Difference Mask edge detector
     imatrou.m :                     implements a published spot detection algorithm
     imcosmics.m :                   implements a published cosmic rays removal
@@ -83,13 +80,26 @@
     nl_means.m :                    denoises an image using Non-Local Means
     plot2svg.m :                    Matlab to SVG figure converter
     relativepath.m :                returns the relative path from an actual path to the target path
+  modules/
+    detect_maxima.m :               detects local maxima in biological images
+    detect_spots.m :                detects spots in biological images using the "A-trous" method
+    draw_window.m :                 represents an estimation window into an image
+    estimate_spots.m :              performs an estimation of the size and shape of gaussian spots
+    estimate_window.m :             performs an estimation of the mean and std of a rectangular window
+    fuse_gaussians.m :              fuses partially overlapping gaussian spots using a Gaussian kernel
+    fuse_windows.m :                fuses partially overlapping rectangular windows using a Gaussian kernel
+    intensity_gaussians.m :         returns the total intensity of a gaussian spot
+    intensity_windows.m :           returns the total intensity of a rectangular uniform window
+    plot_gaussians.m :              draws gaussian spots as circles proportional to their variance
+    plot_windows.m :                draws estimation windows as rectangles
   pipeline/
     convert_movie.m :               converts a recording such that it can be tracked properly
-    detect_spots.m :                detects spots in biological images using the "A-trous" method
     filter_paths.m :                filters the paths previously build by tracking the detections
     filter_spots.m :                filters a list of estimated spots based on their intensity and size
     filter_tracking.m :             corrects for potential confusions of the tracking algorithm
+    perform_step.m :                performs the steps specific to the selected segmentation approach
     preprocess_movie.m :            converts the OME-TIFF recordings contained in a tracking structure
+    reconstruct_detection.m :       creates an image of the detected gaussian spots
     reestimate_spots.m :            re-estimates the segmentation of the various channels of an experiment
     segment_movie.m :               segments the various channels of an experiment
     track_spots.m :                 tracks spots over time using a global optimization algorithm

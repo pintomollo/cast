@@ -3,8 +3,8 @@ function spots = detect_spots(imgs, thresh, max_size)
 %
 %   SPOTS = DETECT_SPOTS(IMG) returns a list of detected spots in IMG using IMATROU
 %   and a noise threshold of 3 (see imatrou.m). SPOTS is a Nx3 matrix where each row
-%   has the structure [x y p]:
-%     - x,y   the pixel position of the spot (in carthesian coordinates)
+%   has the structure [x y], where x,y are the pixel position of the spot in carthesian
+%   coordinates.
 %
 %   SPOTS = DETECT_SPOTS(IMG, THRESH) utilises a hard threshold THRESH to filter out
 %   noisy detections in the wavelet transform (k, from t_i in [1], see imatrou.m)
@@ -69,8 +69,7 @@ function spots = detect_spots(imgs, thresh, max_size)
     % And get the list of candidates
     [coord_y, coord_x] = find(bw);
 
-    % Invert to carthesian coordinates and append the score
-    %estim_pos = [coord_x, coord_y, atrous(sub2ind([m,n], coord_y, coord_x))];
+    % Invert to carthesian coordinates
     estim_pos = [coord_x, coord_y];
 
     % And store the results

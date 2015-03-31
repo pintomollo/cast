@@ -4,15 +4,8 @@ function export_tracking(myrecording, props, opts)
 %   EXPORT_TRACKING(MYRECORDING, OPTS) writes in CSV files the content of MYRECORDING,
 %   utilizing the parameters from OPTS to convert the tracking values to um and s.
 %
-%   EXPORT_TRACKING(MYRECORDING, FNAME, OPTS) specifies the name of the CSV files to
-%   write to. By default, the name contained in MYRECORDING.experiment is used.
-%   If no folder is specified in FNAME, files are written in the 'export' folder.
-%
-%   EXPORT_TRACKING(..., LOW_DUPLICATES) when true, does not repeat the information from
-%   the mother cell in the track of the daughter cell.
-%
-%   EXPORT_TRACKING(..., ALIGNING) defines how the cell tracks are align with one
-%   another. Available alignments are 'time', 'start' and 'end'.
+%   EXPORT_TRACKING(MYRECORDING, PROPS, OPTS) exports MYRECORDING configuring its
+%   properties using the correspinding data structure PROPS (get_struct('exporting')).
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud
@@ -72,6 +65,7 @@ function export_tracking(myrecording, props, opts)
   % Loop over all channels
   for i=1:nchannels
 
+    % Decide if we use plain detections or whether there are filtered data
     if (isfield(myrecording.trackings(i), 'filtered') && length(myrecording.trackings(i).filtered)>0 && ~all(isnan(myrecording.trackings(i).filtered(1).carth(:))))
       detections = myrecording.trackings(i).filtered;
       is_filtered = true;
@@ -93,23 +87,7 @@ function export_tracking(myrecording, props, opts)
       bkg = 0;
     end
 
-    %{
-    % The list of columns to export
-    switch type
-      case 'detect_spots'
-        % The names
-        colname = {'status', 'x_coord_um', 'y_coord_um', 'sigma_um', 'amplitude_int'};
-
-        % The factors for the various conversions
-        rescale_factor = [1 ([1 1 1] * opts.pixel_size) int_scale];
-      case {'None','none'}
-        % Skipping it !
-        colname = {};
-      otherwise
-        disp(['Warning: segmentation type "' type '" unknown, ignoring.']);
-        return;
-    end
-    %}
+    % Get the list of columns to export and their respective scaling
     [colname, rescale_factor] = perform_step('exporting', segment_type, opts, int_scale);
     ncols = length(colname);
 
@@ -122,27 +100,13 @@ function export_tracking(myrecording, props, opts)
     paths = reconstruct_tracks(detections, low_duplicates);
     noises = gather_noises(detections);
 
-    %{
-    % If it's empty, switch to the detections
-    if (isempty(paths))
-      disp(['No filtered data to be exported in channel ' num2str(i) ', switching to the detections']);
-
-      % Now check how many frames there are
-      nframes = length(myrecording.trackings(i).detections);
-
-      % Extract the results of the tracking in this channel
-      paths = reconstruct_tracks(myrecording.trackings(i).detections, low_duplicates);
-      noises = gather_noises(myrecording.trackings(i).detections);
-    end
-    %}
-
-    % Rescaling the noise as well
+    % Rescaling the noise as well ?
     if (myrecording.channels(i).normalize)
       noises = noises * int_scale;
       noises(:,1) = noises(:,1) + bkg;
     end
 
-    % Still nothing, giving up
+    % If we have nothing, skip this channel
     if (isempty(paths))
       disp(['Nothing to be exported in channel ' num2str(i)]);
       continue;
@@ -251,10 +215,9 @@ function folder = write_csv(fname, colnames, col_headers, row_headers, matrix, c
   % Build the full name
   fname = fullfile(filepath, name);
 
+  % Keep only the non-empty columns
   keep_cols = ~cellfun('isempty', colnames);
-
   colnames = colnames(keep_cols);
-
   matrix = matrix(:,:,keep_cols);
 
   % The noise names if need be

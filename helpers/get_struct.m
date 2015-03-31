@@ -78,7 +78,7 @@ function mystruct = get_struct(type, nstruct)
     % Structure containing the different parameters required for tracking spots
     case 'image_segmentation'
       mystruct = struct('filter_max_size', 10, ...         % Maximal radius (in um), see filter_spots.m
-                        'filter_min_size', 0.7, ...          % Minimal radius (in um), see filter_spots.m
+                        'filter_min_size', 0.7, ...        % Minimal radius (in um), see filter_spots.m
                         'filter_min_intensity', 15, ...    % Minimal intensity (multiplied by the variance of the noise), see filter_spots.m
                         'filter_overlap', 0.75, ...        % Minimal overlap (in percents) for spots to be fused together
                         'detrend_meshpoints', 32, ...      % The number of positions over the image used for detrending
@@ -163,10 +163,6 @@ function mystruct = get_struct(type, nstruct)
       mystruct = struct('reestimate_spots', true, ...      % Do we reestimate the newly interpolated spots ?
                         'filtered', mydetection, ...       % The structure used to store the detections after filtering
                         'detections', mydetection);        % The structure used to store the resulting detections
-
-                        % Functions that are not implemented yet :
-                        %'force_cell_behavior', true, ...   % Prevent fusion and appearance of spots
-                        %'post_processing_funcs', {{}}, ... % Allow to post-process paths
 
     % The options for filtering tracks
     case 'tracks_filtering'

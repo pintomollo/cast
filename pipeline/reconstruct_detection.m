@@ -1,16 +1,14 @@
 function detected = reconstruct_detection(imgs, spots, draw)
 % RECONSTRUCT_DETECTION creates an image of the detected gaussian spots.
 %
-%   RIMG = RECONSTRUCT_DETECTION(IMG, SPOTS) creates a reconstructed image RIMG from
-%   the detection of gaussian SPOTS. SPOTS should be organised with one detection per
-%   row as follows: [X_coord, Y_coord, sigma, amplitude, ...]. No background is added.
-%   IMG is required to infer properly the size of RIMG.
+%   RIMG = RECONSTRUCT_DETECTION(IMG, SPOTS, DRAW_FUN) creates a reconstructed image
+%   RIMG from the detection of SPOTS using DRAW_FUN to draw the actual spot.
+%   DRAW_FUN should take two inputs (PARAMS, IMG_SIZE) and return an image of the proper
+%   size containing one single spot defined by PARAMS.
 %
-%   RIMGS = RECONSTRUCT_DETECTION(IMGS, SPOTS_GROUPS) reconstructs all RIMGS using the
-%   detected SPOTS_GROUPS, organized in a cell array for the same size as the number of
-%   planes in IMGS.
-%
-%   To work properly, this function requires library/GaussMask2D.m
+%   RIMGS = RECONSTRUCT_DETECTION(IMGS, SPOTS_GROUPS, DRAW_FUN) reconstructs all RIMGS
+%   using the detected SPOTS_GROUPS, organized in a cell vector with the same length as the
+%   number of planes in IMGS.
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud

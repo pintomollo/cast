@@ -1,4 +1,15 @@
 function fused_spots = fuse_windows(spots, all_intensities, overlap_thresh)
+% FUSE_WINDOWS fuses overlapping rectangular estimation windows using a Gaussian
+% kernel proportional to the relative total intensity of every window to determine
+% the properties of the new ones.
+%
+%   WINDOWS = FUSE_WINDOWS(WINDOWS, INTENSITIES, THRESHOLD) fuses the WINDOWS which
+%   overlap more than the provided THRESHOLD, applying a Gaussian kernel proportional
+%   to the relative INTENSITIES of the fused objects.
+%
+% Gonczy & Naef labs, EPFL
+% Simon Blanchoud
+% 31.03.2015
 
   % Prepare the output
   fused_spots = NaN(0, size(spots, 2));

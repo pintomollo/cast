@@ -25,7 +25,7 @@ licence.txt for details.
  - This software has been developped and tested using Matlab 2012b and requires
    both a C/C++ compiler and the Image Processing Toolbox (tested using v. 8.1).
 
- - For install this plateform, please follow the instructions in INSTALL.txt.
+ - For installing this plateform, please follow the instructions in INSTALL.txt.
 
  - All functions have a corresponding help message that describes its function,
    inputs and outputs. Type "help myfunction" in the command line to read it.
@@ -216,18 +216,16 @@ licence.txt for details.
   - If you want to add some features to this plateform, the code is fully commented
     and should be quite self-explanatory !
 
-  - In particular, to add another segmenting function, you should:
-    - Add the new function in cast/pipeline.
-    - Add the corresponding choice in cast/pipeline/segment_movie.m
-      (both in the first switch and in the following processing code).
-    - Add the corresponding segmentation to the reestimation step
-      (cast/pipeline/reestimate_spots.m).
-    - Add the new segmenting function to the segentation GUI 
-      (cast/GUI/inspect_segmentation.m):
-      - in the segmentation switch (l. 191)
-      - in the drop-down list (l. 485)
+  - In particular, to add another segmenting approach, you should:
+    - Add the new function(s) in cast/modules.
+    - Add the corresponding choice in cast/pipeline/perform_step.m
+    - Add the new segmentation approach to the drop-down list of the segentation GUI
+      (cast/GUI/inspect_segmentation.m, l.501):
 
   - Only make sure that the input/ouput variables type and formats stay the same !
+
+  - You can also define new colormaps for your favorite data by modifying the 'colors'
+    structure in cast/helpers/get_struct.m.
 
   - Good luck and have fun segmenting !
 

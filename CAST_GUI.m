@@ -40,40 +40,9 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
   color_index = 1;
 
   % Dragzoom help message
-  imghelp = ['DRAGZOOM interactions (help dragzoom):\n', ...
-  ' \n', ...
-  '###Normal mode:###\n', ...
-  'single-click and holding LB : Activation Drag mode\n', ...
-  'single-click and holding RB : Activation Rubber Band for region zooming\n', ...
-  'single-click MB             : Activation ''Extend'' Zoom mode\n', ...
-  'scroll wheel MB             : Activation Zoom mode\n', ...
-  'double-click LB, RB, MB     : Reset to Original View\n\n', ...
-  ' \n', ...
-  '###Magnifier mode:###\n', ...
-  'single-click LB             : Not Used\n', ...
-  'single-click RB             : Not Used\n', ...
-  'single-click MB             : Reset Magnifier to Original View\n', ...
-  'scroll MB                   : Change Magnifier Zoom\n', ...
-  'double-click LB             : Increase Magnifier Size\n', ...
-  'double-click RB             : Decrease Magnifier Size\n', ...
-  ' \n', ...
-  '###Hotkeys in 2D mode:###\n', ...
-  '''+''                         : Zoom plus\n', ...
-  '''-''                         : Zoom minus\n', ...
-  '''0''                         : Set default axes (reset to original view)\n', ...
-  '''uparrow''                   : Up or down (inrerse) drag\n', ...
-  '''downarrow''                 : Down or up (inverse) drag\n', ...
-  '''leftarrow''                 : Left or right (inverse) drag\n', ...
-  '''rightarrow''                : Right or left (inverse) drag\n', ...
-  '''c''                         : On/Off Pointer Symbol ''fullcrosshair''\n', ...
-  '''g''                         : On/Off Axes Grid\n', ...
-  '''x''                         : If pressed and holding, zoom and drag works only for X axis\n', ...
-  '''y''                         : If pressed and holding, zoom and drag works only for Y axis\n', ...
-  '''m''                         : If pressed and holding, Magnifier mode on\n', ...
-  '''l''                         : On/Off Synchronize XY manage of 2-D axes\n', ...
-  '''control+l''                 : On Synchronize X manage of 2-D axes\n', ...
-  '''alt+l''                     : On Synchronize Y manage of 2-D axes\n', ...
-  '''s''                         : On/Off Smooth Plot (Experimental)'];
+  imghelp = regexp(help('dragzoom'), ...
+             '([ ]+Normal mode:.*\S)\s+Mouse actions in 3D','tokens');
+  imghelp = ['DRAGZOOM interactions (help dragzoom):\n\n', imghelp{1}{1}];
 
   % Create the GUI using segmentations
   [hFig, handles] = create_figure();
@@ -309,6 +278,7 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
         end
       end
 
+      % Reconstruct the available tracks
       if ~has_tracking
         all_paths = {[]};
       else
@@ -323,6 +293,8 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
       set(hFig, 'Name', 'CAST');
       set(all_all, {'Enable'}, curr_status);
     end
+
+    % And get the corresponding colormaps
     all_colors = colorize_graph(all_paths, colors.paths{color_index}(length(all_paths)));
     all_colors_filtered = colorize_graph(all_filtered, colors.paths{color_index}(length(all_filtered)));
 
@@ -368,10 +340,10 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
       handles.prev_frame = nimg;
     end
 
-    % Determine which image to display in the left panel
+    % Determine which data to display in the left panel
     switch handles.display(1)
 
-      % The reconstructed image
+      % The segmented image
       case 2
         if has_segmentation
           spots1 = [segmentations(indx).detections(nimg(1)).carth segmentations(indx).detections(nimg(1)).properties];
@@ -382,7 +354,7 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
         colors1 = [];
         divisions_colors1 = colors.spots{color_index};
 
-      % The reconstructed image
+      % The tracked spots
       case 3
 
         if has_tracking
@@ -399,7 +371,7 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
         colors1 = colorize_graph(links1, colors.paths{color_index}(length(links1)));
         divisions_colors1 = colors.status{color_index};
 
-      % The difference between filtered and reconstructed
+      % The full paths
       case 4
         if has_filtered
           spots = cellfun(@(x)(x(x(:,end-1)==nimg(1),:)), all_filtered, 'UniformOutput', false);
@@ -413,7 +385,7 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
         colors1 = all_colors_filtered;
         divisions_colors1 = colors.status{color_index};
 
-      % The filtered image
+      % The image only
       otherwise
         spots1 = {[]};
         links1 = {[]};
@@ -424,7 +396,7 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
     % Determine which image to display in the right panel
     switch handles.display(2)
 
-      % The reconstructed image
+      % The segmented image
       case 2
         if has_segmentation
           spots2 = [segmentations(indx).detections(nimg(2)).carth segmentations(indx).detections(nimg(2)).properties];
@@ -435,7 +407,7 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
         colors2 = [];
         divisions_colors2 = colors.spots_next{color_index};
 
-      % The reconstructed image
+      % The tracked data
       case 3
         if has_tracking
           spots_next = cellfun(@(x)(x(x(:,end-1)==nimg(2),:)), all_paths, 'UniformOutput', false);
@@ -451,7 +423,7 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
         colors2 = colorize_graph(links2, colors.paths{color_index}(length(links2)));
         divisions_colors2 = colors.status{color_index};
 
-      % The difference between filtered and reconstructed
+      % The full paths
       case 4
         if has_filtered
           spots_next = cellfun(@(x)(x(x(:,end-1)==nimg(2),:)), all_filtered, 'UniformOutput', false);
@@ -465,7 +437,7 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
         colors2 = all_colors;
         divisions_colors2 = colors.status{color_index};
 
-      % The filtered image
+      % The image alone
       otherwise
         spots2 = {[]};
         links2 = {[]};
@@ -473,6 +445,7 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
         divisions_colors2 = 'k';
     end
 
+    % Get the type of segmentation used, if one is available
     if (has_segmentation)
       segment_type = segmentations(indx).type;
     else
@@ -512,8 +485,6 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
       handles.data(4) = plot_paths(handles.axes(2), links2, colors2);
 
       % And their detected spots
-      %handles.data(1) = plot_spots(handles.axes(1), spots1, divisions_colors1, iscell(spots1));
-      %handles.data(2) = plot_spots(handles.axes(2), spots2, divisions_colors2, iscell(spots2));
       handles.data(1) = perform_step('plotting', segment_type, handles.axes(1), spots1, divisions_colors1, iscell(spots1));
       handles.data(2) = perform_step('plotting', segment_type, handles.axes(2), spots2, divisions_colors2, iscell(spots2));
 
@@ -753,7 +724,7 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
         end
         set(hFig, 'Visible', 'on')
 
-      % Call the scell tracking GUI, and track accordingly
+      % Call the cell tracking GUI, and track accordingly
       case 'track'
         set(hFig, 'Visible', 'off')
         [myrecording, opts, reload] = inspect_tracking(myrecording, opts);

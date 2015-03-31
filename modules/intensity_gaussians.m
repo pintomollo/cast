@@ -1,5 +1,13 @@
 function all_values = intensity_gaussians(all_spots)
-% GAUSSIAN_INTENSITIES
+% INTENSITY_GAUSSIANS computes the total intensity of a 2D Gaussian spot.
+%
+%   INTENSITIES = INTENSITY_GAUSSIANS(PARAMS) returns the value of the total signal
+%   INTENSITIES of 2D Gaussian spots defined by their PARAMS. The total signal is
+%   defined as the 2D integral of a Gaussian shape.
+%
+% Gonczy & Naef labs, EPFL
+% Simon Blanchoud
+% 31.03.2015
 
   % For convenience, work always with cells
   if (~iscell(all_spots))

@@ -216,7 +216,7 @@ function [myrecording, opts, is_updated] = inspect_paths(myrecording, opts)
     % Determine which type of image to display in the left panel
     switch handles.display(1)
 
-      % The reconstructed image
+      % Only the original links pointing towards the current frame
       case 2
         if (~isempty(spots))
           divs = spots(:,1);
@@ -228,7 +228,7 @@ function [myrecording, opts, is_updated] = inspect_paths(myrecording, opts)
         links1 = links1(~cellfun('isempty', links1));
         colors1 = colorize_graph(links1, colors.paths{color_index}(length(links1)));
 
-      % The difference between filtered and reconstructed
+      % All the original full tracks
       case 3
         if (~isempty(spots))
           divs = spots(:,1);
@@ -239,7 +239,7 @@ function [myrecording, opts, is_updated] = inspect_paths(myrecording, opts)
         links1 = all_paths;
         colors1 = all_colors;
 
-      % The filtered image
+      % No paths at all
       otherwise
         spots1 = {[]};
         links1 = {[]};
@@ -249,7 +249,7 @@ function [myrecording, opts, is_updated] = inspect_paths(myrecording, opts)
     % Determine which type of image to display in the right panel
     switch handles.display(2)
 
-      % Only the links pointing towards the current frame
+      % Only the filtered links pointing towards the current frame
       case 2
         if (~isempty(spots_filt))
           divs = spots_filt(:,1);
@@ -263,7 +263,7 @@ function [myrecording, opts, is_updated] = inspect_paths(myrecording, opts)
         links2 = links2(~cellfun('isempty', links2));
         colors2 = colorize_graph(links2, colors.paths{color_index}(length(links2)));
 
-      % All the full tracks
+      % All the filtered full tracks
       case 3
         if (~isempty(spots_filt))
           divs = spots_filt(:,1);
@@ -420,7 +420,7 @@ function [myrecording, opts, is_updated] = inspect_paths(myrecording, opts)
     switch type
 
       % Each checkbox is responsible for its respective boolean fields
-      case {'reestimate_spots','force_cell_behavior'}
+      case 'reestimate_spots'
         trackings(indx).(type) = logical(get(hObject, 'Value'));
 
       % The slider varies the frame index
@@ -714,17 +714,6 @@ function [myrecording, opts, is_updated] = inspect_paths(myrecording, opts)
                          'Style', 'checkbox',  ...
                          'Tag', 'reestimate_spots');
     enabled = [enabled hRefine];
-
-    %{
-    hForce = uicontrol('Parent', hPanel, ...
-                         'Units', 'normalized',  ...
-                         'Callback', @gui_Callback, ...
-                         'Position', [0.9 0.45 0.1 0.05], ...
-                         'String', 'Force cell behavior',  ...
-                         'Style', 'checkbox',  ...
-                         'Tag', 'force_cell_behavior');
-    enabled = [enabled hForce];
-    %}
 
     % The Snapshot button
     hSnapshot = uicontrol('Parent', hFig, ...

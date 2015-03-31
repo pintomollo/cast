@@ -1,5 +1,5 @@
 % JOINING_COST_SPARSE_MEX computes the cost matrix, and the alternative cost vector,
-% in sparse form, for gaussian spots.
+% in sparse form, for spots.
 %
 %   [COSTS, ALT_COSTS] = JOINING_COST_SPARSE_MEX(SPOTS1, SPOTS2, MAX_DIST, MAX_GAP, ...
 %   MAX_RATIO, AVG_DIST, SPOTS, LINKS) computes the COSTS matrix for joining SPOTS1 to

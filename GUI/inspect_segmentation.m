@@ -149,9 +149,8 @@ function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opt
       handles.prev_frame = -1;
     end
 
-    % Segment the image
-    contents = get(handles.segmentation_type,'String');
     % Get the type of segmentation currently used
+    contents = get(handles.segmentation_type,'String');
     segment_type = contents{segmentations(indx).type};
 
     % Here we actually segment the image (and update some important displays)
@@ -189,7 +188,7 @@ function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opt
                         opts.segmenting.denoise_func, opts.segmenting.denoise_size);
       end
 
-      % Segment the image
+      % Segment the image and estimate the corresponding locations
       spots = perform_step('segmentation', segment_type, img, opts);
       spots = perform_step('estimation', segment_type, img, spots, opts);
 

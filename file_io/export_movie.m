@@ -4,8 +4,8 @@ function export_movie(myrecording, props, opts)
 %   EXPORT_MOVIE(MYRECORDING, OPTS) exports the channels of MYRECORDING using OPTS and
 %   default properties.
 %
-%   EXPORT_MOVIE(MYRECORDING, PROPS, OPTS) exports MYRECORDING configuring its properties
-%   using the correspinding data structure PROPS (get_struct('exporting')).
+%   EXPORT_MOVIE(MYRECORDING, PROPS, OPTS) exports MYRECORDING configuring its
+%   properties using the correspinding data structure PROPS (get_struct('exporting')).
 %
 % Gonczy & Naef labs, EPFL
 % Simon Blanchoud
@@ -35,6 +35,7 @@ function export_movie(myrecording, props, opts)
   show_paths = props.movie_show_paths;
   show_reconst = props.movie_show_reconstruction;
 
+  % Get the colormaps
   colors = get_struct('colors');
 
   % Do we have a filename ?
@@ -95,7 +96,11 @@ function export_movie(myrecording, props, opts)
   % Loop over all channels
   for i=1:nchannels
 
-    if (isfield(myrecording.trackings(i), 'filtered') && length(myrecording.trackings(i).filtered)>0 && ~all(isnan(myrecording.trackings(i).filtered(1).carth(:))))
+    % Check if we need to use the detections of whether there are some filtered data
+    if (isfield(myrecording.trackings(i), 'filtered') && ...
+        length(myrecording.trackings(i).filtered)>0 && ...
+        ~all(isnan(myrecording.trackings(i).filtered(1).carth(:))))
+
       detections = myrecording.trackings(i).filtered;
       is_filtered = true;
     else
@@ -103,6 +108,7 @@ function export_movie(myrecording, props, opts)
       is_filtered = false;
     end
 
+    % Get the type of segmentation used
     segment_type = myrecording.segmentations(i).type;
 
     % If we want to display the index, we need to reconstruct the tracks
@@ -133,7 +139,6 @@ function export_movie(myrecording, props, opts)
 
       % Maybe we need to reconstruct the image
       if (show_reconst)
-        %reconstr = reconstruct_detection(img, spots);
         reconstr = perform_step('reconstructing', segment_type, img, spots);
 
         % Concatenate them
@@ -177,10 +182,8 @@ function export_movie(myrecording, props, opts)
       % Maybe we want to display the circles representing the detections
       if (show_detect)
         if (ishandle(hSpots))
-          %plot_spots(hSpots, spots);
           perform_step('plotting', segment_type, hSpots, spots, colors.spots{color_index});
         else
-          %hSpots = plot_spots(hAxes, spots, colors.spots{color_index});
           hSpots = perform_step('plotting', segment_type, hAxes, spots, colors.spots{color_index});
         end
       end

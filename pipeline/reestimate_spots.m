@@ -42,10 +42,6 @@ function [myrecording] = reestimate_spots(myrecording, img, segmentation, opts)
     nchannels = 1;
   end
 
-  % Build the parameters and filter
-  %extrema_size = [opts.segmenting.filter_min_size opts.segmenting.filter_max_size]/...
-  %           opts.pixel_size;
-
   % Loop over them
   for indx = 1:nchannels
 
@@ -64,21 +60,9 @@ function [myrecording] = reestimate_spots(myrecording, img, segmentation, opts)
       do_filter = false;
     end
 
-    %{
-    % Check whether it's a spot detection
-    is_spot = false;
-    switch type
-      case 'detect_spots'
-        is_spot = true;
-      otherwise
-        disp(['Warning: segmentation type "' type '" unknown, ignoring.']);
-    end
-    %}
-
-    % Now let's segment this !
-    %if (is_spot)
-
+    % Now let's determine what to segment
     if (do_all)
+
       % Get the number of frames
       nframes = size_data(myrecording.channels(indx));
       frames = [1:nframes];
@@ -99,7 +83,7 @@ function [myrecording] = reestimate_spots(myrecording, img, segmentation, opts)
     % Iterate over the whole recording
     for nimg = frames
 
-      % Check whether we have some to interpolate
+      % Check whether we have some data to interpolate
       to_refine = logical(detections(nimg).properties(:, end));
       if (any(to_refine))
 
@@ -141,54 +125,34 @@ function [myrecording] = reestimate_spots(myrecording, img, segmentation, opts)
         % Estimate the gaussian parameters for each spot
         spots = perform_step('estimation', segment_type, img, orig_spots(:,[1 2]), opts);
 
-        %{
-        % Estimate the gaussian parameters for each spot
-        spots = estimate_spots(img, orig_spots(:,[1 2 end]), ...
-                             opts.segmenting.filter_max_size/(2*opts.pixel_size), ...
-                             opts.segmenting.estimate_thresh, ...
-                             opts.segmenting.estimate_niter, ...
-                             opts.segmenting.estimate_stop, ...
-                             opts.segmenting.estimate_weight, ...
-                             opts.segmenting.estimate_fit_position);
-        %}
-
         % Filter the detected spots ?
         goods = true(size(spots, 1), 1);
         if (do_filter)
-        %if (do_all && myrecording.segmentations(indx).filter_spots)
 
           if (isempty(noise))
             % Get the noise parameters
             noise = estimate_noise(img);
           end
 
+          % Actually filter them
           [junk, goods] = perform_step('filtering', segment_type, spots, opts, noise);
-
-          % Spots are organised with intensity in column 4 and radii in column 3
-          %goods = (spots(:,3)*3 > extrema_size(1) & spots(:,3) < extrema_size(2)...
-          %       & ~any(imag(spots), 2));
 
           % Do we need to enforce signal estimation ?
           if (opts.segmenting.force_estimation && any(~goods))
 
-            % Estimate the amplitude for each spot
+            % Forced estimation for each spot
             spots(~goods,:) = perform_step('estimation', segment_type, img, orig_spots(~goods,1:end-1), opts, true);
-            %spots(~goods,:) = estimate_spots(img, orig_spots(~goods,:), ...
-            %                     opts.segmenting.filter_max_size/(2*opts.pixel_size), ...
-            %                     []);
 
-            % Final check !
+            % Final filtering check !
             [junk, goods] = perform_step('filtering', segment_type, spots, opts, noise);
-            %goods = (spots(:,3)*3 > extrema_size(1) & spots(:,3) < extrema_size(2)...
-            %       & ~any(imag(spots), 2));
           end
         end
 
-        % Remove the spots that cannot be reestimated
+        % Remove the spots that cannot be reestimated from the updated list
         spots = spots(goods,:);
         to_refine(to_refine) = goods;
 
-        % If we have some detections, store them in the final structure
+        % If we have updated some detections, store them in the final structure
         if (~isempty(spots))
           detections(nimg).carth(to_refine,:) = spots(:,1:2);
           detections(nimg).properties(to_refine,1:end-1) = spots(:,3:end);
