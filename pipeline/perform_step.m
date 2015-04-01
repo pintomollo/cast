@@ -105,6 +105,12 @@ function [varargout] = perform_step(cast_step, segment_type, varargin)
       opts = varargin{2};
       noise = varargin{3};
 
+      % Check if we are forcing the estimation
+      re_estim = false;
+      if (length(varargin) > 3)
+        re_estim = varargin{4};
+      end
+
       % The various approaches are used to determine the proper inputs for the
       % actual filtering function
       switch segment_type
@@ -114,6 +120,11 @@ function [varargout] = perform_step(cast_step, segment_type, varargin)
                      opts.segmenting.filter_min_intensity*noise(2); ...
                      opts.segmenting.filter_max_size / opts.pixel_size, Inf];
           fusion = @fuse_gaussians;
+
+          % Now lower intensity threshold for re-estimation
+          if (re_estim)
+            extrema(1,2) = 0;
+          end
         case 'rectangular_local_maxima'
           spots_intens = intensity_windows(spots);
           extrema = [opts.segmenting.filter_min_size / opts.pixel_size, ...
@@ -123,6 +134,11 @@ function [varargout] = perform_step(cast_step, segment_type, varargin)
             extrema = extrema(:, [1 1:end]);
           end
           fusion = @fuse_windows;
+
+          % Now lower intensity threshold for re-estimation
+          if (re_estim)
+            extrema(1,3) = 0;
+          end
         otherwise
           spots = [];
           spots_intens = [];

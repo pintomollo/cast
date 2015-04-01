@@ -135,7 +135,7 @@ function [myrecording] = reestimate_spots(myrecording, img, segmentation, opts)
           end
 
           % Actually filter them
-          [junk, goods] = perform_step('filtering', segment_type, spots, opts, noise);
+          [junk, goods] = perform_step('filtering', segment_type, spots, opts, noise, true);
 
           % Do we need to enforce signal estimation ?
           if (opts.segmenting.force_estimation && any(~goods))
@@ -144,7 +144,7 @@ function [myrecording] = reestimate_spots(myrecording, img, segmentation, opts)
             spots(~goods,:) = perform_step('estimation', segment_type, img, orig_spots(~goods,1:end-1), opts, true);
 
             % Final filtering check !
-            [junk, goods] = perform_step('filtering', segment_type, spots, opts, noise);
+            [junk, goods] = perform_step('filtering', segment_type, spots, opts, noise, true);
           end
         end
 
