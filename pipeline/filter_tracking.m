@@ -369,7 +369,7 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
       % And add the new averaged spots to the whole list, linking them at the same time
       for j = 2:frame_range-1
         curr_frame = avg_pos(j, 3);
-        spots{curr_frame}(end+1,:) = [avg_pos(j,1:2) tmp_props];
+        spots{curr_frame}(end+1,:) = [avg_pos(j,1:2) tmp_props true];
         new_indx = size(spots{curr_frame}, 1);
 
         links{curr_frame+1}(end+1,:) = [prev_indx new_indx curr_frame];
