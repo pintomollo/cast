@@ -222,11 +222,10 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
         set(handles.img(1),'CData', []);
         set(handles.img(2),'CData', []);
 
-        plot_paths(handles.data(3), {[]});
-        plot_paths(handles.data(4), {[]});
-
-        plot_spots(handles.data(1), []);
-        plot_spots(handles.data(2), []);
+        delete(get(handles.data(1), 'Children'));
+        delete(get(handles.data(2), 'Children'));
+        delete(get(handles.data(3), 'Children'));
+        delete(get(handles.data(4), 'Children'));
 
         set(handles.scale, 'XData', [], 'YData', []);
       end
