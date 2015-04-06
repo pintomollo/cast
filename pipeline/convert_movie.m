@@ -92,7 +92,9 @@ function [newfile] = bftools_convert(fname)
   fname = absolutepath(fname);
 
   if (exist(fname, 'file') ~= 2)
-    error('CAST:convert_movie', ['File ' fname ' does not exist']);
+    warning('CAST:convert_movie', ['File ' fname ' does not exist']);
+    newfile = '';
+    return;
   end
 
   % Split the filename
@@ -116,7 +118,9 @@ function [newfile] = bftools_convert(fname)
   curdir = pwd;
   cmd_path = which('bfconvert.bat');
   if (isempty(cmd_path))
-    error('CAST:convert_movie', 'The LOCI command line tools are not present !\nPlease follow the instructions provided by install_cell_tracking');
+    warning('CAST:convert_movie', 'The LOCI command line tools are not present !\nPlease follow the instructions provided by install_cell_tracking');
+    newfile = '';
+    return;
   end
   [mypath, junk] = fileparts(cmd_path);
 
@@ -143,7 +147,9 @@ function [newfile] = bftools_convert(fname)
   % Check if an error occured
   if (res ~= 0)
     cd(curdir);
-    error('CAST:convert_movie',metadata);
+    warning('CAST:convert_movie',metadata);
+    newfile = '';
+    return;
   end
 
   % Extract the three important informations from the extracted metadata
@@ -176,7 +182,9 @@ function [newfile] = bftools_convert(fname)
   % Something went terribly wrong...
   if (isempty(format) | isempty(is_rgb))
     cd(curdir);
-    error('CAST:convert_movie', ['The metadata does not present the expected information: ''file format'' and ''RGB'' :\n\n' metadata]);
+    warning('CAST:convert_movie', ['The metadata does not present the expected information: ''file format'' and ''RGB'' :\n\n' metadata]);
+    newfile = '';
+    return;
   end
 
   % Get the information out of the search results
@@ -261,7 +269,9 @@ function [newfile] = bftools_convert(fname)
   % Check if an error occured
   if (res ~= 0)
     cd(curdir);
-    error('CAST:convert_movie', infos);
+    warning('CAST:convert_movie', infos);
+    newfile = '';
+    return;
   end
 
   % Store the new name in relative path and come back to the original folder
