@@ -77,8 +77,8 @@ function [fused_spots, all_goods] = filter_spots(all_spots, all_intensities, ...
     % Apply the extrema thresholds, ignoring the XY coordinates
     goods = bsxfun(@ge, spots(:, 3:end), extrema(1,:)) & ...
             bsxfun(@le, spots(:, 3:end), extrema(2,:)) & ...
-            isfinite(spots(:, 3:end)) & isreal(spots);
-    goods = all(goods, 2);
+            isfinite(spots(:, 3:end));
+    goods = all(goods, 2) & ~any(imag(spots), 2);
 
     % Keep only the good spots
     spots = spots(goods,:);
