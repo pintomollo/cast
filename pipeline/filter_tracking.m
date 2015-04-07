@@ -95,6 +95,8 @@ function [spots, links] = filter_tracking(spots, links, min_path_length, max_zip
     curr_spots = spots{i};
     if (~isempty(curr_spots))
       spots{i} = [curr_spots zeros(size(curr_spots, 1), 1)];
+    else
+      spots{i} = NaN(0, nprops + 3);
     end
   end
 

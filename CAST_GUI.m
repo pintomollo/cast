@@ -84,6 +84,11 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
   delete(hFig);
   drawnow;
 
+  % Prevent any output
+  if (nargout == 0)
+    clearvars
+  end
+
   return;
 
   function setup_environment()
