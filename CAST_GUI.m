@@ -541,8 +541,11 @@ function [myrecording, opts] = CAST_GUI(myrecording, opts)
 
         % Reset the current display
         if (all(ishandle(handles.img)))
-          dragzoom(handles.axes, 'off')
           delete(handles.img);
+          delete(handles.data);
+          delete(handles.scale);
+          dragzoom(handles.axes, 'off')
+          set(hFig, 'UserData', '');
         end
 
         % Fancy output

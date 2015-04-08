@@ -16,7 +16,11 @@ be accessed directly using command-lines, however it is designed to be used thro
 the main interface function "CAST_GUI".
 
 This program is distributed under the terms of the GNU GPL, please refer to
-licence.txt for details.
+LICENSE.txt for details.
+
+% Reference:
+
+Blanchoud et al., Methods, 2015
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 0. Basics
