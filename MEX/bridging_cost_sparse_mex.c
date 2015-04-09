@@ -11,7 +11,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mwIndex *irs,*jcs,i,j, count;
   double *x1,*y1,*t1,*x2,*y2,*t2,*rs;
   double dist, dist2, thresh, thresh_lim, thresh2, thresh3, signal1, signal2;
-  double weight, gaping, inverse;
+  double weight, gaping, inverse, eps;
   bool is_test;
 
   // Check for proper number of input and output arguments
@@ -49,6 +49,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   thresh2 = mxGetScalar(prhs[3]);
   thresh_lim = __SQR__(mxGetScalar(prhs[4]));
   thresh3 = mxGetScalar(prhs[5]);
+
+  // And our zero value
+  eps = mxGetEps();
 
   // A guess on the number of elements needed
   nzmax=(mwSize)ceil((double)m1*(double)m2*0.1);
@@ -104,7 +107,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           }
 
           // Store it in the matrix
-          rs[count] = -fast_exp(-inverse*(dist + gaping));
+          rs[count] = __MAX__(inverse*(dist + gaping), eps);
           irs[count] = j;
 
           count++;

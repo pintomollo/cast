@@ -112,8 +112,8 @@ disp(b-b)
   %dMat = log(dMat);
   % Now in sparse mode !
   [indxi, indxj, vals] = get_sparse_data_mex(dMat);
-  logM = log(vals + (1-M));
-  logM = logM - max(logM) - 1;
+  %logM = log(vals + (1-M));
+  %logM = logM - max(logM) - 1;
 
   % get rid of NaNs and Infs
   %realVals = isfinite(dMat);
@@ -123,22 +123,23 @@ disp(b-b)
   %end
   %dMat(~realVals)=maxcost;
   % Now in sparse mode !
-  realVals = isfinite(logM);
-  maxcost=max(logM(realVals))*dim+1;
+  realVals = isfinite(vals);
+  maxcost=max(vals(realVals))*dim+1;
   if isempty(maxcost)
       maxcost = Inf;
   end
-  logM(~realVals)=maxcost;
+  vals(~realVals)=maxcost;
 
-  dMat = sparse(indxi, indxj, logM, dim, dim, length(logM));
+  dMat = sparse(indxi, indxj, vals, dim, dim, length(vals));
 
   % moved here by pmm to make sure resolution is finite and smaller
   % than the smallest difference
   % Now in sparse mode !
   if nargin<2
       %vals = unique(dMat(realVals));
-      vals = unique([0; logM(realVals)]);
-      resolution = min(diff(vals))/2;
+      %vals = unique([0; vals(realVals)]);
+      %resolution = min(diff(vals))/2;
+      resolution=eps(max([0; vals(realVals)]));
   end
   % end modified code
   %%
@@ -152,8 +153,8 @@ disp(b-b)
 
   % Now in sparse mode !
   nums = numel(dMat);
-  mean_dMat = sum(logM)/nums;
-  std_dMat = sqrt((sum((logM - mean_dMat).^2) + (nums-length(logM))*(mean_dMat^2))/nums);
+  mean_dMat = sum(vals)/nums;
+  std_dMat = sqrt((sum((vals - mean_dMat).^2) + (nums-length(vals))*(mean_dMat^2))/nums);
 
   %if std(dMat(:)) < mean(dMat(:))
   if std_dMat < mean_dMat
@@ -164,7 +165,7 @@ disp(b-b)
       % column reduction
       for j=dim:-1:1 % reverse order gives better results
           % find minimum cost over rows
-          [v(j), imin] = min(dMat(:,j));
+          [v(j), imin] = min_sparse(dMat(:,j));
           if ~matches(imin)
               % init assignement if minimum row assigned for first time
               rowsol(imin)=j;
@@ -188,7 +189,10 @@ disp(b-b)
           else
               if matches(i) == 1 % transfer reduction from rows that are assigned once.
                   j1 = rowsol(i);
-                  x = dMat(i,:)-v;
+                  %x = dMat(i,:) - v;
+                  tmp_col = dMat(i,:) + 0;
+                  tmp_col(~tmp_col) = Inf;
+                  x = tmp_col - v;
                   x(j1) = maxcost;
                   v(j1) = v(j1) - min(x);
               end
@@ -196,7 +200,7 @@ disp(b-b)
       end
   else
       numfree=dim-1;
-      [v1 r]=min(dMat);
+      [v1 r]=min_sparse(dMat);
       free=1:dim;
       [~,c]=min(v1);
       imin=r(c);
@@ -205,7 +209,10 @@ disp(b-b)
       colsol(j)=imin;
       % matches(imin)=1;
       free(imin)=[];
-      x = dMat(imin,:)-v;
+      %x = dMat(imin,:) - v;
+      tmp_col = dMat(imin,:) + 0;
+      tmp_col(~tmp_col) = Inf;
+      x = tmp_col - v;
       x(j) = maxcost;
       v(j) = v(j) - min(x);
   end
@@ -222,7 +229,10 @@ disp(b-b)
           k = k+1;
           i = free(k);
           % find minimum and second minimum reduced cost over columns
-          x = dMat(i,:) - v;
+          %x = dMat(i,:) - v;
+          tmp_col = dMat(i,:) + 0;
+          tmp_col(~tmp_col) = Inf;
+          x = tmp_col - v;
           [umin, j1] = min(x);
           x(j1) = maxcost;
           [usubmin, j2] = min(x);
@@ -263,7 +273,10 @@ disp(b-b)
       freerow = free(f); % start row of augmenting path
       % Dijkstra shortest path algorithm.
       % runs until unassigned column added to shortest path tree.
-      d = dMat(freerow,:) - v;
+      %d = dMat(freerow,:) - v;
+      tmp_col = dMat(freerow,:) + 0;
+      tmp_col(~tmp_col) = Inf;
+      d = tmp_col - v;
       pred = freerow(1,ones(1,dim));
       collist = 1:dim;
       low = 1; % columns in 1...low-1 are ready, now none.
@@ -308,7 +321,10 @@ disp(b-b)
               j1 = collist(low);
               low=low+1;
               i = colsol(j1); %line 215
-              x = dMat(i,:)-v;
+              %x = dMat(i,:) - v;
+              tmp_col = dMat(i,:) + 0;
+              tmp_col(~tmp_col) = Inf;
+              x = tmp_col - v;
               h = x(j1) - minh;
               xh = x-h;
               k=up:dim;

@@ -10,7 +10,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   mwSize nzmax, nzstep;
   mwIndex *irs,*jcs,i,j, count;
   double *x1,*y1,*x2,*y2,*rs;
-  double dist, thresh, thresh2, signal1, signal2, weight;
+  double dist, thresh, thresh2, signal1, signal2, weight, eps;
 
   // Check for proper number of input and output arguments
   if (nrhs != 4) {
@@ -42,6 +42,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // Get the two thresholds
   thresh = __SQR__(mxGetScalar(prhs[2]));
   thresh2 = mxGetScalar(prhs[3]);
+
+  // And our zero value
+  eps = mxGetEps();
 
   // A guess on the number of elements needed
   nzmax=(mwSize)ceil((double)m1*(double)m2*0.1);
@@ -92,7 +95,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           }
 
           // Store it in the matrix
-          rs[count] = -fast_exp(-dist);
+          rs[count] = __MAX__(dist, eps);
           irs[count] = j;
 
           count++;

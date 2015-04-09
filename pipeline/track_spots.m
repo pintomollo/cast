@@ -20,12 +20,6 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, 
 %   previous frame, to an "end" spot in the current frame, as follow:
 %     [end_spot_index, start_spot_index, start_spot_frame_index]
 %
-%   PLEASE NOTE that this algorithm works using sparse matrices and thus requires cost
-%   matrices in which 0 is the highest cost and -Inf the lowest one. A simple
-%   transformation to obtain such a matrix is to utilize -exp(-dist^2). For examples
-%   of such cost functions, see linking_cost_sparse_mex.m, bridging_cost_sparse_mex.m,
-%   joining_cost_sparse_mex, splitting_cost_sparse_mex.m.
-%
 %   LINKS = TRACK_SPOTS(SPOTS, FUNCS, MAX_MOVEMENT) defines in addition the maximum
 %   number of pixels a spot can travel between two consecutive frames (default: Inf).
 %
@@ -246,8 +240,8 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, 
 
       % Use some default values if no linkin is possible
       if (isempty(vals))
-        curr_max = -0.1;
-        min_dist = -1;
+        curr_max = 1;
+        min_dist = 1;
       else
         curr_max = max(vals);
         min_dist = min(vals);
@@ -307,8 +301,8 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, 
     end
   end
 
-  % Convert the costs back to distances
-  dists = (sqrt(-log(-all_assign)));
+  % Retrieve the assigned distances
+  dists = all_assign(:);
 
   % And get the overall average distance
   avg_movement = mean(dists(isfinite(dists)));

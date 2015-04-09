@@ -12,7 +12,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   const mxArray *spots, *links;
   double *x1,*y1,*t1,*i1,*x2,*y2,*t2,*i2,*rs, *rs2;
   double dist, dist2, thresh, thresh2, thresh3, signal1, signal2, signal_next;
-  double weight, alt_weight, alt_move;
+  double weight, alt_weight, alt_move, eps;
   bool is_test;
 
   // Check for proper number of input and output arguments
@@ -58,6 +58,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   thresh = __SQR__(mxGetScalar(prhs[2]));
   thresh2 = mxGetScalar(prhs[3]);
 
+  // And our zero value
+  eps = mxGetEps();
+
   // A guess on the number of elements needed
   nzmax=(mwSize)ceil((double)m1*(double)m2*0.1);
   nzstep=(mwSize)__MAX__(ceil((double)nzmax*0.25),1);
@@ -92,7 +95,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     // The average movement, for the alternative costs
     alt_move = mxGetScalar(prhs[5]);
-    alt_move = -__SQR__(alt_move);
 
     // The list of all information, to retrieve the intensitites
     spots = prhs[6];
@@ -121,7 +123,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
       // The alternative weight
       alt_weight = __WGT__(signal2 / signal_next);
-      rs2[i] = -fast_exp(alt_move*alt_weight);
+      rs2[i] = __MAX__(alt_move*alt_weight, eps);
 
       // Now the actual weights
       for (j = 0; j < m1; j++) {
@@ -154,7 +156,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             }
 
             // Store it in the matrix
-            rs[count] = -fast_exp(-dist*weight);
+            rs[count] = __MAX__(dist*weight, eps);
             irs[count] = j;
 
             count++;
