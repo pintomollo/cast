@@ -187,7 +187,8 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, 
   % Make sure we at least got this handler !
   frame_linking_weight = weighting_funcs{2};
   if (isempty(frame_linking_weight) || isempty(frame_linking_weight(1, 1, 1, 1)))
-    error('CAST:track_spots', 'No valid frame to frame weighting function provided');
+    warning('CAST:track_spots', 'No valid frame to frame weighting function provided');
+    return;
   end
 
   % If we have a way to compute the intensity, do it !

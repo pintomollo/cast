@@ -99,6 +99,9 @@ function [myrecording] = reestimate_spots(myrecording, img, segmentation, opts)
         if (do_all)
           img = double(load_data(myrecording.channels(indx), nimg));
 
+          % Get the noise data
+          noise = detections(nimg).noise;
+
           % Detrend the image ?
           if (myrecording.segmentations(indx).detrend)
             img = imdetrend(img, opts.segmenting.detrend_meshpoints);
@@ -106,7 +109,7 @@ function [myrecording] = reestimate_spots(myrecording, img, segmentation, opts)
 
           % Denoise the image ?
           if (myrecording.segmentations(indx).denoise)
-            [img, noise] = imdenoise(img, opts.segmenting.denoise_remove_bkg, ...
+            img = imdenoise(img, noise, opts.segmenting.denoise_remove_bkg, ...
                             opts.segmenting.denoise_func, opts.segmenting.denoise_size);
           end
         else

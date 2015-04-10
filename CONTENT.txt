@@ -55,6 +55,7 @@
     extract_help_message.m :        reads the help message corresponding to the provided structure
     get_new_name.m :                returns the next available name for a file in an incrementally increasing name pattern
     get_struct.m :                  retrieve custom data structures
+    min_sparse.m :                  minimum value among the assigned values in a sparse matrix
     mymean.m :                      computes the mean and standard deviation of the provided data, ignoring NaNs
     parse_metadata.m :              extracts relevant information from the metadata file
     parse_xml.m :                   converts an XML file to a MATLAB structure

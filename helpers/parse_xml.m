@@ -19,7 +19,7 @@ function xml_tree = parse_xml(data)
     if (data(1) == '<')
       xml_input = org.xml.sax.InputSource();
       xml_input.setCharacterStream(java.io.StringReader(data));
-    elseif (exist(data, 'file', 2))
+    elseif (exist(data, 'file') == 2)
       xml_input = data;
     end
 
