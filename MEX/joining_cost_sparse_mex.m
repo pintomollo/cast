@@ -5,10 +5,7 @@
 %   MAX_RATIO, AVG_DIST, SPOTS, LINKS) computes the COSTS matrix for joining SPOTS1 to
 %   SPOTS2 as defined in [1], as well as the vector ALT_COSTS for not merging the
 %   corresponding tracks [1]. MAX_DIST, MAX_GAP and MAX_RATIO define spatial, temporal
-%   and intensity thresholds used to filter out potential assignments. To take
-%   advantage of sparse matrices, the transform -exp(-cost) is used. SPOTS and LINKS
-%   are cell arrays containing the information from frame to frame linking, required to
-%   retrieve the intensities of the SPOTS.
+%   and intensity thresholds used to filter out potential assignments.
 %
 %   CAN_JOIN = JOINING_COST_SPARSE_MEX(SPOTS1, SPOTS2, MAX_DIST, MAX_GAP) returns a
 %   boolean vector defining whether SPOTS2 CAN_JOIN any SPOTS1.

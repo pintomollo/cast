@@ -4,8 +4,7 @@
 %   computes the COSTS matrix for bridging SPOTS1 with SPOTS2 as defined in [1], with
 %   a new time component cost = d^2 + (t/MAX_GAP)^2 to favor consecutive events,
 %   MAX_DIST, MAX_GAP and MAX_RATIO define spatial, temporal and intensity thresholds
-%   used to filter out potential assignments. To take advantage of sparse matrices,
-%   the transform -exp(-cost) is used.
+%   used to filter out potential assignments.
 %
 % References:
 %   [1] Jaqaman K, Loerke D, Mettlen M, Kuwata H, Grinstein S, et al. Robust

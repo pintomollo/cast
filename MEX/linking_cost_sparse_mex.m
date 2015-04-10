@@ -3,8 +3,7 @@
 %   COSTS = linking_COST_SPARSE_MEX(SPOTS1, SPOTS2, MAX_DIST, MAX_RATIO) computes the
 %   COSTS matrix for linking SPOTS1 with SPOTS2 as defined in [1]. MAX_DIST and
 %   MAX_RATIO define spatial and intensity thresholds used to filter out potential
-%   assignments. To take advantage of sparse matrices, the transform -exp(-cost) is
-%   used.
+%   assignments. 
 %
 % References:
 %   [1] Jaqaman K, Loerke D, Mettlen M, Kuwata H, Grinstein S, et al. Robust
