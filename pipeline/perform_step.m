@@ -143,6 +143,7 @@ function [varargout] = perform_step(cast_step, segment_type, varargin)
           spots = [];
           spots_intens = [];
           fusion = [];
+          extrema = [];
       end
 
       % Filter the spots using the intensities, extrema and fusion specific to
@@ -197,6 +198,7 @@ function [varargout] = perform_step(cast_step, segment_type, varargin)
           % Otherwise, we need to create an empty group of handles to be consistent
           if (strncmp(get(handle, 'Type'), 'hggroup',7))
             hgroup = handle;
+            delete(get(hgroup, 'Children'));
           else
             hgroup = hggroup('Parent', handle);
           end
