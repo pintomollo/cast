@@ -94,9 +94,10 @@ Blanchoud et al., Methods, 2015
 
  - Once you're happy with the current filtering, simply apply it y clicking "OK".
 
- - If you're following the example, then the filtering applied on the sample data
-   should be a bit too strong (i.e. more white on the left than on the right panels).
-   So let's tune the parameters of the filters !
+ - If you're following the example, then the type of data you just loaded should be
+   changed to "luminescence", and the filtering applied on the sample data should be
+   a bit too strong (i.e. more white on the left than on the right panels). So let's
+   tune the parameters of the filters !
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 2. Editing parameters
