@@ -94,9 +94,10 @@ Blanchoud et al., Methods, 2015
 
  - Once you're happy with the current filtering, simply apply it y clicking "OK".
 
- - If you're following the example, then the filtering applied on the sample data
-   should be a bit too strong (i.e. more white on the left than on the right panels).
-   So let's tune the parameters of the filters !
+ - If you're following the example, then the type of data you just loaded should be
+   changed to "luminescence", and the filtering applied on the sample data should be
+   a bit too strong (i.e. more white on the left than on the right panels). So let's
+   tune the parameters of the filters !
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 2. Editing parameters
@@ -147,9 +148,8 @@ Blanchoud et al., Methods, 2015
    - Compare the resulting filtered and raw images        : Lower left radio buttons
    - Visualize the detections                             : Lower right radio buttons
 
- - If the type of channel has been selected as "luminescence", the "detect_spots"
-   segmentation type will automatically be selected, otherwise, select it manually
-   as no other segmentation algorithm as yet been implemented.
+ - If the type of channel has been selected as "luminescence", the "multiscale_gaussian_spots"
+   segmentation type will automatically be selected, otherwise, select it manually.
 
  - Note that it is generally easier to track data that are over-segmented rather than
    under-segmented.
@@ -187,10 +187,10 @@ Blanchoud et al., Methods, 2015
    step of the tracking algorithm (if needed).
 
  - If using the sample data, the provided parameter values should be optimal. However,
-   when analyzing longer recordings, increasing min_section_length should remove
+   when analyzing longer recordings, increasing "min_section_length" should remove
    noisy spurious detections.
 
- - Confirm using "OK", and wait (almost instantaneous ;) !).
+ - Confirm using "OK", and wait (almost instantaneous at this stage ;) !).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 5. Filtering tracks
@@ -202,7 +202,7 @@ Blanchoud et al., Methods, 2015
    - Decide whether you want to reestimate the spots : Middle right checkbox
    - Filter short (hence usually wrong) tracks       : "Edit parameters"
 
- - Confirm using "OK", and no more need to wait !
+ - Confirm using "OK", and some more wait !
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 6. Exporting results
@@ -221,15 +221,15 @@ Blanchoud et al., Methods, 2015
     and should be quite self-explanatory !
 
   - In particular, to add another segmenting approach, you should:
-    - Add the new function(s) in cast/modules.
-    - Add the corresponding choice in cast/pipeline/perform_step.m
+    - Add the new function(s) in "cast/modules".
+    - Add the corresponding choice in "cast/pipeline/perform_step.m"
     - Add the new segmentation approach to the drop-down list of the segentation GUI
-      (cast/GUI/inspect_segmentation.m, l.501):
+      ("cast/GUI/inspect_segmentation.m", l. 501):
 
   - Only make sure that the input/ouput variables type and formats stay the same !
 
   - You can also define new colormaps for your favorite data by modifying the 'colors'
-    structure in cast/helpers/get_struct.m.
+    structure in "cast/helpers/get_struct.m".
 
   - Good luck and have fun segmenting !
 

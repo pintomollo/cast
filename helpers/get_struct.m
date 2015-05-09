@@ -78,7 +78,7 @@ function mystruct = get_struct(type, nstruct)
     % Structure containing the different parameters required for tracking spots
     case 'image_segmentation'
       mystruct = struct('filter_max_size', 10, ...         % Maximal radius (in um), see filter_spots.m
-                        'filter_min_size', 0.7, ...        % Minimal radius (in um), see filter_spots.m
+                        'filter_min_size', 0.75, ...        % Minimal radius (in um), see filter_spots.m
                         'filter_min_intensity', 15, ...    % Minimal intensity (multiplied by the variance of the noise), see filter_spots.m
                         'filter_overlap', 0.75, ...        % Minimal overlap (in percents) for spots to be fused together
                         'detrend_meshpoints', 32, ...      % The number of positions over the image used for detrending
@@ -86,7 +86,7 @@ function mystruct = get_struct(type, nstruct)
                         'denoise_size', -1,          ...   % Parameter used by the denoising function (-1: default value)
                         'denoise_remove_bkg', true, ...    % Removes the background uniform value (estimated using estimate_noise.m) ?
                         'force_estimation', 1, ...         % Will force the estimation of the signal intensity on the raw data
-                        'atrous_max_size', 10, ...         % Maximal size of the spots to detect (in um), see imatrous.m
+                        'atrous_max_size', 5, ...         % Maximal size of the spots to detect (in um), see imatrous.m
                         'atrous_thresh', 10, ...           % Threshold used to detect a valid spot as brighter than THRESH*MAD
                         'maxima_window', [5 5], ...        % Window size used to detect local maxima
                         'estimate_thresh', 1, ...          % Utilizes only the pixels brighter than this threshold (times noise variance) to estimate the spots
