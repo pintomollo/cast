@@ -18,7 +18,7 @@ function [converted_file] = convert_movie(name)
   end
 
   % We got the file to be loaded as input !
-  if (ischar(name) & ~isempty(name))
+  if (ischar(name) && ~isempty(name))
 
     % Chech whether the file is in a subdirectory
     indx = strfind(name, filesep);
@@ -64,7 +64,7 @@ function [converted_file] = convert_movie(name)
   end
 
   % If no file was selected, stop here
-  if (length(fname) == 0  ||  isequal(dirpath, 0))
+  if (isempty(fname)  ||  isequal(dirpath, 0))
     disp(['No movie selected']);
     return;
   end
@@ -90,52 +90,99 @@ function [newfile] = bftools_convert(fname)
 
   % We need the absolute path for Java to work properly
   fname = absolutepath(fname);
-
   if (exist(fname, 'file') ~= 2)
-    warning('CAST:convert_movie', ['File ' fname ' does not exist']);
-    newfile = '';
-    return;
+    error('CAST:convert_movie', 'Tracking:BadFile', ['File ' fname ' does not exist']);
   end
+
+  if (ispc)
+    cmd_name = ['"' fname '"'];
+  else
+    cmd_name = strrep(fname,' ','\ ');
+  end
+
+  % Get the current JVM heap space
+  max_jvm = ceil(java.lang.Runtime.getRuntime.maxMemory / 1024^2);
 
   % Split the filename
   [file_path, filename, ext] = fileparts(fname);
 
-  % Remove the extension
-  name = fullfile(file_path, filename);
+  % If we have an AVI recording and FFMPEG, we use it to extract the frames
+  use_tmp_folder = false;
+  if (strncmpi(ext, '.avi', 4))
+    if (ispref('ffmpeg', 'exepath'))
 
-  % Identify the filename VS the path
-  [slash] = findstr(name, filesep);
-  if(length(slash)>0)
-    slash = slash(end) + 1;
-  else
-    slash = 1;
+      % We need to store the original names for later
+      orig_name = filename;
+      orig_path = file_path;
+      orig_cmd_name = cmd_name;
+
+      % We will extract everything in a subdirectory
+      use_tmp_folder = true;
+      tmp_folder = absolutepath(get_new_name('tmp_folder(\d+)', file_path));
+      mkdir(tmp_folder);
+
+      % Extract the frames as JPEG
+      new_fname = fullfile(tmp_folder, 'tmp_img%d.jpg');
+      if (ispc)
+        cmd_name_new = ['"' new_fname '"'];
+      else
+        cmd_name_new = strrep(new_fname,' ','\ ');
+      end
+
+      % This can take a while, so inform the user
+      hInfo = warndlg('CAST:convert_movie', 'Converting AVI using FFMPEG, please wait...', 'Converting movie...');
+
+      % Get FFMPEG to actually extract the frames
+      [res, info] = system([getpref('ffmpeg', 'exepath') ' -i ' cmd_name ' -y -vf select="eq(pict_type\,PICT_TYPE_I)" -vsync 2 -qscale:v 2 -f image2 ' cmd_name_new]);
+
+      % Close the info
+      if (ishandle(hInfo))
+        delete(hInfo);
+      end
+
+      % Show the error
+      if (res~=0)
+        error('CAST:convert_movie', 'Tracking:FFMPEG', info);
+      end
+
+      % Create the new filename pointing to the frames
+      fname = fullfile(tmp_folder, 'tmp_img1.jpg');
+      [file_path, filename, ext] = fileparts(fname);
+      if (ispc)
+        cmd_name = ['"' fname '"'];
+      else
+        cmd_name = strrep(fname,' ','\ ');
+      end
+
+    % Advise the installation of FFMPEG
+    else
+      warndlg({'Converting AVI files works best using FFMPEG.', ...
+        'Consider installing this library if the current conversion does not work.', ...
+        'Follow the instructions from install_leachi_flow.m to do so.'}, 'Converting movie...');
+    end
   end
 
-  % Creat the fancy name for display (otherwise it thinks they are LaTeX commands)
-  printname = strrep(name(slash:end),'_','\_');
+  % Remove the extension
+  name = fullfile(file_path, filename);
 
   % Look for the LOCI command line tool
   curdir = pwd;
   cmd_path = which('bfconvert.bat');
   if (isempty(cmd_path))
-    warning('CAST:convert_movie', 'The LOCI command line tools are not present !\nPlease follow the instructions provided by install_cell_tracking');
-    newfile = '';
-    return;
+    error('CAST:convert_movie', 'The LOCI command line tools are not present !\nPlease follow the instructions provided by install_cell_tracking');
   end
   [mypath, junk] = fileparts(cmd_path);
 
   % This can take a while, so inform the user
-  hInfo = warndlg('Parsing metadata, please wait.', 'Converting movie...');
+  hInfo = warndlg('Parsing metadata, please wait...', 'Converting movie...');
 
   % Move to the correct folder
   cd(mypath);
 
   % And call the LOCI utility to extract the metadata
   if (ispc)
-    cmd_name = ['"' fname '"'];
     [res, metadata] = system(['showinf.bat -stitch -nopix -nometa ' cmd_name]);
   else
-    cmd_name = strrep(fname,' ','\ ');
     [res, metadata] = system(['./showinf -stitch -nopix -nometa ' cmd_name]);
   end
 
@@ -147,9 +194,7 @@ function [newfile] = bftools_convert(fname)
   % Check if an error occured
   if (res ~= 0)
     cd(curdir);
-    warning('CAST:convert_movie',metadata);
-    newfile = '';
-    return;
+    error('CAST:convert_movie', metadata);
   end
 
   % Extract the three important informations from the extracted metadata
@@ -159,8 +204,8 @@ function [newfile] = bftools_convert(fname)
 
   % In case of multiple files, regroup them into one single file
   merge_cmd = '-stitch ';
-  do_merge = false;
-  if (~isempty(file_pattern))
+  do_merge = use_tmp_folder;
+  if (~isempty(file_pattern) && ~use_tmp_folder)
     orig_pattern = file_pattern{1};
     file_pattern = regexprep(orig_pattern, '<\d+-\d+>', '');
 
@@ -182,9 +227,7 @@ function [newfile] = bftools_convert(fname)
   % Something went terribly wrong...
   if (isempty(format) | isempty(is_rgb))
     cd(curdir);
-    warning('CAST:convert_movie', ['The metadata does not present the expected information: ''file format'' and ''RGB'' :\n\n' metadata]);
-    newfile = '';
-    return;
+    error('CAST:convert_movie', ['The metadata does not present the expected information: ''file format'' and ''RGB'' :\n\n' metadata]);
   end
 
   % Get the information out of the search results
@@ -201,14 +244,19 @@ function [newfile] = bftools_convert(fname)
     return;
   end
 
-  % RGB will not work
+  % RGB need to be split up
+  split_cmd = '';
+  split_ext = '';
   if (is_rgb)
-    warning('CAST:convert_movie','RGB channels will be separated, please make sure that no information is lost !')
+    split_cmd = '-separate ';
+    split_ext = '_%c';
   end
 
   % We create an OME-TIFF file
-  if (isempty(file_pattern))
-    newname = [name '.ome.tiff'];
+  if (use_tmp_folder)
+    newname = fullfile(orig_path, [orig_name split_ext '.ome.tiff']);
+  elseif (isempty(file_pattern))
+    newname = [name split_ext '.ome.tiff'];
   else
     [file_path, file_name, file_ext] = fileparts(file_pattern{1});
 
@@ -217,14 +265,18 @@ function [newfile] = bftools_convert(fname)
       [junk, tmp_name, junk] = fileparts(file_path);
       file_name = [tmp_name '_' file_name];
     end
-    newname = fullfile(file_path, [file_name '.ome.tiff']);
+    newname = fullfile(file_path, [file_name split_ext '.ome.tiff']);
   end
 
   % If the file already exists, we ask what to do
-  if(exist(newname,'file'))
+  if(exist(strrep(newname, '%c', '0'),'file'))
 
     % We initially do not know what to do
     answer = 0;
+
+    % Creat the fancy name for display (otherwise it thinks they are LaTeX commands)
+    [junk, tmp_name, junk] = fileparts(strrep(newname, split_ext, ''));
+    printname = strrep(tmp_name(1:end-4),'_','\_');
 
     % We do not accept "empty" answers
     while (answer == 0)
@@ -236,29 +288,43 @@ function [newfile] = bftools_convert(fname)
 
       % Delete the current files (did not dare overwriting it directly)
       case 1
-        delete(newname);
+        delete(strrep(newname, '%c', '*'));
 
       % Otherwise we can stop here
       case 2
-        % Store the new name
-        newfile = newname;
         cd(curdir);
-        newfile = relativepath(newfile);
+
+        % Store the new name(s)
+        if (is_rgb)
+          newfile = cell(3, 1);
+
+          for c=0:2
+            newfile{c+1} = relativepath(strrep(newname, '%c', num2str(c)));
+          end
+        else
+          newfile = relativepath(newname);
+        end
 
         return;
     end
   end
 
   % This also takes quite some time, so warn the user
-  hInfo = warndlg('Converting to OME-TIFF, please wait.', 'Converting movie...');
+  hInfo = warndlg('Converting to OME-TIFF, please wait...', 'Converting movie...');
 
   % Call directly the command line tool to do the job
   if (ispc)
     cmd_newname = ['"' newname '"'];
-    [res, infos] = system(['bfconvert.bat ' merge_cmd '-separate ' cmd_name ' ' cmd_newname]);
+    [res, infos] = system(['bfconvert.bat ' merge_cmd split_cmd cmd_name ' ' cmd_newname]);
   else
     cmd_newname = strrep(newname,' ','\ ');
-    [res, infos] = system(['./bfconvert ' merge_cmd '-separate ' cmd_name ' ' cmd_newname]);
+    [res, infos] = system(['BF_FLAGS="-XX:+UseConcMarkSweepGC" BF_MAX_MEM=' max_jvm 'm ./bfconvert ' merge_cmd split_cmd cmd_name ' ' cmd_newname]);
+  end
+
+  % Delete the temporary folder
+  if (use_tmp_folder)
+    delete(fullfile(tmp_folder, '*'));
+    rmdir(tmp_folder);
   end
 
   % Delete the window if need be
@@ -269,15 +335,22 @@ function [newfile] = bftools_convert(fname)
   % Check if an error occured
   if (res ~= 0)
     cd(curdir);
-    warning('CAST:convert_movie', infos);
-    newfile = '';
-    return;
+    error('CAST:conver_movie', infos);
   end
 
   % Store the new name in relative path and come back to the original folder
-  newfile = newname;
   cd(curdir);
-  newfile = relativepath(newfile);
+
+  % Store the new name(s)
+  if (is_rgb)
+    newfile = cell(3, 1);
+
+    for c=0:2
+      newfile{c+1} = relativepath(strrep(newname, '%c', num2str(c)));
+    end
+  else
+    newfile = relativepath(newname);
+  end
 
   return;
 end

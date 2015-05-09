@@ -1,9 +1,19 @@
 function xml_tree = parse_xml(data)
 % PARSEXML converts an XML file to a MATLAB structure.
 %
+%   XML = PARSE_XML(DATA) parses the content of the string DATA,
+%   converting in into an XML structure.
+%
+%   XML = PARSE_XML(FNAME) converts the content of the XML file FNAME.
+%
 % Based on the code provided by Matlab, with a number
 % of simplifactions in the resulting structure.
+%
+% Gonczy & Naef labs, EPFL
+% Simon Blanchoud
+% 09.05.2015
 
+  % Initialize some variables
   xml_tree = [];
 
   node = struct('Name', '', 'Attributes', [],    ...
@@ -11,11 +21,18 @@ function xml_tree = parse_xml(data)
 
   leaf = struct('Name', '', 'Value', '');
 
-  if (ischar(data) & length(data) > 0)
+  % Work only on string
+  if (ischar(data) && ~isempty(data))
+
+    % Prepare some more data
     xml_input = [];
+
+    % Clean the input string from non-ASCII characters and excessive spaces
     data = data(double(data)<128);
     data = strtrim(data);
     data = regexprep(data, '>\s+<', '><');
+
+    % Either we have a string or a filename
     if (data(1) == '<')
       xml_input = org.xml.sax.InputSource();
       xml_input.setCharacterStream(java.io.StringReader(data));
@@ -35,6 +52,11 @@ function xml_tree = parse_xml(data)
 
   return;
 
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  % Code adapted from MATLAB:                             %
+  % http://www.mathworks.com/help/matlab/ref/xmlread.html %
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
   % ----- Local function PARSECHILDNODES -----
   function [children,attrs] = parseChildNodes(theNode)
   % Recurse over node children.
@@ -45,7 +67,7 @@ function xml_tree = parse_xml(data)
        numChildNodes = childNodes.getLength;
 
        if (numChildNodes == 1)
-        children = makeStructFromNode(childNodes.item(0));
+         children = makeStructFromNode(childNodes.item(0));
        else
          children = repmat(node, 1, numChildNodes);
          attrs = repmat(leaf, 1, numChildNodes);

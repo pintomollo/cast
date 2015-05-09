@@ -47,7 +47,8 @@ function [myrecording, opts] = segment_movie(myrecording, opts)
       img = double(load_data(myrecording.channels(indx), nimg));
 
       % Get the noise parameters
-      noise = estimate_noise(img);
+      orig_noise = estimate_noise(img);
+      noise = orig_noise;
 
       % Detrend the image ?
       if (myrecording.segmentations(indx).detrend)
@@ -56,12 +57,12 @@ function [myrecording, opts] = segment_movie(myrecording, opts)
 
       % Denoise the image ?
       if (myrecording.segmentations(indx).denoise)
-        img = imdenoise(img, opts.segmenting.denoise_remove_bkg, ...
+        [img, noise] = imdenoise(img, opts.segmenting.denoise_remove_bkg, noise, ...
                         opts.segmenting.denoise_func, opts.segmenting.denoise_size);
       end
 
       % Segment the image
-      spots = perform_step('segmentation', segment_type, img, opts);
+      spots = perform_step('segmentation', segment_type, img, opts, noise);
 
       % And estimate the detected spots
       spots = perform_step('estimation', segment_type, img, spots, opts);
@@ -76,7 +77,7 @@ function [myrecording, opts] = segment_movie(myrecording, opts)
         detections(nimg).carth = spots(:,1:2);
         detections(nimg).properties = spots(:,3:end);
       end
-      detections(nimg).noise = noise;
+      detections(nimg).noise = orig_noise;
 
       % Update the progress bar
       if (opts.verbosity > 1)

@@ -1,4 +1,4 @@
-function spots = detect_spots(imgs, thresh, max_size)
+function spots = detect_spots(imgs, thresh, max_size, intens_thresh)
 % DETECT_SPOTS detects spots in biological images using the "A-trous" method [1].
 %
 %   SPOTS = DETECT_SPOTS(IMG) returns a list of detected spots in IMG using IMATROU
@@ -29,8 +29,12 @@ function spots = detect_spots(imgs, thresh, max_size)
   elseif (nargin < 2)
     thresh = 3;
     max_size = Inf;
+    intens_thresh = 0;
   elseif (nargin < 3)
     max_size = Inf;
+    intens_thresh = 0;
+  elseif (nargin < 4)
+    intens_thresh = 0;
   end
 
   % Image size
@@ -51,6 +55,14 @@ function spots = detect_spots(imgs, thresh, max_size)
   mask = ones(tmp_size);
   mask((end-1)/2+1) = 0;
 
+  % If need be, perpare the averaging mask
+  if (intens_thresh > 0)
+    mask_avg = ones(tmp_size);
+    mask_avg = mask_avg / numel(mask_avg);
+  else
+    avgs = 1;
+  end
+
   % We iterate over the frames
   for i = 1:nframes
 
@@ -60,8 +72,13 @@ function spots = detect_spots(imgs, thresh, max_size)
     % Performs the actual spot detection "a trous" algorithm [1]
     atrous = imatrou(img, max_size, thresh);
 
+    % Compute the local average
+    if (intens_thresh > 0)
+      avgs = imfilter(img, mask_avg);
+    end
+
     % Get the local maxima
-    bw = (atrous > 0) & (img >= imdilate(img, mask));
+    bw = (atrous > 0) & (img >= imdilate(img, mask)) & (avgs >= intens_thresh);
 
     % Shrink them to single pixel values
     bw = bwmorph(bw, 'shrink', Inf);

@@ -62,12 +62,20 @@ function [varargout] = perform_step(cast_step, segment_type, varargin)
       % The specific inputs
       img = varargin{1};
       opts = varargin{2};
+      noise = varargin{3};
 
       % The various approaches
       switch segment_type
         case 'multiscale_gaussian_spots'
+          window_size = opts.segmenting.atrous_max_size / opts.pixel_size;
+          min_sigma = (opts.segmenting.filter_min_size / opts.pixel_size)^2;
+          avg_spot = (((sqrt(2*pi*min_sigma))/(2*window_size)) * ...
+                        erf(window_size / sqrt(2*min_sigma)))^2;
+
+          min_intens = opts.segmenting.filter_min_intensity*noise(2) + noise(1);
+
           spots = detect_spots(img, opts.segmenting.atrous_thresh, ...
-                               opts.segmenting.atrous_max_size/opts.pixel_size);
+                               window_size, min_intens);
         case 'rectangular_local_maxima'
           spots = detect_maxima(img, opts.segmenting.maxima_window);
         otherwise
