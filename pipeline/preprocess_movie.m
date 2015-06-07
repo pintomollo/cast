@@ -201,38 +201,33 @@ function metadata = find_metadata(filename, metadata)
 % This function tries to identify more suitable metadata. For now
 % on, the following metadata are supported:
 %   - Leica Application Suite ".las"
+%   - Leica Application Suite ".cal.xml"
 %   - uManager "metadata.txt"
 %   - files manually placed in the "Metadata" folder and named
 %     as the recording
-%   - files present in the original folder and called metadata
 
   % Get the folder in which the file is contained
   [file_path, file_name, file_ext] = fileparts(filename);
 
   % Check if the file exists
-  if (exist(fullfile(file_path, '.las')))
+  if (exist(fullfile(file_path, '.las'), 'file'))
 
     % Load it !
     metadata = fileread(fullfile(file_path, '.las'));
 
+  % The other LAS
+  elseif (exist(fullfile(file_path, '.Metadata'), 'dir') && exist(fullfile(file_path, '.Metadata', [file_name file_ext '.cal.xml']), 'dir'))
+    metadata = fileread(fullfile(file_path, '.Metadata', [file_name file_ext '.cal.xml']));
+
   % For uManager
-  elseif (exist(fullfile(file_path, 'metadata.txt')))
+  elseif (exist(fullfile(file_path, 'metadata.txt'), 'file'))
     metadata = fileread(fullfile(file_path, 'metadata.txt'));
 
   % For manually edited files
-  elseif (exist(fullfile(pwd, 'Metadata', [filename '.txt'])))
+  elseif (exist(fullfile(pwd, 'Metadata', [filename '.txt']), 'file'))
     metadata = fileread(fullfile(pwd, 'Metadata', [filename '.txt']));
-  elseif (exist(fullfile(pwd, 'Metadata', [filename '.xml'])))
-    metadata = fileread(fullfile(pwd, 'Metadata', [filename '.xml']));
-
-  % And other logical potential targets
-  elseif (exist(fullfile(file_path, [filename '.xml'])))
-    metadata = fileread(fullfile(file_path, [filename '.xml']));
-  elseif (exist(fullfile(file_path, [filename '.txt'])))
-    metadata = fileread(fullfile(file_path, [filename '.txt']));
-  elseif (exist(fullfile(file_path, 'metadata.xml')))
-    metadata = fileread(fullfile(file_path, 'metadata.xml'));
   end
+
 
   return;
 end

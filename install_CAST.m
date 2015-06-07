@@ -26,7 +26,7 @@ function install_CAST
   savepath;
 
   % And for the LOCI as well
-  if (exist('bftools', 'dir'))
+  if (exist(fullfile(current_dir, 'bftools'), 'dir'))
     addpath(fullfile(current_dir, 'bftools'));
     savepath;
   end
@@ -46,11 +46,7 @@ function install_CAST
       % This looks like a permanent link... up to now at least
       try
         disp('Downloading Bio-Formats tools...')
-        unzip('http://loci.wisc.edu/files/software/bftools.zip', 'bftools');
-        cd('bftools');
-        disp('Downloading LOCI library...')
-        urlwrite('http://loci.wisc.edu/files/software/loci_tools.jar', 'loci_tools.jar');
-        cd ..
+        unzip('http://downloads.openmicroscopy.org/latest/bio-formats/artifacts/bftools.zip');
         addpath(fullfile(current_dir, 'bftools'));
         savepath;
       catch
@@ -63,9 +59,25 @@ function install_CAST
         disp('Done !');
         disp(' ');
       else
-        disp('Failed... try to get the Bio-Formats command-line tools from http://www.loci.wisc.edu/bio-formats/downloads and place it in the cast folder');
+        disp('Failed... try to get the Bio-Formats command-line tools from http://www.openmicroscopy.org and place it in the "cast" folder');
         disp(' ');
       end
+    end
+  end
+
+  % Try to insall it the FFMPEG library !
+  if (~ispref('ffmpeg', 'exepath'))
+    button = questdlg({'Should we try to locate the FFMPEG command line tools ?', ...
+                      '(You need to have the library installed already)'});
+
+    % Ask for the user to confirm this foolness
+    if (strncmpi(button, 'yes', 3))
+      ffmpegsetup();
+
+      if (~ispref('ffmpeg', 'exepath'))
+          disp('If you want to install the FFMPEG library, please visit www.ffmpeg.org');
+      end
+      disp(' ');
     end
   end
 

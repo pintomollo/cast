@@ -490,7 +490,7 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, 
       [merge_weight, alt_merge_weight] = joining_weight(ends, interm, max_move, branching_gap, max_ratio, avg_movement, spots, links);
     else
       merge_weight = sparse(nends, ninterm);
-      alt_merge_weight = -ones(ninterm, 1);
+      alt_merge_weight = ones(ninterm, 1);
     end
 
     if (do_display)
@@ -502,7 +502,7 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, 
       [split_weight, alt_split_weight] = splitting_weight(starts, interm, max_move, branching_gap, max_ratio, avg_movement, spots, links);
     else
       split_weight = sparse(ninterm, nstarts);
-      alt_split_weight = -ones(ninterm, 1);
+      alt_split_weight = ones(ninterm, 1);
     end
 
     if (do_display)
@@ -540,8 +540,8 @@ function [links, opts] = track_spots(spots, funcs, max_move, max_gap, max_dist, 
 
     % We need to extract the cost for no linking
     if (isempty(all_vals))
-      alt_cost = -0.1;
-      min_dist = -1;
+      alt_cost = 1;
+      min_dist = 0.1;
     else
       alt_cost = prctile(all_vals, 90) * 0.999;
       min_dist = min(all_vals);

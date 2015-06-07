@@ -177,7 +177,7 @@ function [myrecording, opts, is_updated] = inspect_paths(myrecording, opts)
       refresh(hFig);
 
       % Perform the actual filtering of the paths
-      links = filter_tracking(trackings(indx).detections, opts.tracks_filtering.min_path_length, opts.tracks_filtering.max_zip_length,opts.tracks_filtering.interpolate);
+      links = filter_tracking(trackings(indx).detections, opts.tracks_filtering.min_path_length, opts.tracks_filtering.max_zip_length,logical(opts.tracks_filtering.interpolate));
       paths = reconstruct_tracks(links, true);
       filtered_colors = colorize_graph(paths, colors.paths{color_index}(length(paths)));
     end

@@ -189,7 +189,7 @@ function [myrecording, opts, is_updated] = inspect_segmentation(myrecording, opt
       end
 
       % Segment the image and estimate the corresponding locations
-      spots = perform_step('segmentation', segment_type, img, opts);
+      spots = perform_step('segmentation', segment_type, img, opts, noise);
       spots = perform_step('estimation', segment_type, img, spots, opts);
 
       % Estimate the noise if not previously done
