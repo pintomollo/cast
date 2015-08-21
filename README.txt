@@ -10,7 +10,7 @@
 Hi !
 
 This set of functions (so-called CAST: Cell Automated Segmentation and Tracking platform)
-are designed to provide an intuitive user interface for the automated segmentation, tracking
+are designed to provide an intuitive user interface for the automated segmentation, tracking 
 and quantification of time-lapse fluorescence/luminescence data. All functions can
 be accessed directly using command-lines, however it is designed to be used through
 the main interface function "CAST_GUI".
