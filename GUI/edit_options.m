@@ -346,6 +346,22 @@ function [mystruct, is_updated] = edit_options(mystruct, name)
             end
 
             val = tmp;
+          case 'bool'
+            if (ischar(val))
+              [tmp, correct] = mystr2double(val);
+
+              % Enforce the data type
+              while (~correct)
+                answer = inputdlg(['''' values{i,1} ''' is not a valid number, do you want to correct it ?'], 'Correct a numerical value', 1, {val});
+                if (isempty(answer))
+                  [tmp, correct] = mystr2double(values{i, 2});
+                else
+                  [tmp, correct] = mystr2double(answer{1});
+                end
+              end
+
+              val = logical(tmp);
+            end
           case 'func'
             [tmp, correct] = mystr2func(val);
 
@@ -461,14 +477,14 @@ function [name, values] = parse_struct(mystruct)
           values{i, 4} = 'table';
 
           tmp_cell = repmat({''}, size(val)+5);
-          tmp_cell(1:numel(val)) = cellfun(@(x){func2str(x)}, val);
+          tmp_cell(1:size(val,1), 1:size(val,2)) = cellfun(@(x){func2str(x)}, val);
           values{i, 2} = tmp_cell;
         elseif (~any(cellfun('isclass', val, 'cell')))
           values{i, 3} = 'cell';
           values{i, 4} = 'table';
 
           tmp_cell = repmat({''}, size(val)+5);
-          tmp_cell(1:numel(val)) = val;
+          tmp_cell(1:size(val,1), 1:size(val,2)) = val;
           values{i, 2} = tmp_cell;
         else
           values{i, 3} = 'cell';
@@ -478,9 +494,15 @@ function [name, values] = parse_struct(mystruct)
         values{i, 3} = 'struct';
         values{i, 4} = 'button';
       case 'logical'
-        values{i, 3} = 'bool';
-        values{i, 4} = 'checkbox';
-        values{i, 2} = double(values{i, 2});
+        if (numel(values{i,2})>1)
+          values{i, 3} = 'bool';
+          values{i, 4} = 'edit';
+          values{i, 2} = num2str(values{i,2}(:).');
+        else
+          values{i, 3} = 'bool';
+          values{i, 4} = 'checkbox';
+          values{i, 2} = double(values{i, 2});
+        end
       case 'function_handle'
         values{i, 3} = 'func';
         values{i, 4} = 'edit';
