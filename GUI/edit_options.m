@@ -178,6 +178,15 @@ function [mystruct, is_updated] = edit_options(mystruct, name)
             count = count + 1;
           end
 
+        % We use a simple text-field for ND cell arrays that cannot be edited
+        case 'lock'
+          hControl = uicontrol('Parent', hPanel, ...
+                        'Units', 'pixels',  ...
+                        'Position', [180 count*50 + 20 180 40], ...
+                        'String', 'Sorry, cell arrays of cells cannot be edited',  ...
+                        'Style', 'text',  ...
+                        'Tag', myvals{i,1});
+
         % We use a push button to edit the underlying structure recursively
         case 'button'
           hControl = uicontrol('Parent', hPanel, ...
@@ -320,8 +329,8 @@ function [mystruct, is_updated] = edit_options(mystruct, name)
         switch values{i,3}
           case 'cell'
             goods = ~cellfun('isempty', val);
-            grow = any(goods, 1);
-            gcol = any(goods, 2);
+            gcol = any(goods, 1);
+            grow = any(goods, 2);
             val = val(grow, gcol);
           case 'num'
             [tmp, correct] = mystr2double(val);
@@ -454,13 +463,16 @@ function [name, values] = parse_struct(mystruct)
           tmp_cell = repmat({''}, size(val)+5);
           tmp_cell(1:numel(val)) = cellfun(@(x){func2str(x)}, val);
           values{i, 2} = tmp_cell;
-        else
+        elseif (~any(cellfun('isclass', val, 'cell')))
           values{i, 3} = 'cell';
           values{i, 4} = 'table';
 
           tmp_cell = repmat({''}, size(val)+5);
           tmp_cell(1:numel(val)) = val;
           values{i, 2} = tmp_cell;
+        else
+          values{i, 3} = 'cell';
+          values{i, 4} = 'lock';
         end
       case 'struct'
         values{i, 3} = 'struct';
@@ -486,6 +498,97 @@ function [name, values] = parse_struct(mystruct)
   [name, helps] = extract_help_message(mystruct);
   [goods, indxs] = ismember(values(:,1), helps(:,1));
   values(goods, 5) = helps(indxs, 2);
+
+  return;
+end
+
+function [name, curr_fields] = extract_help_message(mystruct)
+% EXTRACT_HELP_MESSAGE reads the help message corresponding to the provided structure.
+% The help messages are the corresponding comments at the end of the line defining
+% the structure field in get_struct.m.
+%
+%   [NAME, HELP] = EXTRACT_HELP_MESSAGE(MYSTRUCT) returns the NAME of MYSTRUCT as found
+%   in get_struct.m, and the HELP for all the fields found as a cell array.
+%
+% Gonczy & Naef labs, EPFL
+% Simon Blanchoud
+% 28.08.2014
+
+  % Find the correct file
+  fname = which('get_struct.m');
+
+  % We open it in text mode 
+  fid = fopen(fname,'rt');
+
+  % Initialize the output values
+  name = '';
+  tmp_fields = cell(0, 2);
+  curr_fields = tmp_fields;
+
+  % The current fields in the structure we received, for comparison
+  fields = fieldnames(mystruct);
+
+  % We loop throughout the file, line by line
+  line = fgetl(fid);
+  skipping = true;
+  while ischar(line)
+
+    % We remove unsignificant white spaces
+    line = strtrim(line);
+
+    % We ignore empty lines and comment lines
+    if (length(line) > 0 && line(1) ~= '%')
+
+      % We first look for new structures
+      tokens = regexp(line, 'case ''(.+)''','tokens');
+
+      % We found one !
+      if (~isempty(tokens))
+        % If we have something stored, it means we found our structure, so stop here
+        if (~isempty(curr_fields) & ~skipping)
+          break;
+        end
+
+        % Otherwise, we store the current name and prepare the new values
+        tmp_name = tokens{1}{1};
+        curr_fields = tmp_fields;
+        skipping = false;
+
+      % If we are not skipping this whole structure, we can read the comments
+      elseif (~skipping)
+
+        % Get the field name and comments
+        tokens = regexp(line, '[^'']*''([^,'']+)''\s*,[^%]*%\s*(.+)','tokens');
+
+        % If we got something, we check whether it is part of the current structure
+        if (~isempty(tokens))
+          curr_field = tokens{1};
+
+          % If not, we skip the entire structure
+          if (~ismember(fields, curr_field{1}))
+            skipping = true;
+
+          % Otherwise we store it !
+          else
+            name = tmp_name;
+            curr_fields(end+1,:) = tokens{1};
+          end
+        end
+      end
+    end
+
+    % Process the next line
+    line = fgetl(fid);
+  end
+
+  % And close the file
+  fclose(fid);
+
+  % Add empty help for the missing fields
+  missing = ~ismember(fields, curr_fields(:,1));
+  if (any(missing))
+    curr_fields = [curr_fields; [fields(missing) cellstr(repmat(' ',sum(missing), 1))]];
+  end
 
   return;
 end

@@ -7,7 +7,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   // Declare variable
   mwSize m1,n1, m2, n2;
-  mwSize nzmax, nzstep;
+  mwSize nzmax, nzstep, nzfull;
   mwIndex *irs,*jcs,i,j, count;
   double *x1,*y1,*t1,*x2,*y2,*t2,*rs;
   double dist, dist2, thresh, thresh_lim, thresh2, thresh3, signal1, signal2;
@@ -56,6 +56,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   // A guess on the number of elements needed
   nzmax=(mwSize)ceil((double)m1*(double)m2*0.1);
   nzstep=(mwSize)__MAX__(ceil((double)nzmax*0.25),1);
+  nzfull=m1*m2;
 
   // Prepare the output
   plhs[0] = mxCreateSparse(m1,m2,nzmax,false);
@@ -97,6 +98,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           // Here we might need to increase the number of elements in the matrix
           if (count >= nzmax){
             nzmax += nzstep;
+            nzmax = __MIN__(nzmax, nzfull);
 
             mxSetNzmax(plhs[0], nzmax);
             mxSetPr(plhs[0], mxRealloc(rs, nzmax*sizeof(double)));

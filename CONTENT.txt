@@ -52,7 +52,6 @@
   helpers/
     all2uint16.m :                  converts any type of array to uint16, rescaling it to fit the new range of values
     clean_tmp_files.m :             removes all unused data in TmpData by recursively parsing the recording files
-    extract_help_message.m :        reads the help message corresponding to the provided structure
     get_new_name.m :                returns the next available name for a file in an incrementally increasing name pattern
     get_struct.m :                  retrieve custom data structures
     min_sparse.m :                  minimum value among the assigned values in a sparse matrix
